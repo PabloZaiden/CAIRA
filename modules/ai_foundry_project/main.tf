@@ -1,11 +1,11 @@
 locals {
-  resource_group_id = provider::azapi::parse_resource_id("Microsoft.CognitiveServices/accounts", var.ai_foundry_resource_id).parent_id
+  resource_group_id = provider::azapi::parse_resource_id("Microsoft.CognitiveServices/accounts", var.ai_foundry_id).parent_id
 }
 
 resource "azapi_resource" "ai_foundry_project" {
   type                      = "Microsoft.CognitiveServices/accounts/projects@2025-06-01"
   name                      = var.project_name
-  parent_id                 = var.ai_foundry_resource_id
+  parent_id                 = var.ai_foundry_id
   location                  = var.location
   schema_validation_enabled = false
   tags                      = var.tags

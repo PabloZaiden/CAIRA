@@ -53,7 +53,7 @@ module "ai_foundry" {
   sku = var.sku # AI Foundry SKU/tier
 
   # Logical name used for AI Foundry and dependent resources
-  ai_foundry_name = module.naming.cognitive_account.name_unique
+  name = module.naming.cognitive_account.name_unique
 
   # Model deployments to make available within Foundry
   # Add/remove models as needed for your workload requirements
@@ -72,8 +72,8 @@ module "ai_foundry" {
 module "default_project" {
   source = "../../modules/ai_foundry_project"
 
-  location               = var.location
-  ai_foundry_resource_id = module.ai_foundry.ai_foundry_id
+  location      = var.location
+  ai_foundry_id = module.ai_foundry.ai_foundry_id
 }
 
 
@@ -81,8 +81,8 @@ module "default_project" {
 module "secondary_project" {
   source = "../../modules/ai_foundry_project"
 
-  location               = var.location
-  ai_foundry_resource_id = module.ai_foundry.ai_foundry_id
+  location      = var.location
+  ai_foundry_id = module.ai_foundry.ai_foundry_id
 
   project_name         = "secondary-project"
   project_display_name = "Secondary Project"

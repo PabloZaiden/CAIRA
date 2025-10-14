@@ -6,7 +6,7 @@
 
 resource "azapi_resource" "ai_foundry" {
   type                      = "Microsoft.CognitiveServices/accounts@2025-06-01"
-  name                      = var.ai_foundry_name
+  name                      = var.name
   parent_id                 = var.resource_group_id
   location                  = var.location
   schema_validation_enabled = false
@@ -29,7 +29,7 @@ resource "azapi_resource" "ai_foundry" {
       allowProjectManagement = true
 
       # Set subdomain name
-      customSubDomainName = var.ai_foundry_name
+      customSubDomainName = var.name
 
       # Network access configuration
       publicNetworkAccess = var.foundry_subnet_id != null ? "Disabled" : "Enabled"
@@ -67,7 +67,7 @@ resource "time_sleep" "wait_before_purge" {
 ## By having the module depend on this action, Terraform will destroy the module (account) first, then issue the purge.
 resource "azapi_resource_action" "purge_ai_foundry" {
   method      = "DELETE"
-  resource_id = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/providers/Microsoft.CognitiveServices/locations/${var.location}/resourceGroups/${local.resource_group_name}/deletedAccounts/${var.ai_foundry_name}"
+  resource_id = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/providers/Microsoft.CognitiveServices/locations/${var.location}/resourceGroups/${local.resource_group_name}/deletedAccounts/${var.name}"
   type        = "Microsoft.Resources/resourceGroups/deletedAccounts@2021-04-30"
   when        = "destroy"
 }

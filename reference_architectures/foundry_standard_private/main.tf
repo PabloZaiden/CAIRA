@@ -54,7 +54,7 @@ module "ai_foundry" {
   resource_group_id = local.resource_group_resource_id
   location          = var.location
   sku               = var.sku
-  ai_foundry_name   = module.naming.cognitive_account.name_unique
+  name              = module.naming.cognitive_account.name_unique
 
   model_deployments = [
     module.common_models.gpt_4_1,
@@ -75,8 +75,8 @@ module "ai_foundry" {
 module "default_project" {
   source = "../../modules/ai_foundry_project"
 
-  location               = var.location
-  ai_foundry_resource_id = module.ai_foundry.ai_foundry_id
+  location      = var.location
+  ai_foundry_id = module.ai_foundry.ai_foundry_id
 
   agent_capability_host_connections = module.capability_host_resources.connections
   tags                              = var.tags

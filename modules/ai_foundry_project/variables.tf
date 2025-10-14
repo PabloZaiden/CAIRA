@@ -2,7 +2,7 @@
 # Copyright (c) Microsoft Corporation. Licensed under the MIT license.
 # ---------------------------------------------------------------------
 
-variable "ai_foundry_resource_id" {
+variable "ai_foundry_id" {
   description = "The resource ID of the parent AI Foundry resource."
   type        = string
 }
