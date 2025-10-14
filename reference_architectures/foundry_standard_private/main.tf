@@ -56,27 +56,28 @@ module "ai_foundry" {
   sku               = var.sku
   ai_foundry_name   = module.naming.cognitive_account.name_unique
 
-  project_name         = var.project_name
-  project_description  = var.project_description
-  project_display_name = var.project_display_name
-
   model_deployments = [
     module.common_models.gpt_4_1,
     module.common_models.o4_mini,
     module.common_models.text_embedding_3_large
   ]
 
-  application_insights = {
-    resource_id       = module.application_insights.resource_id
-    name              = module.application_insights.name
-    connection_string = module.application_insights.connection_string
-  }
-
-  agent_capability_host_connections = module.capability_host_resources.connections
+  application_insights = module.application_insights
 
   # Private networking
   agents_subnet_id  = var.agents_subnet_id
   foundry_subnet_id = var.foundry_subnet_id
 
   tags = var.tags
+}
+
+# Foundry default project
+module "default_project" {
+  source = "../../modules/ai_foundry_project"
+
+  location               = var.location
+  ai_foundry_resource_id = module.ai_foundry.ai_foundry_id
+
+  agent_capability_host_connections = module.capability_host_resources.connections
+  tags                              = var.tags
 }

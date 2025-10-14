@@ -39,7 +39,7 @@ resource "azapi_resource" "ai_foundry" {
       } : null
 
       # VNet injection for Standard Agents when subnet and agent capability host connections are provided
-      networkInjections = var.agents_subnet_id != null && var.agent_capability_host_connections != null ? [
+      networkInjections = var.agents_subnet_id != null ? [
         {
           scenario                   = "agent"
           subnetArmId                = var.agents_subnet_id
@@ -82,10 +82,6 @@ locals {
 resource "azurerm_cognitive_deployment" "model_deployments" {
   for_each = local.model_deployments
 
-  depends_on = [
-    azapi_resource.ai_foundry_project_capability_host
-  ]
-
   name                 = each.value.name
   cognitive_account_id = azapi_resource.ai_foundry.id
 
@@ -101,44 +97,51 @@ resource "azurerm_cognitive_deployment" "model_deployments" {
   }
 }
 
-## Create AI Foundry project
-##
-resource "azapi_resource" "ai_foundry_project" {
-  depends_on = [
-    azapi_resource.ai_foundry,
-    azurerm_private_endpoint.ai_foundry_pe
-  ]
+resource "azapi_resource" "ai_foundry_capability_host" {
+  # Only create account-level capability host if there are connections but no agent subnet is provided
+  count = var.agents_subnet_id == null ? 1 : 0
 
-  type                      = "Microsoft.CognitiveServices/accounts/projects@2025-06-01"
-  name                      = var.project_name
+  type                      = "Microsoft.CognitiveServices/accounts/capabilityHosts@2025-04-01-preview"
+  name                      = "${azapi_resource.ai_foundry.name}-agents-capability-host"
   parent_id                 = azapi_resource.ai_foundry.id
-  location                  = var.location
   schema_validation_enabled = false
 
   body = {
-    sku = {
-      name = var.sku
-    }
-    identity = {
-      type = "SystemAssigned"
-    }
-
     properties = {
-      displayName = var.project_display_name
-      description = var.project_description
+      capabilityHostKind = "Agents"
+    }
+  }
+}
+
+# Connection to Application Insights
+resource "azapi_resource" "appinsights_connection" {
+  count = var.application_insights != null ? 1 : 0
+
+  type                      = "Microsoft.CognitiveServices/accounts/connections@2025-06-01"
+  name                      = var.application_insights.name
+  parent_id                 = azapi_resource.ai_foundry.id
+  schema_validation_enabled = false
+
+
+  body = {
+    name = var.application_insights.name
+    properties = {
+      category      = "AppInsights"
+      target        = var.application_insights.resource_id
+      authType      = "ApiKey"
+      isSharedToAll = true
+      credentials = {
+        key = var.application_insights.connection_string
+      }
+      metadata = {
+        ApiType    = "Azure"
+        ResourceId = var.application_insights.resource_id
+      }
     }
   }
 
-  response_export_values = [
-    "identity.principalId",
-    "properties.internalId"
+  depends_on = [
+    azapi_resource.ai_foundry
   ]
 }
 
-## Wait 10 seconds for the AI Foundry project system-assigned managed identity to be created
-resource "time_sleep" "wait_project_identities" {
-  depends_on = [
-    azapi_resource.ai_foundry_project
-  ]
-  create_duration = "10s"
-}

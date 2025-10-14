@@ -23,24 +23,6 @@ variable "resource_group_id" {
   type        = string
 }
 
-variable "project_name" {
-  type        = string
-  description = "The name of the AI Foundry project"
-  default     = "default-project"
-}
-
-variable "project_display_name" {
-  type        = string
-  description = "The display name of the AI Foundry project"
-  default     = "Default Project"
-}
-
-variable "project_description" {
-  type        = string
-  description = "The description of the AI Foundry project"
-  default     = "Default Project description"
-}
-
 variable "model_deployments" {
   description = "A map of model deployments to be created in the AI Foundry resource."
   type = list(object({
@@ -75,6 +57,7 @@ variable "foundry_subnet_id" {
   default     = null
 }
 
+
 variable "application_insights" {
   description = "Configuration for Application Insights connection."
   type = object({
@@ -86,29 +69,3 @@ variable "application_insights" {
   sensitive = true
 }
 
-variable "agent_capability_host_connections" {
-  type = object({
-    cosmos_db = object({
-      resource_id         = string
-      resource_group_name = string
-      name                = string
-      endpoint            = string
-      location            = string
-    })
-    ai_search = object({
-      resource_id = string
-      name        = string
-      location    = string
-    })
-    storage_account = object({
-      resource_id           = string
-      name                  = string
-      primary_blob_endpoint = string
-      location              = string
-    })
-
-    create_required_role_assignments = optional(bool, true)
-  })
-  description = "Connections for AI Foundry agents."
-  default     = null
-}
