@@ -27,21 +27,6 @@ output "ai_foundry_default_project_identity_principal_id" {
   value       = module.default_project.ai_foundry_project_identity_principal_id
 }
 
-output "ai_foundry_secondary_project_id" {
-  description = "The resource ID of the AI Foundry Project."
-  value       = module.secondary_project.ai_foundry_project_id
-}
-
-output "ai_foundry_secondary_project_name" {
-  description = "The name of the AI Foundry Project."
-  value       = module.secondary_project.ai_foundry_project_name
-}
-
-output "ai_foundry_secondary_project_identity_principal_id" {
-  description = "The principal ID of the AI Foundry project system-assigned managed identity."
-  value       = module.secondary_project.ai_foundry_project_identity_principal_id
-}
-
 output "ai_foundry_model_deployments_ids" {
   description = "The IDs of the AI Foundry model deployments."
   value       = module.ai_foundry.ai_foundry_model_deployments_ids
@@ -67,11 +52,6 @@ output "agent_capability_host_connections_1" {
   value       = module.capability_host_resources_1.connections
 }
 
-output "agent_capability_host_connections_2" {
-  description = "The connections used for the agent capability host."
-  value       = module.capability_host_resources_2.connections
-}
-
 output "application_insights_id" {
   description = "The resource ID of the Application Insights instance."
   value       = module.application_insights.resource_id
@@ -80,4 +60,24 @@ output "application_insights_id" {
 output "log_analytics_workspace_id" {
   description = "The resource ID of the Log Analytics workspace."
   value       = azurerm_log_analytics_workspace.this.id
+}
+
+output "agent_capability_host_connections_2" {
+  description = "The connections used for the agent capability host."
+  value       = module.capability_host_resources_2.connections
+}
+
+output "ai_foundry_secondary_project_id" {
+  description = "The resource ID of the AI Foundry Project."
+  value       = module.secondary_project.ai_foundry_project_id
+}
+
+output "ai_foundry_secondary_project_name" {
+  description = "The name of the AI Foundry Project."
+  value       = module.secondary_project.ai_foundry_project_name
+}
+
+output "ai_foundry_secondary_project_identity_principal_id" {
+  description = "The principal ID of the AI Foundry project system-assigned managed identity."
+  value       = module.secondary_project.ai_foundry_project_identity_principal_id
 }

@@ -57,17 +57,19 @@ output "ai_foundry_default_project_identity_principal_id" {
   value       = module.default_project.ai_foundry_project_identity_principal_id
 }
 
-output "ai_foundry_secondary_project_id" {
-  description = "The resource ID of the AI Foundry Project."
-  value       = module.secondary_project.ai_foundry_project_id
-}
+# If you enabled the secondary project in main.tf, uncomment these outputs
 
-output "ai_foundry_secondary_project_name" {
-  description = "The name of the AI Foundry Project."
-  value       = module.secondary_project.ai_foundry_project_name
-}
+# output "ai_foundry_secondary_project_id" {
+#   description = "The resource ID of the AI Foundry Project."
+#   value       = module.secondary_project.ai_foundry_project_id
+# }
 
-output "ai_foundry_secondary_project_identity_principal_id" {
-  description = "The principal ID of the AI Foundry project system-assigned managed identity."
-  value       = module.secondary_project.ai_foundry_project_identity_principal_id
-}
+# output "ai_foundry_secondary_project_name" {
+#   description = "The name of the AI Foundry Project."
+#   value       = module.secondary_project.ai_foundry_project_name
+# }
+
+# output "ai_foundry_secondary_project_identity_principal_id" {
+#   description = "The principal ID of the AI Foundry project system-assigned managed identity."
+#   value       = module.secondary_project.ai_foundry_project_identity_principal_id
+# }

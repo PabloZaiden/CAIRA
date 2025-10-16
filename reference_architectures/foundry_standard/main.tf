@@ -80,6 +80,23 @@ module "default_project" {
   tags                              = var.tags
 }
 
+# This module provisions new resources for AI Foundry agent capability host.
+# If you prefer to use existing resources for the capability host, you can use the
+# existing_resources_agent_capability_host_connections module as a drop-in replacement.
+
+# Capability host resources for the default project.
+module "capability_host_resources_1" {
+  source = "../../modules/new_resources_agent_capability_host_connections"
+
+  location                   = var.location
+  resource_group_resource_id = local.resource_group_resource_id
+  tags                       = var.tags
+
+  cosmos_db_account_name = module.naming.cosmosdb_account.name_unique
+  storage_account_name   = module.naming.storage_account.name_unique
+  ai_search_name         = module.naming.search_service.name_unique
+}
+
 # Foundry secondary project
 module "secondary_project" {
   source = "../../modules/ai_foundry_project"
@@ -95,23 +112,7 @@ module "secondary_project" {
   tags                              = var.tags
 }
 
-
-# This module provisions new resources for AI Foundry agent capability host.
-# If you prefer to use existing resources for the capability host, you can use the
-# existing_resources_agent_capability_host_connections module as a drop-in replacement.
-
-module "capability_host_resources_1" {
-  source = "../../modules/new_resources_agent_capability_host_connections"
-
-  location                   = var.location
-  resource_group_resource_id = local.resource_group_resource_id
-  tags                       = var.tags
-
-  cosmos_db_account_name = module.naming.cosmosdb_account.name_unique
-  storage_account_name   = module.naming.storage_account.name_unique
-  ai_search_name         = module.naming.search_service.name_unique
-}
-
+# Capability host resources for the secondary project.
 module "capability_host_resources_2" {
   source = "../../modules/new_resources_agent_capability_host_connections"
 

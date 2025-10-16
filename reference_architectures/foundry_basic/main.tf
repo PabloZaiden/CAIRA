@@ -76,15 +76,17 @@ module "default_project" {
   ai_foundry_id = module.ai_foundry.ai_foundry_id
 }
 
+# If you need a second project in your Foundry environment, uncomment
+# this block and customize the project name, display name, and description
 
 # Foundry secondary project
-module "secondary_project" {
-  source = "../../modules/ai_foundry_project"
+# module "secondary_project" {
+#   source = "../../modules/ai_foundry_project"
 
-  location      = var.location
-  ai_foundry_id = module.ai_foundry.ai_foundry_id
+#   location      = var.location
+#   ai_foundry_id = module.ai_foundry.ai_foundry_id
 
-  project_name         = "secondary-project"
-  project_display_name = "Secondary Project"
-  project_description  = "Secondary project"
-}
+#   project_name         = "secondary-project"
+#   project_display_name = "Secondary Project"
+#   project_description  = "Secondary project"
+# }
