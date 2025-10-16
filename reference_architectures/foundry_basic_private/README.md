@@ -219,7 +219,6 @@ For issues and questions:
 | common\_models        | ../../modules/common_models              | n/a     |
 | default\_project      | ../../modules/ai_foundry_project         | n/a     |
 | naming                | Azure/naming/azurerm                     | 0.4.2   |
-| secondary\_project    | ../../modules/ai_foundry_project         | n/a     |
 
 ## Resources
 
@@ -242,19 +241,16 @@ For issues and questions:
 
 ## Outputs
 
-| Name                                                     | Description                                                                  |
-|----------------------------------------------------------|------------------------------------------------------------------------------|
-| ai\_foundry\_default\_project\_id                        | The resource ID of the AI Foundry Project.                                   |
-| ai\_foundry\_default\_project\_identity\_principal\_id   | The principal ID of the AI Foundry project system-assigned managed identity. |
-| ai\_foundry\_default\_project\_name                      | The name of the AI Foundry Project.                                          |
-| ai\_foundry\_id                                          | The resource ID of the AI Foundry account.                                   |
-| ai\_foundry\_model\_deployments\_ids                     | The IDs of the AI Foundry model deployments.                                 |
-| ai\_foundry\_name                                        | The name of the AI Foundry account.                                          |
-| ai\_foundry\_secondary\_project\_id                      | The resource ID of the AI Foundry Project.                                   |
-| ai\_foundry\_secondary\_project\_identity\_principal\_id | The principal ID of the AI Foundry project system-assigned managed identity. |
-| ai\_foundry\_secondary\_project\_name                    | The name of the AI Foundry Project.                                          |
-| application\_insights\_id                                | The resource ID of the Application Insights instance.                        |
-| log\_analytics\_workspace\_id                            | The resource ID of the Log Analytics workspace.                              |
-| resource\_group\_id                                      | The resource ID of the resource group.                                       |
-| resource\_group\_name                                    | The name of the resource group.                                              |
+| Name                                                   | Description                                                                  |
+|--------------------------------------------------------|------------------------------------------------------------------------------|
+| ai\_foundry\_default\_project\_id                      | The resource ID of the AI Foundry Project.                                   |
+| ai\_foundry\_default\_project\_identity\_principal\_id | The principal ID of the AI Foundry project system-assigned managed identity. |
+| ai\_foundry\_default\_project\_name                    | The name of the AI Foundry Project.                                          |
+| ai\_foundry\_id                                        | The resource ID of the AI Foundry account.                                   |
+| ai\_foundry\_model\_deployments\_ids                   | The IDs of the AI Foundry model deployments.                                 |
+| ai\_foundry\_name                                      | The name of the AI Foundry account.                                          |
+| application\_insights\_id                              | The resource ID of the Application Insights instance.                        |
+| log\_analytics\_workspace\_id                          | The resource ID of the Log Analytics workspace.                              |
+| resource\_group\_id                                    | The resource ID of the resource group.                                       |
+| resource\_group\_name                                  | The name of the resource group.                                              |
 <!-- END_TF_DOCS -->
