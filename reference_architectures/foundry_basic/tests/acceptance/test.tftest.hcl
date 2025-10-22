@@ -8,6 +8,11 @@
 # These tests validate the foundry_basic configuration using plan-only operations.
 # They ensure variables, conditional logic, and resource planning work correctly
 # without actually deploying Azure resources.
+# =============================================================================
+# Adds parallelism to test execution
+test {
+  parallel = true
+}
 
 # Test 1: Default Configuration Validation
 # Verifies that the foundry_basic architecture works with minimal configuration

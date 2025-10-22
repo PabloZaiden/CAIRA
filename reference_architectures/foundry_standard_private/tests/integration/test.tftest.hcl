@@ -10,12 +10,44 @@
 # with the expected properties, private networking configurations, and existing
 # capability host resource integrations.
 #
-# EFFICIENCY NOTE: This uses a single apply operation to minimize cost and time
+# APPROACH: Uses data sources to lookup durable infrastructure pool and sets up ephemeral
+# agent subnet for isolated test runs.
+#
+# ENVIRONMENT VARIABLES REQUIRED (set via TF_VAR_ prefix):
+# - TF_VAR_fsp_resource_group_name  : Resource group containing durable FSP pool (e.g., rg-fstdprv-durable)
+# - TF_VAR_fsp_vnet_name            : VNet name in the FSP pool (e.g., vnet-fstdprv-durable)
+# - TF_VAR_fsp_cosmosdb_account_name: Cosmos DB account name (e.g., cosmos-fstdprv-durable)
+# - TF_VAR_fsp_storage_account_name : Storage account name (e.g., stfstdprvdurable)
+# - TF_VAR_fsp_search_service_name  : AI Search service name (e.g., srch-fstdprv-durable)
+# =============================================================================
 
-# Setup the networking infrastructure and capability host resources needed for testing
-run "setup" {
+provider "azurerm" {
+  storage_use_azuread = true
+  features {}
+}
+
+# Lookup the durable infrastructure pool (plan-only, fast lookup)
+run "setup_data" {
+  command = plan
+
   module {
-    source = "./tests/integration/setup"
+    source = "./tests/integration/data"
+  }
+}
+
+# Create ephemeral agent subnet for this test run
+run "setup_agent" {
+  command = apply
+
+  module {
+    source = "./tests/integration/setup_ephemeral"
+  }
+
+  variables {
+    test_run_id               = formatdate("YYYYMMDDHHmmss", timestamp())
+    vnet_name                 = run.setup_data.virtual_network_id != null ? split("/", run.setup_data.virtual_network_id)[8] : ""
+    vnet_resource_group       = run.setup_data.resource_group_name
+    subnet_destroy_time_sleep = "5m"
   }
 }
 
@@ -24,12 +56,12 @@ run "testint_foundry_standard_private_comprehensive" {
 
   variables {
     location                                   = "swedencentral"
-    foundry_subnet_id                          = run.setup.connection.id
-    agents_subnet_id                           = run.setup.agent.id
-    existing_capability_host_resource_group_id = run.setup.resource_group_id
-    existing_cosmosdb_account_name             = run.setup.cosmosdb_account_name
-    existing_storage_account_name              = run.setup.storage_account_name
-    existing_search_service_name               = run.setup.search_service_name
+    foundry_subnet_id                          = run.setup_data.connection.id
+    agents_subnet_id                           = run.setup_agent.agent_subnet_id
+    existing_capability_host_resource_group_id = run.setup_data.resource_group_id
+    existing_cosmosdb_account_name             = run.setup_data.cosmosdb_account_name
+    existing_storage_account_name              = run.setup_data.storage_account_name
+    existing_search_service_name               = run.setup_data.search_service_name
     project_name                               = "integration-test-standard-private-project"
     project_display_name                       = "Integration Test Standard Private Project"
     project_description                        = "Standard private project created for integration testing validation"
@@ -241,7 +273,7 @@ run "testint_foundry_standard_private_comprehensive" {
 
   # Verify Cosmos DB is in the setup resource group (existing resource)
   assert {
-    condition     = strcontains(output.agent_capability_host_connections.cosmos_db.resource_id, run.setup.resource_group_name)
+    condition     = strcontains(output.agent_capability_host_connections.cosmos_db.resource_id, run.setup_data.resource_group_name)
     error_message = "Cosmos DB should be in the setup resource group (existing resource)"
   }
 
@@ -271,7 +303,7 @@ run "testint_foundry_standard_private_comprehensive" {
 
   # Verify Storage Account is in the setup resource group (existing resource)
   assert {
-    condition     = strcontains(output.agent_capability_host_connections.storage_account.resource_id, run.setup.resource_group_name)
+    condition     = strcontains(output.agent_capability_host_connections.storage_account.resource_id, run.setup_data.resource_group_name)
     error_message = "Storage Account should be in the setup resource group (existing resource)"
   }
 
@@ -289,23 +321,23 @@ run "testint_foundry_standard_private_comprehensive" {
 
   # Verify AI Search is in the setup resource group (existing resource)
   assert {
-    condition     = strcontains(output.agent_capability_host_connections.ai_search.resource_id, run.setup.resource_group_name)
+    condition     = strcontains(output.agent_capability_host_connections.ai_search.resource_id, run.setup_data.resource_group_name)
     error_message = "AI Search should be in the setup resource group (existing resource)"
   }
 
   # Verify capability host resource names match the setup outputs
   assert {
-    condition     = strcontains(output.agent_capability_host_connections.cosmos_db.resource_id, run.setup.cosmosdb_account_name)
+    condition     = strcontains(output.agent_capability_host_connections.cosmos_db.resource_id, run.setup_data.cosmosdb_account_name)
     error_message = "Cosmos DB resource ID should contain the setup Cosmos DB account name"
   }
 
   assert {
-    condition     = strcontains(output.agent_capability_host_connections.storage_account.resource_id, run.setup.storage_account_name)
+    condition     = strcontains(output.agent_capability_host_connections.storage_account.resource_id, run.setup_data.storage_account_name)
     error_message = "Storage Account resource ID should contain the setup Storage Account name"
   }
 
   assert {
-    condition     = strcontains(output.agent_capability_host_connections.ai_search.resource_id, run.setup.search_service_name)
+    condition     = strcontains(output.agent_capability_host_connections.ai_search.resource_id, run.setup_data.search_service_name)
     error_message = "AI Search resource ID should contain the setup AI Search service name"
   }
 
@@ -327,12 +359,12 @@ run "testint_foundry_standard_private_comprehensive" {
 
   # Verify the subnet IDs match what was created in setup
   assert {
-    condition     = var.foundry_subnet_id == run.setup.connection.id
+    condition     = var.foundry_subnet_id == run.setup_data.connection.id
     error_message = "Foundry subnet ID should match the setup module connection subnet output"
   }
 
   assert {
-    condition     = var.agents_subnet_id == run.setup.agent.id
+    condition     = var.agents_subnet_id == run.setup_agent.agent_subnet_id
     error_message = "Agents subnet ID should match the setup module agent subnet output"
   }
 
@@ -349,33 +381,33 @@ run "testint_foundry_standard_private_comprehensive" {
 
   # Verify setup networking resources are accessible
   assert {
-    condition     = run.setup.resource_group_name != null && run.setup.resource_group_name != ""
+    condition     = run.setup_data.resource_group_name != null && run.setup_data.resource_group_name != ""
     error_message = "Setup resource group name should be available"
   }
 
   assert {
-    condition     = run.setup.virtual_network_id != null && run.setup.virtual_network_id != ""
+    condition     = run.setup_data.virtual_network_id != null && run.setup_data.virtual_network_id != ""
     error_message = "Setup virtual network ID should be available"
   }
 
   # Verify private DNS zones were created in setup
   assert {
-    condition     = run.setup.private_dns_zones != null
+    condition     = run.setup_data.private_dns_zones != null
     error_message = "Private DNS zones should be created in setup"
   }
 
   assert {
-    condition     = run.setup.private_dns_zones.cognitive != null && run.setup.private_dns_zones.cognitive == "privatelink.cognitiveservices.azure.com"
+    condition     = run.setup_data.private_dns_zones.cognitive != null && run.setup_data.private_dns_zones.cognitive == "privatelink.cognitiveservices.azure.com"
     error_message = "Cognitive Services private DNS zone should be configured"
   }
 
   assert {
-    condition     = run.setup.private_dns_zones.ai_services != null && run.setup.private_dns_zones.ai_services == "privatelink.services.ai.azure.com"
+    condition     = run.setup_data.private_dns_zones.ai_services != null && run.setup_data.private_dns_zones.ai_services == "privatelink.services.ai.azure.com"
     error_message = "AI Services private DNS zone should be configured"
   }
 
   assert {
-    condition     = run.setup.private_dns_zones.openai != null && run.setup.private_dns_zones.openai == "privatelink.openai.azure.com"
+    condition     = run.setup_data.private_dns_zones.openai != null && run.setup_data.private_dns_zones.openai == "privatelink.openai.azure.com"
     error_message = "OpenAI private DNS zone should be configured"
   }
 
@@ -385,23 +417,23 @@ run "testint_foundry_standard_private_comprehensive" {
 
   # Verify existing capability host resource group ID variable was set correctly
   assert {
-    condition     = var.existing_capability_host_resource_group_id == run.setup.resource_group_id
+    condition     = var.existing_capability_host_resource_group_id == run.setup_data.resource_group_id
     error_message = "Existing capability host resource group ID should match setup output"
   }
 
   # Verify existing resource name variables were set correctly
   assert {
-    condition     = var.existing_cosmosdb_account_name == run.setup.cosmosdb_account_name
+    condition     = var.existing_cosmosdb_account_name == run.setup_data.cosmosdb_account_name
     error_message = "Existing Cosmos DB account name should match setup output"
   }
 
   assert {
-    condition     = var.existing_storage_account_name == run.setup.storage_account_name
+    condition     = var.existing_storage_account_name == run.setup_data.storage_account_name
     error_message = "Existing Storage Account name should match setup output"
   }
 
   assert {
-    condition     = var.existing_search_service_name == run.setup.search_service_name
+    condition     = var.existing_search_service_name == run.setup_data.search_service_name
     error_message = "Existing AI Search service name should match setup output"
   }
 
@@ -501,24 +533,24 @@ run "testint_foundry_standard_private_comprehensive" {
 
   # Verify setup resources are in different resource group (separation of concerns)
   assert {
-    condition     = run.setup.resource_group_name != azurerm_resource_group.this[0].name
+    condition     = run.setup_data.resource_group_name != azurerm_resource_group.this[0].name
     error_message = "Setup resources should be in a separate resource group from the main deployment"
   }
 
   # Verify setup virtual network is properly referenced in subnet IDs
   assert {
-    condition     = length(regexall(run.setup.resource_group_name, var.foundry_subnet_id)) > 0
+    condition     = length(regexall(run.setup_data.resource_group_name, var.foundry_subnet_id)) > 0
     error_message = "Foundry subnet ID should reference the setup resource group"
   }
 
   assert {
-    condition     = length(regexall(run.setup.resource_group_name, var.agents_subnet_id)) > 0
+    condition     = length(regexall(run.setup_data.resource_group_name, var.agents_subnet_id)) > 0
     error_message = "Agents subnet ID should reference the setup resource group"
   }
 
   # Verify capability host resources are in setup resource group
   assert {
-    condition     = strcontains(var.existing_capability_host_resource_group_id, run.setup.resource_group_name)
+    condition     = strcontains(var.existing_capability_host_resource_group_id, run.setup_data.resource_group_name)
     error_message = "Existing capability host resource group ID should reference the setup resource group"
   }
 }

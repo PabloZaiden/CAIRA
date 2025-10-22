@@ -9,19 +9,29 @@
 # They ensure variables, conditional logic, and resource planning work correctly
 # including proper private networking setup.
 #
-# APPROACH: Uses the same networking setup as integration tests to provide
-# the required private DNS zones and VNet infrastructure for plan validation.
+# APPROACH: Uses data sources to lookup durable infrastructure pool instead of
+# creating ephemeral resources. This eliminates 8-12 minute setup overhead per test run.
+#
+# ENVIRONMENT VARIABLES REQUIRED (set via TF_VAR_ prefix):
+# - TF_VAR_fbscprv_resource_group_name  : Resource group containing durable FBP pool (e.g., rg-fbscprv-durable)
+# - TF_VAR_fbscprv_vnet_name            : VNet name in the FBP pool (e.g., vnet-fbscprv-durable)
+# - TF_VAR_fbscprv_cosmosdb_account_name: Cosmos DB account name (e.g., cosmos-fbscprv-durable)
+# - TF_VAR_fbscprv_storage_account_name : Storage account name (e.g., stfbscprvdurable)
+# - TF_VAR_fbscprv_search_service_name  : AI Search service name (e.g., srch-fbscprv-durable)
+# =============================================================================
 
 provider "azurerm" {
+  storage_use_azuread = true
   features {}
 }
 
-# Setup the networking infrastructure needed for private connectivity validation
-run "setup" {
-  command = apply
+# Lookup the durable infrastructure pool instead of creating ephemeral resources
+# The data module will use TF_VAR_ environment variables for resource names
+run "data" {
+  command = plan
 
   module {
-    source = "./tests/integration/setup"
+    source = "./tests/integration/data"
   }
 }
 
@@ -32,7 +42,7 @@ run "testacc_foundry_basic_private_default_config" {
 
   variables {
     location          = "swedencentral"
-    foundry_subnet_id = run.setup.connection.id
+    foundry_subnet_id = run.data.connection.id
   }
 
   # Verify location variable is properly set
@@ -53,10 +63,10 @@ run "testacc_foundry_basic_private_default_config" {
     error_message = "Foundry subnet ID should follow Azure subnet resource ID format"
   }
 
-  # Verify the subnet ID matches what was created in setup
+  # Verify the subnet ID matches what was created in data lookup
   assert {
-    condition     = var.foundry_subnet_id == run.setup.connection.id
-    error_message = "Foundry subnet ID should match the setup module output"
+    condition     = var.foundry_subnet_id == run.data.connection.id
+    error_message = "Foundry subnet ID should match the data module output"
   }
 
   # Verify default behavior: new resource group should be created
@@ -91,7 +101,7 @@ run "testacc_foundry_basic_private_existing_rg" {
 
   variables {
     location                   = "swedencentral"
-    foundry_subnet_id          = run.setup.connection.id
+    foundry_subnet_id          = run.data.connection.id
     resource_group_resource_id = "/subscriptions/12345678-1234-1234-1234-123456789012/resourceGroups/existing-rg"
   }
 
@@ -121,7 +131,7 @@ run "testacc_foundry_basic_private_custom_project" {
 
   variables {
     location             = "swedencentral"
-    foundry_subnet_id    = run.setup.connection.id
+    foundry_subnet_id    = run.data.connection.id
     project_name         = "test-private-project"
     project_display_name = "Test Private Project Display"
     project_description  = "Test private project description for validation"
@@ -159,7 +169,7 @@ run "testacc_foundry_basic_private_sku_validation" {
 
   variables {
     location          = "swedencentral"
-    foundry_subnet_id = run.setup.connection.id
+    foundry_subnet_id = run.data.connection.id
     sku               = "Basic"
   }
 
@@ -180,7 +190,7 @@ run "testacc_foundry_basic_private_with_tags" {
 
   variables {
     location          = "swedencentral"
-    foundry_subnet_id = run.setup.connection.id
+    foundry_subnet_id = run.data.connection.id
     tags = {
       environment     = "test"
       owner           = "terraform"
@@ -222,7 +232,7 @@ run "testacc_foundry_basic_private_telemetry_disabled" {
 
   variables {
     location          = "swedencentral"
-    foundry_subnet_id = run.setup.connection.id
+    foundry_subnet_id = run.data.connection.id
     enable_telemetry  = false
   }
 
@@ -246,7 +256,7 @@ run "testacc_foundry_basic_private_resource_planning" {
 
   variables {
     location          = "swedencentral"
-    foundry_subnet_id = run.setup.connection.id
+    foundry_subnet_id = run.data.connection.id
   }
 
   # Verify exactly one resource group is planned for creation
@@ -275,7 +285,7 @@ run "testacc_foundry_basic_private_null_tags" {
 
   variables {
     location          = "swedencentral"
-    foundry_subnet_id = run.setup.connection.id
+    foundry_subnet_id = run.data.connection.id
     tags              = null
   }
 
@@ -293,7 +303,7 @@ run "testacc_foundry_basic_private_different_location" {
 
   variables {
     location          = "eastus"
-    foundry_subnet_id = run.setup.connection.id
+    foundry_subnet_id = run.data.connection.id
   }
 
   # Verify location customization
@@ -316,7 +326,7 @@ run "testacc_foundry_basic_private_defaults_validation" {
 
   variables {
     location          = "swedencentral"
-    foundry_subnet_id = run.setup.connection.id
+    foundry_subnet_id = run.data.connection.id
     # Intentionally not setting other variables to test defaults
   }
 
@@ -349,7 +359,7 @@ run "testacc_foundry_basic_private_networking_validation" {
 
   variables {
     location          = "swedencentral"
-    foundry_subnet_id = run.setup.connection.id
+    foundry_subnet_id = run.data.connection.id
   }
 
   # Verify foundry_subnet_id is properly parsed and used
@@ -383,7 +393,7 @@ run "testacc_foundry_basic_private_naming_validation" {
 
   variables {
     location          = "swedencentral"
-    foundry_subnet_id = run.setup.connection.id
+    foundry_subnet_id = run.data.connection.id
   }
 
   # Verify resource group is planned for creation (name will be computed)

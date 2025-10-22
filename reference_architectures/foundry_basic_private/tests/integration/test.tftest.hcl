@@ -9,12 +9,33 @@
 # configuration and verifying that all Azure resources are created correctly
 # with the expected properties and private networking configurations.
 #
-# EFFICIENCY NOTE: This uses a single apply operation to minimize cost and time
+# APPROACH: Uses data sources to lookup durable infrastructure pool instead of
+# creating ephemeral resources. This eliminates 8-12 minute setup overhead per test run.
+#
+# ENVIRONMENT VARIABLES REQUIRED (set via TF_VAR_ prefix):
+# - TF_VAR_fbp_resource_group_name  : Resource group containing durable FBP pool (e.g., rg-fbscprv-durable)
+# - TF_VAR_fbp_vnet_name            : VNet name in the FBP pool (e.g., vnet-fbscprv-durable)
+# - TF_VAR_fbp_cosmosdb_account_name: Cosmos DB account name (e.g., cosmos-fbscprv-durable)
+# - TF_VAR_fbp_storage_account_name : Storage account name (e.g., stfbscprvdurable)
+# - TF_VAR_fbp_search_service_name  : AI Search service name (e.g., srch-fbscprv-durable)
+# =============================================================================
 
-# Setup the networking infrastructure needed for private connectivity
-run "setup" {
+provider "azurerm" {
+  storage_use_azuread = true
+  features {
+    resource_group {
+      prevent_deletion_if_contains_resources = false
+    }
+  }
+}
+
+# Lookup the durable infrastructure pool instead of creating ephemeral resources
+# The data module will use TF_VAR_ environment variables for resource names
+run "data" {
+  command = plan
+
   module {
-    source = "./tests/integration/setup"
+    source = "./tests/integration/data"
   }
 }
 
@@ -23,7 +44,7 @@ run "testint_foundry_basic_private_comprehensive" {
 
   variables {
     location             = "swedencentral"
-    foundry_subnet_id    = run.setup.connection.id
+    foundry_subnet_id    = run.data.connection.id
     project_name         = "integration-test-private-project"
     project_display_name = "Integration Test Private Project"
     project_description  = "Private project created for integration testing validation"
@@ -205,7 +226,7 @@ run "testint_foundry_basic_private_comprehensive" {
 
   # Verify the subnet ID matches what was created in setup
   assert {
-    condition     = var.foundry_subnet_id == run.setup.connection.id
+    condition     = var.foundry_subnet_id == run.data.connection.id
     error_message = "Foundry subnet ID should match the setup module output"
   }
 
@@ -217,12 +238,12 @@ run "testint_foundry_basic_private_comprehensive" {
 
   # Verify setup networking resources are accessible
   assert {
-    condition     = run.setup.resource_group_name != null && run.setup.resource_group_name != ""
+    condition     = run.data.resource_group_name != null && run.data.resource_group_name != ""
     error_message = "Setup resource group name should be available"
   }
 
   assert {
-    condition     = run.setup.virtual_network_id != null && run.setup.virtual_network_id != ""
+    condition     = run.data.virtual_network_id != null && run.data.virtual_network_id != ""
     error_message = "Setup virtual network ID should be available"
   }
 
@@ -322,15 +343,13 @@ run "testint_foundry_basic_private_comprehensive" {
 
   # Verify setup resources are in different resource group (separation of concerns)
   assert {
-    condition     = run.setup.resource_group_name != azurerm_resource_group.this[0].name
+    condition     = run.data.resource_group_name != azurerm_resource_group.this[0].name
     error_message = "Setup resources should be in a separate resource group from the main deployment"
   }
 
   # Verify setup virtual network is properly referenced
   assert {
-    condition     = length(regexall(run.setup.resource_group_name, var.foundry_subnet_id)) > 0
+    condition     = length(regexall(run.data.resource_group_name, var.foundry_subnet_id)) > 0
     error_message = "Foundry subnet ID should reference the setup resource group"
   }
 }
-
-

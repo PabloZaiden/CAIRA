@@ -9,37 +9,46 @@
 # They ensure variables, conditional logic, and resource planning work correctly
 # including proper private networking setup and existing capability host resource references.
 #
-# APPROACH: Uses the same networking setup as integration tests to provide
-# the required private DNS zones, VNet infrastructure, and existing capability
-# host resources (Cosmos DB, Storage, AI Search) for plan validation.
+# APPROACH: Uses data sources to lookup durable infrastructure pool instead of
+# creating ephemeral resources. This eliminates 8-12 minute setup overhead per test run.
+#
+# ENVIRONMENT VARIABLES REQUIRED (set via TF_VAR_ prefix):
+# - TF_VAR_fsp_resource_group_name  : Resource group containing durable FSP pool (e.g., rg-fsp-durable)
+# - TF_VAR_fsp_vnet_name            : VNet name in the FSP pool (e.g., vnet-fsp-durable)
+# - TF_VAR_fsp_cosmosdb_account_name: Cosmos DB account name (e.g., cosmos-fsp-durable)
+# - TF_VAR_fsp_storage_account_name : Storage account name (e.g., stfspdurable)
+# - TF_VAR_fsp_search_service_name  : AI Search service name (e.g., srch-fsp-durable)
+# =============================================================================
 
 provider "azurerm" {
   storage_use_azuread = true
   features {}
 }
 
-# Setup the networking infrastructure and capability host resources needed for testing
-run "setup" {
-  command = apply
+# Lookup the durable infrastructure pool instead of creating ephemeral resources
+# The data module will use TF_VAR_ environment variables for resource names
+run "data" {
+  command = plan
 
   module {
-    source = "./tests/integration/setup"
+    source = "./tests/integration/data"
   }
 }
 
 # Test 1: Default Configuration with Private Networking and Existing Resources
 # Verifies that the foundry_standard_private architecture works with minimal configuration
 run "testacc_foundry_standard_private_default_config" {
-  command = plan
+  command  = plan
+  parallel = true
 
   variables {
     location                                   = "swedencentral"
-    foundry_subnet_id                          = run.setup.connection.id
-    agents_subnet_id                           = run.setup.agent.id
-    existing_capability_host_resource_group_id = run.setup.resource_group_id
-    existing_cosmosdb_account_name             = run.setup.cosmosdb_account_name
-    existing_storage_account_name              = run.setup.storage_account_name
-    existing_search_service_name               = run.setup.search_service_name
+    foundry_subnet_id                          = run.data.connection.id
+    agents_subnet_id                           = run.data.agent.id
+    existing_capability_host_resource_group_id = run.data.resource_group_id
+    existing_cosmosdb_account_name             = run.data.cosmosdb_account_name
+    existing_storage_account_name              = run.data.storage_account_name
+    existing_search_service_name               = run.data.search_service_name
   }
 
   # Verify location variable is properly set
@@ -120,16 +129,17 @@ run "testacc_foundry_standard_private_default_config" {
 # Test 2: Existing Resource Group Configuration
 # Validates the conditional logic for using an existing resource group
 run "testacc_foundry_standard_private_existing_rg" {
-  command = plan
+  command  = plan
+  parallel = true
 
   variables {
     location                                   = "swedencentral"
-    foundry_subnet_id                          = run.setup.connection.id
-    agents_subnet_id                           = run.setup.agent.id
-    existing_capability_host_resource_group_id = run.setup.resource_group_id
-    existing_cosmosdb_account_name             = run.setup.cosmosdb_account_name
-    existing_storage_account_name              = run.setup.storage_account_name
-    existing_search_service_name               = run.setup.search_service_name
+    foundry_subnet_id                          = run.data.connection.id
+    agents_subnet_id                           = run.data.agent.id
+    existing_capability_host_resource_group_id = run.data.resource_group_id
+    existing_cosmosdb_account_name             = run.data.cosmosdb_account_name
+    existing_storage_account_name              = run.data.storage_account_name
+    existing_search_service_name               = run.data.search_service_name
     resource_group_resource_id                 = "/subscriptions/12345678-1234-1234-1234-123456789012/resourceGroups/existing-rg"
   }
 
@@ -155,16 +165,17 @@ run "testacc_foundry_standard_private_existing_rg" {
 # Test 3: Project Customization Validation
 # Ensures all project-related variables can be customized properly
 run "testacc_foundry_standard_private_custom_project" {
-  command = plan
+  command  = plan
+  parallel = true
 
   variables {
     location                                   = "swedencentral"
-    foundry_subnet_id                          = run.setup.connection.id
-    agents_subnet_id                           = run.setup.agent.id
-    existing_capability_host_resource_group_id = run.setup.resource_group_id
-    existing_cosmosdb_account_name             = run.setup.cosmosdb_account_name
-    existing_storage_account_name              = run.setup.storage_account_name
-    existing_search_service_name               = run.setup.search_service_name
+    foundry_subnet_id                          = run.data.connection.id
+    agents_subnet_id                           = run.data.agent.id
+    existing_capability_host_resource_group_id = run.data.resource_group_id
+    existing_cosmosdb_account_name             = run.data.cosmosdb_account_name
+    existing_storage_account_name              = run.data.storage_account_name
+    existing_search_service_name               = run.data.search_service_name
     project_name                               = "test-standard-private-project"
     project_display_name                       = "Test Standard Private Project Display"
     project_description                        = "Test standard private project description for validation"
@@ -198,16 +209,17 @@ run "testacc_foundry_standard_private_custom_project" {
 # Test 4: SKU Configuration Validation
 # Tests different SKU options and ensures they're properly applied
 run "testacc_foundry_standard_private_sku_validation" {
-  command = plan
+  command  = plan
+  parallel = true
 
   variables {
     location                                   = "swedencentral"
-    foundry_subnet_id                          = run.setup.connection.id
-    agents_subnet_id                           = run.setup.agent.id
-    existing_capability_host_resource_group_id = run.setup.resource_group_id
-    existing_cosmosdb_account_name             = run.setup.cosmosdb_account_name
-    existing_storage_account_name              = run.setup.storage_account_name
-    existing_search_service_name               = run.setup.search_service_name
+    foundry_subnet_id                          = run.data.connection.id
+    agents_subnet_id                           = run.data.agent.id
+    existing_capability_host_resource_group_id = run.data.resource_group_id
+    existing_cosmosdb_account_name             = run.data.cosmosdb_account_name
+    existing_storage_account_name              = run.data.storage_account_name
+    existing_search_service_name               = run.data.search_service_name
     sku                                        = "Basic"
   }
 
@@ -224,16 +236,17 @@ run "testacc_foundry_standard_private_sku_validation" {
 # Test 5: Tags Application Validation
 # Ensures tags are properly applied and inherited by resources
 run "testacc_foundry_standard_private_with_tags" {
-  command = plan
+  command  = plan
+  parallel = true
 
   variables {
     location                                   = "swedencentral"
-    foundry_subnet_id                          = run.setup.connection.id
-    agents_subnet_id                           = run.setup.agent.id
-    existing_capability_host_resource_group_id = run.setup.resource_group_id
-    existing_cosmosdb_account_name             = run.setup.cosmosdb_account_name
-    existing_storage_account_name              = run.setup.storage_account_name
-    existing_search_service_name               = run.setup.search_service_name
+    foundry_subnet_id                          = run.data.connection.id
+    agents_subnet_id                           = run.data.agent.id
+    existing_capability_host_resource_group_id = run.data.resource_group_id
+    existing_cosmosdb_account_name             = run.data.cosmosdb_account_name
+    existing_storage_account_name              = run.data.storage_account_name
+    existing_search_service_name               = run.data.search_service_name
     tags = {
       environment      = "test"
       owner            = "terraform"
@@ -279,16 +292,17 @@ run "testacc_foundry_standard_private_with_tags" {
 # Test 6: Telemetry Configuration
 # Validates telemetry can be disabled (important for compliance scenarios)
 run "testacc_foundry_standard_private_telemetry_disabled" {
-  command = plan
+  command  = plan
+  parallel = true
 
   variables {
     location                                   = "swedencentral"
-    foundry_subnet_id                          = run.setup.connection.id
-    agents_subnet_id                           = run.setup.agent.id
-    existing_capability_host_resource_group_id = run.setup.resource_group_id
-    existing_cosmosdb_account_name             = run.setup.cosmosdb_account_name
-    existing_storage_account_name              = run.setup.storage_account_name
-    existing_search_service_name               = run.setup.search_service_name
+    foundry_subnet_id                          = run.data.connection.id
+    agents_subnet_id                           = run.data.agent.id
+    existing_capability_host_resource_group_id = run.data.resource_group_id
+    existing_cosmosdb_account_name             = run.data.cosmosdb_account_name
+    existing_storage_account_name              = run.data.storage_account_name
+    existing_search_service_name               = run.data.search_service_name
     enable_telemetry                           = false
   }
 
@@ -308,16 +322,17 @@ run "testacc_foundry_standard_private_telemetry_disabled" {
 # Test 7: Resource Planning Validation
 # Ensures resources are properly planned for creation
 run "testacc_foundry_standard_private_resource_planning" {
-  command = plan
+  command  = plan
+  parallel = true
 
   variables {
     location                                   = "swedencentral"
-    foundry_subnet_id                          = run.setup.connection.id
-    agents_subnet_id                           = run.setup.agent.id
-    existing_capability_host_resource_group_id = run.setup.resource_group_id
-    existing_cosmosdb_account_name             = run.setup.cosmosdb_account_name
-    existing_storage_account_name              = run.setup.storage_account_name
-    existing_search_service_name               = run.setup.search_service_name
+    foundry_subnet_id                          = run.data.connection.id
+    agents_subnet_id                           = run.data.agent.id
+    existing_capability_host_resource_group_id = run.data.resource_group_id
+    existing_cosmosdb_account_name             = run.data.cosmosdb_account_name
+    existing_storage_account_name              = run.data.storage_account_name
+    existing_search_service_name               = run.data.search_service_name
   }
 
   # Verify exactly one resource group is planned for creation
@@ -342,16 +357,17 @@ run "testacc_foundry_standard_private_resource_planning" {
 # Test 8: Edge Case - Empty Tags
 # Validates behavior when tags are explicitly set to null
 run "testacc_foundry_standard_private_null_tags" {
-  command = plan
+  command  = plan
+  parallel = true
 
   variables {
     location                                   = "swedencentral"
-    foundry_subnet_id                          = run.setup.connection.id
-    agents_subnet_id                           = run.setup.agent.id
-    existing_capability_host_resource_group_id = run.setup.resource_group_id
-    existing_cosmosdb_account_name             = run.setup.cosmosdb_account_name
-    existing_storage_account_name              = run.setup.storage_account_name
-    existing_search_service_name               = run.setup.search_service_name
+    foundry_subnet_id                          = run.data.connection.id
+    agents_subnet_id                           = run.data.agent.id
+    existing_capability_host_resource_group_id = run.data.resource_group_id
+    existing_cosmosdb_account_name             = run.data.cosmosdb_account_name
+    existing_storage_account_name              = run.data.storage_account_name
+    existing_search_service_name               = run.data.search_service_name
     tags                                       = null
   }
 
@@ -365,16 +381,17 @@ run "testacc_foundry_standard_private_null_tags" {
 # Test 9: Location Validation
 # Tests different Azure regions to ensure the module works across regions
 run "testacc_foundry_standard_private_different_location" {
-  command = plan
+  command  = plan
+  parallel = true
 
   variables {
     location                                   = "eastus"
-    foundry_subnet_id                          = run.setup.connection.id
-    agents_subnet_id                           = run.setup.agent.id
-    existing_capability_host_resource_group_id = run.setup.resource_group_id
-    existing_cosmosdb_account_name             = run.setup.cosmosdb_account_name
-    existing_storage_account_name              = run.setup.storage_account_name
-    existing_search_service_name               = run.setup.search_service_name
+    foundry_subnet_id                          = run.data.connection.id
+    agents_subnet_id                           = run.data.agent.id
+    existing_capability_host_resource_group_id = run.data.resource_group_id
+    existing_cosmosdb_account_name             = run.data.cosmosdb_account_name
+    existing_storage_account_name              = run.data.storage_account_name
+    existing_search_service_name               = run.data.search_service_name
   }
 
   # Verify location customization
@@ -393,16 +410,17 @@ run "testacc_foundry_standard_private_different_location" {
 # Test 10: Variable Defaults Validation
 # Ensures all default values are properly set and reasonable
 run "testacc_foundry_standard_private_defaults_validation" {
-  command = plan
+  command  = plan
+  parallel = true
 
   variables {
     location                                   = "swedencentral"
-    foundry_subnet_id                          = run.setup.connection.id
-    agents_subnet_id                           = run.setup.agent.id
-    existing_capability_host_resource_group_id = run.setup.resource_group_id
-    existing_cosmosdb_account_name             = run.setup.cosmosdb_account_name
-    existing_storage_account_name              = run.setup.storage_account_name
-    existing_search_service_name               = run.setup.search_service_name
+    foundry_subnet_id                          = run.data.connection.id
+    agents_subnet_id                           = run.data.agent.id
+    existing_capability_host_resource_group_id = run.data.resource_group_id
+    existing_cosmosdb_account_name             = run.data.cosmosdb_account_name
+    existing_storage_account_name              = run.data.storage_account_name
+    existing_search_service_name               = run.data.search_service_name
     # Intentionally not setting other variables to test defaults
   }
 
@@ -431,16 +449,17 @@ run "testacc_foundry_standard_private_defaults_validation" {
 # Test 11: Private Networking Integration Validation
 # Validates that the private networking components are properly integrated
 run "testacc_foundry_standard_private_networking_validation" {
-  command = plan
+  command  = plan
+  parallel = true
 
   variables {
     location                                   = "swedencentral"
-    foundry_subnet_id                          = run.setup.connection.id
-    agents_subnet_id                           = run.setup.agent.id
-    existing_capability_host_resource_group_id = run.setup.resource_group_id
-    existing_cosmosdb_account_name             = run.setup.cosmosdb_account_name
-    existing_storage_account_name              = run.setup.storage_account_name
-    existing_search_service_name               = run.setup.search_service_name
+    foundry_subnet_id                          = run.data.connection.id
+    agents_subnet_id                           = run.data.agent.id
+    existing_capability_host_resource_group_id = run.data.resource_group_id
+    existing_cosmosdb_account_name             = run.data.cosmosdb_account_name
+    existing_storage_account_name              = run.data.storage_account_name
+    existing_search_service_name               = run.data.search_service_name
   }
 
   # Verify foundry_subnet_id is properly parsed and used
@@ -491,16 +510,17 @@ run "testacc_foundry_standard_private_networking_validation" {
 # Test 12: Existing Capability Host Resources Validation
 # Validates that existing resource references are properly configured
 run "testacc_foundry_standard_private_capability_host_validation" {
-  command = plan
+  command  = plan
+  parallel = true
 
   variables {
     location                                   = "swedencentral"
-    foundry_subnet_id                          = run.setup.connection.id
-    agents_subnet_id                           = run.setup.agent.id
-    existing_capability_host_resource_group_id = run.setup.resource_group_id
-    existing_cosmosdb_account_name             = run.setup.cosmosdb_account_name
-    existing_storage_account_name              = run.setup.storage_account_name
-    existing_search_service_name               = run.setup.search_service_name
+    foundry_subnet_id                          = run.data.connection.id
+    agents_subnet_id                           = run.data.agent.id
+    existing_capability_host_resource_group_id = run.data.resource_group_id
+    existing_cosmosdb_account_name             = run.data.cosmosdb_account_name
+    existing_storage_account_name              = run.data.storage_account_name
+    existing_search_service_name               = run.data.search_service_name
   }
 
   # Verify existing capability host resource group ID is valid
@@ -544,17 +564,17 @@ run "testacc_foundry_standard_private_capability_host_validation" {
 
   # Verify that existing resource names match what setup module created
   assert {
-    condition     = var.existing_cosmosdb_account_name == run.setup.cosmosdb_account_name
+    condition     = var.existing_cosmosdb_account_name == run.data.cosmosdb_account_name
     error_message = "Existing Cosmos DB account name should match setup module output"
   }
 
   assert {
-    condition     = var.existing_storage_account_name == run.setup.storage_account_name
+    condition     = var.existing_storage_account_name == run.data.storage_account_name
     error_message = "Existing Storage Account name should match setup module output"
   }
 
   assert {
-    condition     = var.existing_search_service_name == run.setup.search_service_name
+    condition     = var.existing_search_service_name == run.data.search_service_name
     error_message = "Existing AI Search service name should match setup module output"
   }
 }

@@ -3,19 +3,18 @@
 # ---------------------------------------------------------------------
 
 module "naming" {
-  source        = "Azure/naming/azurerm"
-  version       = "0.4.2"
-  suffix        = [var.base_name]
-  unique-length = 5
+  source  = "Azure/naming/azurerm"
+  version = "0.4.2"
+  suffix  = [var.base_name, "durable"]
 }
 
 resource "azurerm_resource_group" "this" {
-  name     = module.naming.resource_group.name_unique
+  name     = module.naming.resource_group.name
   location = var.location
 }
 
 resource "azurerm_virtual_network" "this" {
-  name                = module.naming.virtual_network.name_unique
+  name                = module.naming.virtual_network.name
   location            = azurerm_resource_group.this.location
   resource_group_name = azurerm_resource_group.this.name
   address_space       = ["172.16.0.0/16"]
@@ -36,7 +35,7 @@ resource "azurerm_private_dns_zone" "cognitive" {
 }
 
 resource "azurerm_private_dns_zone_virtual_network_link" "cognitive" {
-  name                  = "${module.naming.private_dns_zone.name_unique}-cognitive-link"
+  name                  = "${module.naming.private_dns_zone.name}-cognitive-link"
   resource_group_name   = azurerm_resource_group.this.name
   private_dns_zone_name = azurerm_private_dns_zone.cognitive.name
   virtual_network_id    = azurerm_virtual_network.this.id
@@ -48,7 +47,7 @@ resource "azurerm_private_dns_zone" "ai_services" {
 }
 
 resource "azurerm_private_dns_zone_virtual_network_link" "ai_services" {
-  name                  = "${module.naming.private_dns_zone.name_unique}-ai-services-link"
+  name                  = "${module.naming.private_dns_zone.name}-ai-services-link"
   resource_group_name   = azurerm_resource_group.this.name
   private_dns_zone_name = azurerm_private_dns_zone.ai_services.name
   virtual_network_id    = azurerm_virtual_network.this.id
@@ -60,7 +59,7 @@ resource "azurerm_private_dns_zone" "openai" {
 }
 
 resource "azurerm_private_dns_zone_virtual_network_link" "openai" {
-  name                  = "${module.naming.private_dns_zone.name_unique}-openai-link"
+  name                  = "${module.naming.private_dns_zone.name}-openai-link"
   resource_group_name   = azurerm_resource_group.this.name
   private_dns_zone_name = azurerm_private_dns_zone.openai.name
   virtual_network_id    = azurerm_virtual_network.this.id

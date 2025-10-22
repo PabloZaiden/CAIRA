@@ -46,16 +46,16 @@ permissions:
 
 env:
   OWNER: "microsoft/caira-mtain"
-  TF_VAR_foundry_subnet_id: ${{ vars.TF_VAR_FOUNDRY_SUBNET_ID }}
-  TF_VAR_agents_subnet_id: ${{ vars.TF_VAR_AGENTS_SUBNET_ID }}
-  TF_VAR_existing_resource_group_name: ${{ vars.TF_VAR_EXISTING_RESOURCE_GROUP_NAME }}
-  TF_VAR_existing_virtual_network_name: ${{ vars.TF_VAR_EXISTING_VIRTUAL_NETWORK_NAME }}
-  TF_VAR_existing_vnet_id: ${{ vars.TF_VAR_EXISTING_VNET_ID }}
-  TF_VAR_existing_capability_host_resource_group_id: ${{ vars.TF_VAR_EXISTING_CAPABILITY_HOST_RESOURCE_GROUP_ID }}
-  TF_VAR_existing_cosmosdb_account_name: ${{ vars.TF_VAR_EXISTING_COSMOSDB_ACCOUNT_NAME }}
-  TF_VAR_existing_search_service_name: ${{ vars.TF_VAR_EXISTING_SEARCH_SERVICE_NAME }}
-  TF_VAR_existing_storage_account_name: ${{ vars.TF_VAR_EXISTING_STORAGE_ACCOUNT_NAME }}
-  TF_VAR_subnet_destroy_time_sleep: ${{ vars.TF_VAR_SUBNET_DESTROY_TIME_SLEEP }}
+  # Durable Infrastructure Pools - Foundry Standard Private (Pool 2)
+  TF_VAR_fsp_resource_group_name: ${{ vars.TF_VAR_FSP_RESOURCE_GROUP_NAME }}
+  TF_VAR_fsp_vnet_name: ${{ vars.TF_VAR_FSP_VNET_NAME }}
+  TF_VAR_fsp_cosmosdb_account_name: ${{ vars.TF_VAR_FSP_COSMOSDB_ACCOUNT_NAME }}
+  TF_VAR_fsp_storage_account_name: ${{ vars.TF_VAR_FSP_STORAGE_ACCOUNT_NAME }}
+  TF_VAR_fsp_search_service_name: ${{ vars.TF_VAR_FSP_SEARCH_SERVICE_NAME }}
+
+  # Durable Infrastructure Pools - Foundry Basic Private (Pool 1)
+  TF_VAR_fbp_resource_group_name: ${{ vars.TF_VAR_FBP_RESOURCE_GROUP_NAME }}
+  TF_VAR_fbp_vnet_name: ${{ vars.TF_VAR_FBP_VNET_NAME }}
 
 jobs:
   check-should-run:
