@@ -73,6 +73,8 @@ module "ai_foundry" {
 module "default_project" {
   source = "../../modules/ai_foundry_project"
 
+  depends_on = [module.ai_foundry]
+
   location      = var.location
   ai_foundry_id = module.ai_foundry.ai_foundry_id
 
@@ -100,6 +102,8 @@ module "capability_host_resources_1" {
 # Foundry secondary project
 module "secondary_project" {
   source = "../../modules/ai_foundry_project"
+
+  depends_on = [module.ai_foundry]
 
   location      = var.location
   ai_foundry_id = module.ai_foundry.ai_foundry_id

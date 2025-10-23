@@ -89,14 +89,24 @@ run "testint_foundry_standard_comprehensive" {
 
   # Verify AI Foundry project creation and properties
   assert {
-    condition     = module.ai_foundry.ai_foundry_project_id != null
+    condition     = module.default_project.ai_foundry_project_id != null
+    error_message = "AI Foundry project ID should not be null"
+  }
+
+  assert {
+    condition     = module.secondary_project.ai_foundry_project_id != null
     error_message = "AI Foundry project ID should not be null"
   }
 
   # Validate project resource ID format
   assert {
-    condition     = length(regexall("^/subscriptions/.*/resourceGroups/.*/providers/.*", module.ai_foundry.ai_foundry_project_id)) > 0
+    condition     = length(regexall("^/subscriptions/.*/resourceGroups/.*/providers/.*", module.default_project.ai_foundry_project_id)) > 0
     error_message = "AI Foundry project ID should be a valid Azure resource ID"
+  }
+
+  assert {
+    condition     = length(regexall("^/subscriptions/.*/resourceGroups/.*/providers/.*", module.secondary_project.ai_foundry_project_id)) > 0
+    error_message = "AI Foundry secondary project ID should be a valid Azure resource ID"
   }
 
   # Verify project names matches configuration
@@ -146,7 +156,7 @@ run "testint_foundry_standard_comprehensive" {
 
   # Validate GUID format for principal ID
   assert {
-    condition     = length(regexall("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", module.ai_foundry.ai_foundry_project_identity_principal_id)) > 0
+    condition     = length(regexall("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", module.default_project.ai_foundry_project_identity_principal_id)) > 0
     error_message = "AI Foundry project identity principal ID should be a valid GUID"
   }
 
