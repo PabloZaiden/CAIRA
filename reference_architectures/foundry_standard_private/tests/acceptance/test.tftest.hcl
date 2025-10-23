@@ -23,7 +23,11 @@ test {
 
 provider "azurerm" {
   storage_use_azuread = true
-  features {}
+  features {
+    resource_group {
+      prevent_deletion_if_contains_resources = false
+    }
+  }
 }
 
 # Lookup the durable infrastructure pool instead of creating ephemeral resources
