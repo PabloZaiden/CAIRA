@@ -18,9 +18,6 @@ variable "connection_subnet_name" {
   default     = "connections"
 }
 
-# NOTE: agent_subnet_name variable removed
-# Agent subnets must be created ephemerally using setup_ephemeral module
-
 variable "cognitive_dns_zone_name" {
   description = "Name of the Cognitive Services private DNS zone"
   type        = string

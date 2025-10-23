@@ -12,6 +12,9 @@
 # APPROACH: Uses data sources to lookup durable infrastructure pool instead of
 # creating ephemeral resources. This eliminates 8-12 minute setup overhead per test run.
 # =============================================================================
+test {
+  parallel = true
+}
 
 # Lookup the durable infrastructure pool instead of creating ephemeral resources
 # The data module will use TF_VAR_ environment variables for resource names

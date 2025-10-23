@@ -19,6 +19,9 @@
 # - TF_VAR_fsp_storage_account_name : Storage account name (e.g., stfspdurable)
 # - TF_VAR_fsp_search_service_name  : AI Search service name (e.g., srch-fsp-durable)
 # =============================================================================
+test {
+  parallel = true
+}
 
 provider "azurerm" {
   storage_use_azuread = true
@@ -35,11 +38,10 @@ run "data" {
   }
 }
 
-# Test 1: Default Configuration with Private Networking and Existing Resources
+# Default Configuration with Private Networking and Existing Resources
 # Verifies that the foundry_standard_private architecture works with minimal configuration
 run "testacc_foundry_standard_private_default_config" {
-  command  = plan
-  parallel = true
+  command = plan
 
   variables {
     location                                   = "swedencentral"
@@ -126,11 +128,10 @@ run "testacc_foundry_standard_private_default_config" {
   }
 }
 
-# Test 2: Existing Resource Group Configuration
+# Existing Resource Group Configuration
 # Validates the conditional logic for using an existing resource group
 run "testacc_foundry_standard_private_existing_rg" {
-  command  = plan
-  parallel = true
+  command = plan
 
   variables {
     location                                   = "swedencentral"
@@ -162,11 +163,10 @@ run "testacc_foundry_standard_private_existing_rg" {
   }
 }
 
-# Test 3: Project Customization Validation
+# Project Customization Validation
 # Ensures all project-related variables can be customized properly
 run "testacc_foundry_standard_private_custom_project" {
-  command  = plan
-  parallel = true
+  command = plan
 
   variables {
     location                                   = "swedencentral"
@@ -206,11 +206,10 @@ run "testacc_foundry_standard_private_custom_project" {
   }
 }
 
-# Test 4: SKU Configuration Validation
+# SKU Configuration Validation
 # Tests different SKU options and ensures they're properly applied
 run "testacc_foundry_standard_private_sku_validation" {
-  command  = plan
-  parallel = true
+  command = plan
 
   variables {
     location                                   = "swedencentral"
@@ -233,11 +232,10 @@ run "testacc_foundry_standard_private_sku_validation" {
   # This ensures the variable flows through the module call correctly
 }
 
-# Test 5: Tags Application Validation
+# Tags Application Validation
 # Ensures tags are properly applied and inherited by resources
 run "testacc_foundry_standard_private_with_tags" {
-  command  = plan
-  parallel = true
+  command = plan
 
   variables {
     location                                   = "swedencentral"
@@ -289,11 +287,10 @@ run "testacc_foundry_standard_private_with_tags" {
   }
 }
 
-# Test 6: Telemetry Configuration
+# Telemetry Configuration
 # Validates telemetry can be disabled (important for compliance scenarios)
 run "testacc_foundry_standard_private_telemetry_disabled" {
-  command  = plan
-  parallel = true
+  command = plan
 
   variables {
     location                                   = "swedencentral"
@@ -319,11 +316,10 @@ run "testacc_foundry_standard_private_telemetry_disabled" {
   }
 }
 
-# Test 7: Resource Planning Validation
+# Resource Planning Validation
 # Ensures resources are properly planned for creation
 run "testacc_foundry_standard_private_resource_planning" {
-  command  = plan
-  parallel = true
+  command = plan
 
   variables {
     location                                   = "swedencentral"
@@ -354,11 +350,10 @@ run "testacc_foundry_standard_private_resource_planning" {
   }
 }
 
-# Test 8: Edge Case - Empty Tags
+# Edge Case - Empty Tags
 # Validates behavior when tags are explicitly set to null
 run "testacc_foundry_standard_private_null_tags" {
-  command  = plan
-  parallel = true
+  command = plan
 
   variables {
     location                                   = "swedencentral"
@@ -378,11 +373,10 @@ run "testacc_foundry_standard_private_null_tags" {
   }
 }
 
-# Test 9: Location Validation
+# Location Validation
 # Tests different Azure regions to ensure the module works across regions
 run "testacc_foundry_standard_private_different_location" {
-  command  = plan
-  parallel = true
+  command = plan
 
   variables {
     location                                   = "eastus"
@@ -407,11 +401,10 @@ run "testacc_foundry_standard_private_different_location" {
   }
 }
 
-# Test 10: Variable Defaults Validation
+# Variable Defaults Validation
 # Ensures all default values are properly set and reasonable
 run "testacc_foundry_standard_private_defaults_validation" {
-  command  = plan
-  parallel = true
+  command = plan
 
   variables {
     location                                   = "swedencentral"
@@ -446,11 +439,10 @@ run "testacc_foundry_standard_private_defaults_validation" {
   }
 }
 
-# Test 11: Private Networking Integration Validation
+# Private Networking Integration Validation
 # Validates that the private networking components are properly integrated
 run "testacc_foundry_standard_private_networking_validation" {
-  command  = plan
-  parallel = true
+  command = plan
 
   variables {
     location                                   = "swedencentral"
@@ -507,11 +499,10 @@ run "testacc_foundry_standard_private_networking_validation" {
   }
 }
 
-# Test 12: Existing Capability Host Resources Validation
+# Existing Capability Host Resources Validation
 # Validates that existing resource references are properly configured
 run "testacc_foundry_standard_private_capability_host_validation" {
-  command  = plan
-  parallel = true
+  command = plan
 
   variables {
     location                                   = "swedencentral"
