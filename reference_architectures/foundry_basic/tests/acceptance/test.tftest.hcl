@@ -14,7 +14,7 @@ test {
   parallel = true
 }
 
-# Test 1: Default Configuration Validation
+# Default Configuration Validation
 # Verifies that the foundry_basic architecture works with minimal configuration
 run "testacc_foundry_basic_default_config" {
   command = plan
@@ -54,7 +54,7 @@ run "testacc_foundry_basic_default_config" {
   }
 }
 
-# Test 2: Existing Resource Group Configuration
+# Existing Resource Group Configuration
 # Validates the conditional logic for using an existing resource group
 run "testacc_foundry_basic_existing_rg" {
   command = plan
@@ -83,7 +83,7 @@ run "testacc_foundry_basic_existing_rg" {
   }
 }
 
-# Test 3: Project Customization Validation
+# Project Customization Validation
 # Ensures all project-related variables can be customized properly
 run "testacc_foundry_basic_custom_project" {
   command = plan
@@ -120,7 +120,7 @@ run "testacc_foundry_basic_custom_project" {
   }
 }
 
-# Test 4: SKU Configuration Validation
+# SKU Configuration Validation
 # Tests different SKU options and ensures they're properly applied
 run "testacc_foundry_basic_sku_validation" {
   command = plan
@@ -140,7 +140,7 @@ run "testacc_foundry_basic_sku_validation" {
   # This ensures the variable flows through the module call correctly
 }
 
-# Test 5: Tags Application Validation
+# Tags Application Validation
 # Ensures tags are properly applied and inherited by resources
 run "testacc_foundry_basic_with_tags" {
   command = plan
@@ -174,7 +174,7 @@ run "testacc_foundry_basic_with_tags" {
   }
 }
 
-# Test 6: Telemetry Configuration
+# Telemetry Configuration
 # Validates telemetry can be disabled (important for compliance scenarios)
 run "testacc_foundry_basic_telemetry_disabled" {
   command = plan
@@ -197,7 +197,7 @@ run "testacc_foundry_basic_telemetry_disabled" {
   }
 }
 
-# Test 7: Resource Planning Validation
+# Resource Planning Validation
 # Ensures resources are properly planned for creation
 run "testacc_foundry_basic_resource_planning" {
   command = plan
@@ -225,7 +225,7 @@ run "testacc_foundry_basic_resource_planning" {
   }
 }
 
-# Test 8: Edge Case - Empty Tags
+# Edge Case - Empty Tags
 # Validates behavior when tags are explicitly set to null
 run "testacc_foundry_basic_null_tags" {
   command = plan
@@ -242,7 +242,7 @@ run "testacc_foundry_basic_null_tags" {
   }
 }
 
-# Test 9: Location Validation
+# Location Validation
 # Tests different Azure regions to ensure the module works across regions
 run "testacc_foundry_basic_different_location" {
   command = plan
@@ -264,7 +264,7 @@ run "testacc_foundry_basic_different_location" {
   }
 }
 
-# Test 10: Variable Defaults Validation
+# Variable Defaults Validation
 # Ensures all default values are properly set and reasonable
 run "testacc_foundry_basic_defaults_validation" {
   command = plan
