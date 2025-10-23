@@ -13,8 +13,6 @@
 # creating ephemeral resources. This eliminates 8-12 minute setup overhead per test run.
 #
 # ENVIRONMENT VARIABLES REQUIRED (set via TF_VAR_ prefix):
-# - TF_VAR_fsp_resource_group_name  : Resource group containing durable FSP pool (e.g., rg-fsp-durable)
-# - TF_VAR_fsp_vnet_name            : VNet name in the FSP pool (e.g., vnet-fsp-durable)
 # - TF_VAR_fsp_cosmosdb_account_name: Cosmos DB account name (e.g., cosmos-fsp-durable)
 # - TF_VAR_fsp_storage_account_name : Storage account name (e.g., stfspdurable)
 # - TF_VAR_fsp_search_service_name  : AI Search service name (e.g., srch-fsp-durable)
