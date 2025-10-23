@@ -131,7 +131,7 @@ run "testint_foundry_basic_comprehensive" {
 
   # Validate GUID format for principal ID
   assert {
-    condition     = length(regexall("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", module.ai_foundry.ai_foundry_project_identity_principal_id)) > 0
+    condition     = length(regexall("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", module.default_project.ai_foundry_project_identity_principal_id)) > 0
     error_message = "AI Foundry project identity principal ID should be a valid GUID"
   }
 
@@ -179,13 +179,13 @@ run "testint_foundry_basic_comprehensive" {
   }
 
   assert {
-    condition     = output.ai_foundry_project_id == module.default_project.ai_foundry_project_id
-    error_message = "Output ai_foundry_project_id should match module output"
+    condition     = output.ai_foundry_default_project_id == module.default_project.ai_foundry_project_id
+    error_message = "Output ai_foundry_default_project_id should match module output"
   }
 
   assert {
-    condition     = output.ai_foundry_project_name == module.default_project.ai_foundry_project_name
-    error_message = "Output ai_foundry_project_name should match module output"
+    condition     = output.ai_foundry_default_project_name == module.default_project.ai_foundry_project_name
+    error_message = "Output ai_foundry_default_project_name should match module output"
   }
 
   # Verify resource group outputs are populated
