@@ -183,6 +183,8 @@ Notes:
 | [azapi_resource_action.purge_ai_foundry](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource_action)                    | resource    |
 | [azurerm_cognitive_deployment.model_deployments](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/cognitive_deployment) | resource    |
 | [azurerm_private_endpoint.ai_foundry_pe](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/private_endpoint)             | resource    |
+| [time_sleep.wait_ai_foundry](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep)                                       | resource    |
+| [time_sleep.wait_before_delete_capability_host](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep)                    | resource    |
 | [time_sleep.wait_before_purge](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep)                                     | resource    |
 | [azurerm_client_config.current](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/client_config)                      | data source |
 | [azurerm_private_dns_zone.ai_services](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/private_dns_zone)            | data source |
