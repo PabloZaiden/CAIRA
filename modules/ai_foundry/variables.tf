@@ -57,7 +57,6 @@ variable "foundry_subnet_id" {
   default     = null
 }
 
-
 variable "application_insights" {
   description = "Configuration for Application Insights connection."
   type = object({
