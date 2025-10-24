@@ -47,7 +47,6 @@ resource "time_sleep" "wait_ai_foundry" {
   create_duration = "10s"
 }
 
-
 # Private Endpoint for the AI Foundry Cognitive Services account
 resource "azurerm_private_endpoint" "ai_foundry_pe" {
   count = var.foundry_subnet_id != null ? 1 : 0
