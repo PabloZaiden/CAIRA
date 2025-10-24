@@ -153,6 +153,10 @@ jobs:
     outputs:
       fsp_storage_account_name: >-
         ${{ steps.get_fsp_outputs.outputs.storage_account_name }}
+      fsp_cosmosdb_account_name: >-
+        ${{ steps.get_fsp_outputs.outputs.cosmosdb_account_name }}
+      fsp_search_service_name: >-
+        ${{ steps.get_fsp_outputs.outputs.search_service_name }}
       fbp_vnet_name: ${{ steps.get_fbp_outputs.outputs.vnet_name }}
     env:
       ARM_USE_AZUREAD: true
