@@ -308,7 +308,7 @@ jobs:
             console.log(`Value: ${cosmosAccountName}`);
 
             // Check if variable exists
-            let variableExists = false;
+            variableExists = false;
             try {
               await github.rest.actions.getRepoVariable({
                 owner,
@@ -346,7 +346,7 @@ jobs:
             console.log(`Value: ${searchServiceName}`);
 
             // Check if variable exists
-            let variableExists = false;
+            variableExists = false;
             try {
               await github.rest.actions.getRepoVariable({
                 owner,
