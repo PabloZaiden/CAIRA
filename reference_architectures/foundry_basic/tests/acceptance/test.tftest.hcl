@@ -48,7 +48,6 @@ run "testacc_foundry_basic_default_config" {
     error_message = "Default telemetry setting should be enabled"
   }
 
-
 }
 
 # Existing Resource Group Configuration
