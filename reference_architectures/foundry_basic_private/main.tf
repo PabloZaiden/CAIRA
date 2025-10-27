@@ -67,7 +67,8 @@ module "default_project" {
 }
 
 # If you need a second project in your Foundry environment, uncomment
-# this block and customize the project name, display name, and description
+# this block with the corresponding outputs and customize
+# the project name, display name, and description
 
 # Foundry secondary project
 # module "secondary_project" {
