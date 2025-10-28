@@ -46,6 +46,11 @@ permissions:
 
 env:
   OWNER: "microsoft/caira-mtain"
+
+  # dummy subnet values used for terraform plan validation
+  TF_VAR_foundry_subnet_id: "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/fake-rg/providers/Microsoft.Network/virtualNetworks/fake-vnet/subnets/fake-subnet"
+  TF_VAR_agents_subnet_id: "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/fake-rg/providers/Microsoft.Network/virtualNetworks/fake-vnet/subnets/fake-subnet"
+
   # Durable Infrastructure Pools - Foundry Standard Private (Pool 2)
   TF_VAR_fsp_resource_group_name: ${{ vars.TF_VAR_FSP_RESOURCE_GROUP_NAME }}
   TF_VAR_fsp_vnet_name: ${{ vars.TF_VAR_FSP_VNET_NAME }}
