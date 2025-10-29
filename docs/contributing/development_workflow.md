@@ -23,6 +23,7 @@ This guide outlines the development process for contributing to CAIRA, including
 
 Before you start developing, make sure you have:
 
+1. **Contributing** - Read the [Contributing Considerations](../contributing/contributing_considerations.md)
 1. **Development Environment** - Set up using our [Developer Guide](../developer.md)
 1. **GitHub Account** - For forking and pull requests
 1. **Git Configuration** - Configured with your name and email
