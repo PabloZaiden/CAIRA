@@ -39,13 +39,19 @@ tasks:
     vars:
       SRC_ROOT: reference_architectures
       PROJECT_ROOT: "{{.SRC_ROOT}}/{{.CLI_ARGS}}"
+      VERSION_OVERRIDE:
+        sh: echo "${VERSION_OVERRIDE:-}"
       VERSION:
         sh: |
-          {{if eq OS "windows"}}
-            {{.PWSH}} '(changie next auto --project "{{.CLI_ARGS}}") -replace "{{.CLI_ARGS}}", ""'
+          {{if .VERSION_OVERRIDE }}
+            echo "{{.VERSION_OVERRIDE}}"
           {{else}}
-            version=$(changie next auto --project "{{.CLI_ARGS}}")
-            echo "${version//{{.CLI_ARGS}}/}"
+            {{if eq OS "windows"}}
+              {{.PWSH}} '(changie next auto --project "{{.CLI_ARGS}}") -replace "{{.CLI_ARGS}}", ""'
+            {{else}}
+              version=$(changie next auto --project "{{.CLI_ARGS}}")
+              echo "${version//{{.CLI_ARGS}}/}"
+            {{end}}
           {{end}}
       COMMIT: "chore(release): {{.CLI_ARGS}}/{{.VERSION}}"
       BRANCH: "release/{{.CLI_ARGS}}-{{.VERSION}}"
