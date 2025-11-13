@@ -62,6 +62,14 @@ Note: This architecture requires existing Cosmos DB, Storage, and AI Search reso
    - **Virtual Network**: An existing VNet with two subnets available for AI Foundry and Agents injection
    - **Foundry Subnet**: Subnet ID where the AI Foundry service will be injected
    - **Agents Subnet**: Subnet ID where AI Foundry Agents will be injected
+   - **Important Subnet Requirements**:
+     - The `foundry_subnet_id` and `agents_subnet_id` MUST be two different subnets; using the same subnet for both is not supported.
+     - The Agents subnet must be exclusively dedicated to a single Azure AI Foundry instance (do not share across multiple Foundry deployments).
+     - Delegate the Agents subnet to `Microsoft.App/environments`.
+     - Provide sufficient IP address space (minimum /28 recommended; larger (/27 or /26) if expecting higher agent concurrency) to avoid exhaustion.
+     - Keep the Agents subnet isolated; do not deploy unrelated workloads into it.
+     - Ensure NSGs and route tables allow outbound access to Cosmos DB, Storage, Azure AI Search, and required Azure control plane endpoints.
+     - For detailed guidance see: <https://learn.microsoft.com/azure/ai-foundry/agents/how-to/virtual-networks>
 
 1. **Existing capability host resources**:
    - **Azure Cosmos DB Account**: Existing Cosmos DB account for agent data storage
