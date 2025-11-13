@@ -31,6 +31,7 @@ The Standard configuration is suited for:
 **WARNING**: This reference architecture uses public endpoints. Adversaries frequently target  public endpoints, even if non-production systems, to find pathways into production. For this reason, it is **suboptimal for any production, staging, or other long-running environments**.
 
 For these scenarios, we recommend you use the [foundry_standard_private](../foundry_standard_private/README.md) reference architecture. For a full set of other security posture considerations, please review [CAIRA's security posture](../../docs/security_posture.md).
+
 Foundry-only use case: If you are not planning to use the Agent Service, consider the `_basic` variants (`foundry_basic` / `foundry_basic_private`) instead; this standard configuration includes extra agent-focused dependent resources (Cosmos DB, Storage, AI Search) you may not require.
 
 ## Architecture
