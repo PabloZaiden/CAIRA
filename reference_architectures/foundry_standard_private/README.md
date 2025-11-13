@@ -27,6 +27,8 @@ The Standard Private configuration is suited for:
 - **Teams with strict network security requirements** that mandate subnet injection and private endpoint connectivity
 - **Environments that need both data sovereignty and network isolation** with RBAC-based access controls
 
+Foundry-only use case: If you are not planning to use the Agent Service, consider the `_basic` variants (`foundry_basic` / `foundry_basic_private`) instead; this standard configuration includes extra agent-focused dependent resources (Cosmos DB, Storage, AI Search) you may not require.
+
 ## Architecture
 
 ![Architecture Diagram](./images/architecture.drawio.svg)
