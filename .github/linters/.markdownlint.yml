@@ -39,5 +39,4 @@ MD046:
   # Block style
   style: "fenced"
 
-MD060:
-  style: "aligned"
+MD060: false
