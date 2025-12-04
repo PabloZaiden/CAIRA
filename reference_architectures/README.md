@@ -13,6 +13,8 @@ This configuration is designed as a simple development environment for common AI
 - Microsoft-managed file storage
 - Microsoft-managed resources for storing Agents threads and messages
 
+See the reference architecture at `reference_architectures/foundry_basic`.
+
 ## Basic AI Foundry (Private)
 
 This provides the same features of basic but exposes the Foundry APIs via private endpoints.
@@ -23,6 +25,8 @@ This provides the same features of basic but exposes the Foundry APIs via privat
 - Bring-your-own private networking
 - Microsoft-managed file storage
 - Microsoft-managed resources for storing Agents threads and messages
+
+See the reference architecture at `reference_architectures/foundry_basic_private`.
 
 ## Standard AI Foundry with Capability Host
 
@@ -35,6 +39,8 @@ This configuration includes everything in the Basic setup and adds explicit capa
 - Bring-your-own or module-provisioned dependent services
 - Identity-first defaults (RBAC), ready for enterprise hardening
 - Built-in observability via Log Analytics and Application Insights
+
+See the reference architecture at `reference_architectures/foundry_standard`.
 
 ## Standard AI Foundry with Capability Host (Private)
 
@@ -49,7 +55,7 @@ This configuration includes everything in the standard setup but exposes the Fou
 - Identity-first defaults (RBAC), ready for enterprise hardening
 - Built-in observability via Log Analytics and Application Insights
 
-See the reference architecture at `reference_architectures/foundry_standard`.
+See the reference architecture at `reference_architectures/foundry_standard_private`.
 
 ## Available Reference Architectures
 
