@@ -158,13 +158,7 @@ Notes:
 
 **Critical for Destroy Operations:**
 
-When using agent subnet injection (`agents_subnet_id`), Azure creates a Container App Environment that establishes service association links to the subnet. These links prevent subnet deletion until they are cleaned up by Azure.
-
-**Cleanup Wait Time:**
-
-The module provides a `subnet_cleanup_wait_time` variable (default: 5 minutes) that controls how long to wait after AI Foundry deletion before allowing the agent subnet to be destroyed. This ensures service association links are properly cleaned up.
-
-**If you encounter subnet deletion errors** like `InUseSubnetCannotBeDeleted`, increase the `subnet_cleanup_wait_time` value to allow more time for Azure to clean up service association links.
+When using agent subnet injection (`agents_subnet_id`), Azure creates a Container App Environment that establishes service association links to the subnet. These links prevent subnet deletion until they are cleaned up by Azure. This process can take several minutes after the AI Foundry resource is deleted.
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
