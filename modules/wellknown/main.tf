@@ -144,7 +144,7 @@ resource "azapi_resource" "search" {
     properties = {
       replicaCount        = 1
       partitionCount      = 1
-      hostingMode         = "default"
+      hostingMode         = "Default"
       semanticSearch      = "disabled"
       disableLocalAuth    = true
       publicNetworkAccess = "Disabled"
