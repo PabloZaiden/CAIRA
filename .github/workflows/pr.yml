@@ -87,32 +87,11 @@ jobs:
     needs: [approval]
     name: Linting and Validation
     runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/microsoft/caira-prebuilt-devcontainer:latest
     steps:
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-
-      - name: Setup Node
-        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
-        with:
-          node-version: lts/*
-
-      - name: Setup Go
-        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
-        with:
-          go-version: stable
-          check-latest: true
-
-      - name: Setup Task
-        uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611 # v2.0.0
-        with:
-          repo-token: ${{ github.token }}
-
-      - name: Setup tools
-        run: |
-          task internal:setup:uv
-          task tools
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Terraform validate
         run: |
