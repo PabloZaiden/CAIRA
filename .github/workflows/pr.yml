@@ -91,6 +91,9 @@ jobs:
       image: ghcr.io/microsoft/caira-prebuilt-devcontainer:latest
       options: --user root
     steps:
+      - name: Git config
+        run: git config --global --add safe.directory '*'
+
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
