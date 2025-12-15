@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 ARG BASE_DEVCONTAINER_IMAGE
 FROM ${BASE_DEVCONTAINER_IMAGE:-ghcr.io/microsoft/caira-prebuilt-devcontainer-base:latest}
 LABEL devcontainer.metadata="[]"
@@ -27,7 +28,7 @@ RUN git init . && \
   git add . && \
   git commit -m "Temp commit"
 
-RUN task tools
+RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN task tools
 
 RUN rm -rf /home/vscode/task
 
