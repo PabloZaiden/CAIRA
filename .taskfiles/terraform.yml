@@ -11,9 +11,6 @@ tasks:
   install:terraform:
     desc: Install Terraform
     cmds:
-      - task: internal:install:winget
-        vars:
-          APP: HashiCorp.Terraform
       - task: internal:install:brew:tap
         vars:
           APP: hashicorp/tap
@@ -27,30 +24,10 @@ tasks:
             && sudo apt -o DPkg::Lock::Timeout=-1 install terraform -y
         platforms: [linux]
 
-  # * Install OpenTofu
-  install:opentofu:
-    desc: Install OpenTofu
-    cmds:
-      - task: internal:install:winget
-        vars:
-          APP: OpenTofu.Tofu
-      - task: internal:install:brew
-        vars:
-          APP: opentofu
-      - cmd: |
-          curl --proto '=https' --tlsv1.2 -fsSL https://get.opentofu.org/install-opentofu.sh -o install-opentofu.sh
-          chmod +x install-opentofu.sh \
-            && ./install-opentofu.sh --install-method standalone \
-            && rm -f install-opentofu.sh
-        platforms: [linux]
-
   # * Install Terraform-Docs
   install:terraform-docs:
     desc: Install Terraform-Docs
     cmds:
-      - task: internal:install:winget
-        vars:
-          APP: Terraform-docs.Terraform-docs
       - task: internal:install:brew
         vars:
           APP: terraform-docs
@@ -76,9 +53,6 @@ tasks:
   install:tflint:
     desc: Install TFLint
     cmds:
-      - task: internal:install:winget
-        vars:
-          APP: TerraformLinters.TFLint
       - task: internal:install:brew
         vars:
           APP: tflint
@@ -90,11 +64,6 @@ tasks:
   install:terrascan:
     desc: Install Terrascan
     cmds:
-      - cmd: |
-          {{.PWSH}} 'Invoke-WebRequest -Uri ((Invoke-RestMethod https://api.github.com/repos/tenable/terrascan/releases/latest).assets | Where-Object { $_.browser_download_url -match "Windows_x86_64\.tar\.gz$" } | Select-Object -ExpandProperty browser_download_url) -OutFile "$env:TMP\terrascan.tar.gz"'
-          {{.PWSH}} 'tar -xzf "$env:TMP\terrascan.tar.gz" -C "$env:TMP" terrascan.exe'
-          {{.PWSH}} 'Remove-Item "$env:TMP\terrascan.tar.gz" -Force'
-        platforms: [windows]
       - cmd: |
           curl -L "$(curl {{.GH_CURL_AUTH}} -s https://api.github.com/repos/tenable/terrascan/releases/latest | grep -o -E "https://.+?_Darwin_x86_64.tar.gz")" > ~/terrascan.tar.gz
           tar -xf ~/terrascan.tar.gz --directory ~/ terrascan \
@@ -124,7 +93,6 @@ tasks:
     desc: Install Terraform tools
     cmds:
       - task: install:terraform
-      - task: install:opentofu
       - task: install:terraform-docs
       - task: install:tflint
       - task: install:terrafmt
@@ -138,36 +106,17 @@ tasks:
           terraform fmt -recursive
           tflint --init --config "$(pwd)/.github/linters/.tflint.hcl"
           tflint --recursive --fix --config "$(pwd)/.github/linters/.tflint.hcl"
-        platforms: [linux, darwin, windows]
       - cmd: |
           find . -type f -name "*.md" -not -path "*/.terraform/*" -exec terrafmt fmt {} --fix-finish-lines --quiet \;
-        platforms: [linux, darwin]
-      - cmd: |
-          {{.PWSH}} 'Get-ChildItem -Recurse -Filter *.md | Where-Object { $_.FullName -notmatch '\\.terraform\\' } | ForEach-Object { terrafmt fmt $_.FullName --fix-finish-lines --quiet}'
-        platforms: [windows]
     dir: "{{.ROOT_DIR}}"
 
   # * Docs
   docs:
     desc: Generate Terraform documentation
-    # vars:
-    #   ITEMS:
-    #     sh: "task tf:get:modules"
     cmds:
       - terraform-docs -c ./.github/configs/.terraform-docs.yml modules
       - terraform-docs -c ./.github/configs/.terraform-docs.yml reference_architectures
       - terraform-docs -c ./.github/configs/.terraform-docs.yml testing
-      # - for: { var: ITEMS }
-      #   cmd: terraform-docs -c ./.terraform-docs.yml "{{osClean .ITEM}}"
-      # - for: { var: ITEMS }
-      #   cmd: |
-      #     {{.PWSH}} '$name = Split-Path "{{osClean .ITEM}}" -Leaf; (Get-Content "./{{osClean .ITEM}}/README.md") -replace "__NAME__", $name | Set-Content "./{{osClean .ITEM}}/README.md"'
-      #   platforms: [windows]
-      # - for: { var: ITEMS }
-      #   cmd: |
-      #     sed -i "s/__NAME__/$(basename "{{osClean .ITEM}}")/g" "./{{osClean .ITEM}}/README.md"
-      #     sed -i -e '$a\' "./{{osClean .ITEM}}/README.md"
-      #   platforms: [linux, darwin]
     dir: "{{.ROOT_DIR}}"
 
   # * Clean
@@ -179,38 +128,6 @@ tasks:
           find ./ -name ".terraform" -type d -exec rm -rf {} \;
           find ./ -name "*.terraform.lock.*" -type f -exec rm -f {} \;
           find ./ -name "*.tfstate*" -type f -exec rm -f {} \;
-        platforms: [linux, darwin]
-      - cmd: |
-          {{.PWSH}} 'Get-ChildItem -Path ./ -Include ".external_modules" -Directory -Recurse | Remove-Item -Recurse -Force -Confirm:$false'
-          {{.PWSH}} 'Get-ChildItem -Path ./ -Include ".terraform" -Directory -Recurse | Remove-Item -Recurse -Force -Confirm:$false'
-          {{.PWSH}} 'Get-ChildItem -Path ./ -Include "*.terraform.lock.*" -File -Recurse | Remove-Item -Force -Confirm:$false'
-          {{.PWSH}} 'Get-ChildItem -Path ./ -Include "*.tfstate*" -File -Recurse | Remove-Item -Force -Confirm:$false'
-        platforms: [windows]
-    dir: "{{.ROOT_DIR}}"
-
-  # * Run Unit Test
-  test:unit:
-    desc: Run terraform unit tests
-    silent: true
-    status:
-      - test ! -d "tests/unit"
-    cmds:
-      - terraform init -upgrade -test-directory="tests/unit"
-      - terraform test -test-directory="tests/unit" -junit-xml="testunit-results.xml" -verbose
-    dir: "{{.USER_WORKING_DIR}}"
-
-  test:unit:all:
-    desc: Run terraform unit tests on all modules
-    silent: true
-    vars:
-      ITEMS:
-        sh: "task tf:get:modules -- ."
-    cmds:
-      - for: { var: ITEMS }
-        cmd: |
-          pushd "{{osClean .ITEM}}"
-          task tf:test:unit
-          popd
     dir: "{{.ROOT_DIR}}"
 
   # * Run Acceptance Test
@@ -225,7 +142,7 @@ tasks:
     dir: "{{.USER_WORKING_DIR}}"
 
   test:acc:all:
-    desc: Run terraform unit tests on all modules
+    desc: Run terraform acceptance tests on all modules
     silent: true
     vars:
       ITEMS:
@@ -265,10 +182,8 @@ tasks:
 
   # * Run All Tests
   test:
-    desc: Run all terraform tests (unit, integration, acceptance) on all modules
+    desc: Run all terraform tests (integration, acceptance) on all modules
     cmds:
-      - echo "🧪 Running Unit Tests..."
-      - task: test:unit:all
       - echo "🔗 Running Integration Tests..."
       - task: test:int:all
       - echo "✅ Running Acceptance Tests..."
@@ -283,8 +198,4 @@ tasks:
     silent: true
     cmds:
       - cmd: find "{{osClean .PATH}}" -mindepth 2 -not -path "*/.*" -type f -name "*.tf" -exec dirname {} \; | sort -u
-        platforms: [linux, darwin]
-      - cmd: |
-          {{.PWSH}} '(Get-ChildItem "{{osClean .PATH}}" *.tf -Recurse).DirectoryName | Where-Object {$_ -notmatch "\\(\..*)\\" } | Select-Object -Unique | ForEach-Object { Resolve-Path -Relative $_ }'
-        platforms: [windows]
     dir: "{{.ROOT_DIR}}"

@@ -3,7 +3,7 @@
   "image": "ghcr.io/microsoft/caira-prebuilt-devcontainer:latest",
   "features": {},
   "onCreateCommand": {
-    "chown-local": "sudo chown -R $(id -un):$(id -gn) $HOME/.local"
+    "chown-local": "sudo chown -R $(id -un):$(id -gn) $HOME"
   },
   "postCreateCommand": {
     "git-safe-dir": "git config --global --add safe.directory ${containerWorkspaceFolder}"
@@ -27,16 +27,11 @@
     "vscode": {
       "settings": {
         "terminal.integrated.defaultProfile.linux": "zsh",
-        "terminal.integrated.defaultProfile.osx": "zsh",
-        "powershell.powerShellAdditionalExePaths": {
-          "pwsh": "/usr/bin/pwsh"
-        },
-        "powershell.powerShellDefaultVersion": "pwsh"
+        "terminal.integrated.defaultProfile.osx": "zsh"
       },
       "extensions": [
         "eamodio.gitlens",
         "ms-azuretools.vscode-azureterraform",
-        "ms-vscode.powershell",
         "ms-vscode.azurecli",
         "hashicorp.terraform",
         "ms-azuretools.vscode-azure-github-copilot",

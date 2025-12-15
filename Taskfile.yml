@@ -1,9 +1,6 @@
 #  yaml-language-server: $schema=https://taskfile.dev/schema.json
 # docs: https://taskfile.dev
 #
-# --- Windows ---
-# winget install Task.Task
-#
 # --- Linux ---
 # sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b ~/.local/bin
 # echo 'command -v task >/dev/null || export PATH="$PATH:$HOME/.local/bin"' >> ~/.profile
@@ -42,8 +39,6 @@ includes:
     taskfile: .taskfiles/yaml.yml
   site:
     taskfile: .taskfiles/site.yml
-  project:
-    taskfile: .taskfiles/project.yml
 
 tasks:
   default:
@@ -56,7 +51,6 @@ tasks:
   tools:
     desc: Install tools
     cmds:
-      - task: project:tools
       - task: sh:tools
       - task: gh:tools
       - task: js:tools

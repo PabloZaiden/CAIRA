@@ -4,8 +4,6 @@
 version: "3"
 
 vars:
-  PWSH: pwsh -NonInteractive -NoProfile -NoLogo -Command
-  PWSH_SCRIPT: pwsh -NonInteractive -NoProfile -NoLogo -File
   GH_CURL_AUTH:
     sh: |
       {{if empty .GITHUB_TOKEN | not}}
@@ -26,10 +24,6 @@ tasks:
         msg: No command provided. Please provide a command to check.
     cmds:
       - cmd: command -v "{{.CLI_ARGS}}"
-        platforms: [linux, darwin]
-      - cmd: |
-          {{.PWSH}} 'Get-Command "{{.CLI_ARGS}}"'
-        platforms: [windows]
 
   install:go:
     desc: go install
@@ -39,17 +33,6 @@ tasks:
         msg: "go is not installed. Please install go: https://go.dev/doc/install"
     cmds:
       - go install {{.APP}}
-
-  install:winget:
-    desc: winget install
-    internal: true
-    preconditions:
-      - sh: task internal:command -- winget
-        msg: "winget is not installed. Please install winget: https://learn.microsoft.com/windows/package-manager/winget/"
-    cmds:
-      - winget install {{.APP}} --accept-source-agreements --accept-package-agreements
-    ignore_error: true
-    platforms: [windows]
 
   install:brew:
     desc: brew install
@@ -88,9 +71,6 @@ tasks:
         msg: "npm is not installed. Please install npm: https://docs.npmjs.com/cli/commands/npm"
     cmds:
       - cmd: npm install --global {{.APP}}
-        platforms: [linux, darwin]
-      - cmd: npm install --global {{.APP}}
-        platforms: [windows]
 
   install:uv:
     desc: uv install
@@ -109,6 +89,3 @@ tasks:
       - task: install:brew
         vars:
           APP: uv
-      - task: install:winget
-        vars:
-          APP: sh.uv
