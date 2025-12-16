@@ -25,15 +25,6 @@ tasks:
     cmds:
       - cmd: command -v "{{.CLI_ARGS}}"
 
-  install:go:
-    desc: go install
-    internal: true
-    preconditions:
-      - sh: task internal:command -- go
-        msg: "go is not installed. Please install go: https://go.dev/doc/install"
-    cmds:
-      - go install {{.APP}}
-
   install:brew:
     desc: brew install
     internal: true

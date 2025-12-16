@@ -32,16 +32,7 @@ tasks:
         vars:
           APP: terraform-docs
       - cmd: |
-          arch=$(uname -m)
-          if [[ "${arch}" == "x86_64" ]]; then
-            arch="amd64"
-          elif [[ "${arch}" == "aarch64" ]]; then
-            arch="arm64"
-          else
-            echo "Unsupported architecture: ${arch}"
-            exit 1
-          fi
-          download_url=$(curl -L {{.GH_CURL_AUTH}} --silent "https://api.github.com/repos/terraform-docs/terraform-docs/releases/latest" | grep 'browser_download_url.*terraform-docs.*linux-'"${arch}"'.*tar.gz"' | grep -o 'https://[^"]*')
+          download_url=$(curl -L {{.GH_CURL_AUTH}} --silent "https://api.github.com/repos/terraform-docs/terraform-docs/releases/latest" | grep 'browser_download_url.*terraform-docs.*linux-'"{{.ARCH}}"'.*tar.gz"' | grep -o 'https://[^"]*')
           curl --location -o ~/terraform-docs.tar.gz "${download_url}" \
             && tar -xf ~/terraform-docs.tar.gz --directory ~/ \
             && rm -f ~/terraform-docs.tar.gz \
@@ -81,12 +72,17 @@ tasks:
 
   # * Install terrafmt
   install:terrafmt:
+    vars:
+      TERRAFMT_VERSION: "v0.5.4"
+      TERRAFMT_BASE_URL: "https://github.com/PabloZaiden/terrafmt-dist/releases/download"
+
     desc: Install terrafmt
-    cmds:
-      - for: [github.com/katbyte/terrafmt@latest]
-        task: internal:install:go
-        vars:
-          APP: "{{.ITEM}}"
+    cmd: |
+      download_url="{{.TERRAFMT_BASE_URL}}/{{.TERRAFMT_VERSION}}/terrafmt-{{.TERRAFMT_VERSION}}-{{.OS}}-{{.ARCH}}"
+      echo "Downloading terrafmt from ${download_url}"
+      curl -L {{.GH_CURL_AUTH}} -o ~/terrafmt "${download_url}" \
+        && chmod +x ~/terrafmt \
+        && sudo mv ~/terrafmt /usr/local/bin/
 
   # * Tools
   tools:
