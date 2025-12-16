@@ -45,15 +45,6 @@ tasks:
       - brew tap {{.APP}}
     platforms: [darwin]
 
-  install:pipx:
-    desc: pipx install
-    internal: true
-    preconditions:
-      - sh: task internal:command -- pipx
-        msg: "pipx is not installed. Please install pipx: https://pipx.pypa.io/"
-    cmds:
-      - pipx install --include-deps {{.APP}}
-
   install:npm:
     desc: npm install
     internal: true
