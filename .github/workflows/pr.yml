@@ -68,7 +68,7 @@ jobs:
           node-version: lts/*
 
       - name: Install the latest version of uv
-        uses: astral-sh/setup-uv@v681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
+        uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
 
       - name: Setup Task
         uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611 # v2.0.0
