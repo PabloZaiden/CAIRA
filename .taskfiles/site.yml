@@ -14,6 +14,7 @@ tasks:
       - uv tool install mkdocs
       - |
         set -euo pipefail
+        export PATH="$HOME/.local/bin:$PATH"
         cmd=(uv tool install mkdocs --force)
         # Append --with <dep> for every non-empty line from mkdocs get-deps
         while IFS= read -r dep; do
