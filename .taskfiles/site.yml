@@ -63,5 +63,5 @@ tasks:
     silent: true
     cmds:
       - cmd: |
-          find ./ -name "site" -type d -exec rm -rf {} \;
+          rm -rf ./site
     dir: "{{.ROOT_DIR}}"
