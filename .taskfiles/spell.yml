@@ -36,7 +36,6 @@ tasks:
         vars:
           APP: lychee
       - cmd: |
-          arch=$(uname -m)
           download_url="{{.LYCHEE_URL}}"
           curl --location -o ~/lychee.tar.gz "${download_url}" \
             && tar -xf ~/lychee.tar.gz --directory ~/ lychee \

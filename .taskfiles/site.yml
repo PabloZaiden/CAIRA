@@ -22,7 +22,7 @@ tasks:
           cmd+=(--with "$dep")
         done < <(mkdocs get-deps)
 
-        $(echo "${cmd[@]}")
+        "${cmd[@]}"
 
   # * Tools
   tools:
