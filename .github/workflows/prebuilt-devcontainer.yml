@@ -120,8 +120,6 @@ jobs:
           cache-from: ${{ env.CACHE_FROM }}
           cache-to: type=gha,mode=max
           build-args: BASE_DEVCONTAINER_IMAGE=${{ env.BASE_DEVCONTAINER_IMAGE_LOWERCASE }}
-          secrets: |
-            github_token=${{ secrets.GITHUB_TOKEN }}
           platforms: linux/amd64,linux/arm64
 
       # Sign the resulting Docker image digest except on PRs.

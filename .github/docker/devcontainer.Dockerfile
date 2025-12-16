@@ -28,7 +28,7 @@ RUN git init . && \
   git add . && \
   git commit -m "Temp commit"
 
-RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN task tools
+RUN task tools
 
 RUN rm -rf /home/vscode/task
 
