@@ -59,15 +59,6 @@ tasks:
     internal: true
     preconditions:
       - sh: task internal:command -- uv
-        msg: "uv is not installed. Please install uv by running: `task internal:setup:uv`"
+        msg: "uv is not installed."
     cmds:
       - uv tool install --force --upgrade {{.APP}}
-
-  setup:uv:
-    desc: uv setup
-    cmds:
-      - cmd: curl -LsSf https://astral.sh/uv/install.sh | sudo env UV_INSTALL_DIR="/usr/local/bin" sh
-        platforms: [linux]
-      - task: install:brew
-        vars:
-          APP: uv
