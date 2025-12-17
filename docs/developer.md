@@ -63,7 +63,7 @@ task tf:test:int:all:local
 
 If this is the first time you are running the integration tests, you will be prompted to authenticate with Azure and select a subscription. It will be used to create the required infrastructure pools and resources during the tests.
 
-If you want to run only specific integration tests for a specific reference architecuture, go to the corresponding folder under `reference_architectures` and run:
+If you want to run only specific integration tests for a specific reference architecture, go to the corresponding folder under `reference_architectures` and run:
 
 ```sh
 task tf:test:int:local
