@@ -17,6 +17,10 @@ vars:
     sh: git rev-parse --show-toplevel
   CURRENT_BRANCH:
     sh: git rev-parse --abbrev-ref HEAD
+  OS:
+    sh: uname | tr '[:upper:]' '[:lower:]'
+  ARCH:
+    sh: uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/'
 
 includes:
   internal:

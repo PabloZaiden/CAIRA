@@ -67,11 +67,8 @@ jobs:
         with:
           node-version: lts/*
 
-      - name: Setup Go
-        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
-        with:
-          go-version: stable
-          check-latest: true
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
 
       - name: Setup Task
         uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611 # v2.0.0
@@ -79,9 +76,7 @@ jobs:
           repo-token: ${{ github.token }}
 
       - name: Setup tools
-        run: |
-          task internal:setup:uv
-          task tools
+        run: task tools
         env:
           GITHUB_TOKEN: ${{ github.token }}
 

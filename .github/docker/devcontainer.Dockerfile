@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.10
 ARG BASE_DEVCONTAINER_IMAGE
 FROM ${BASE_DEVCONTAINER_IMAGE:-ghcr.io/microsoft/caira-prebuilt-devcontainer-base:latest}
 LABEL devcontainer.metadata="[]"

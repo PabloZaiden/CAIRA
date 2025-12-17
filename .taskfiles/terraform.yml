@@ -27,21 +27,15 @@ tasks:
   # * Install Terraform-Docs
   install:terraform-docs:
     desc: Install Terraform-Docs
+    vars:
+      TERRAFORM_DOCS_VERSION: "v0.21.0"
+      TERRAFORM_DOCS_URL: "https://github.com/terraform-docs/terraform-docs/releases/download/{{.TERRAFORM_DOCS_VERSION}}/terraform-docs-{{.TERRAFORM_DOCS_VERSION}}-{{.OS}}-{{.ARCH}}.tar.gz"
     cmds:
       - task: internal:install:brew
         vars:
           APP: terraform-docs
       - cmd: |
-          arch=$(uname -m)
-          if [[ "${arch}" == "x86_64" ]]; then
-            arch="amd64"
-          elif [[ "${arch}" == "aarch64" ]]; then
-            arch="arm64"
-          else
-            echo "Unsupported architecture: ${arch}"
-            exit 1
-          fi
-          download_url=$(curl -L {{.GH_CURL_AUTH}} --silent "https://api.github.com/repos/terraform-docs/terraform-docs/releases/latest" | grep 'browser_download_url.*terraform-docs.*linux-'"${arch}"'.*tar.gz"' | grep -o 'https://[^"]*')
+          download_url="{{.TERRAFORM_DOCS_URL}}"
           curl --location -o ~/terraform-docs.tar.gz "${download_url}" \
             && tar -xf ~/terraform-docs.tar.gz --directory ~/ \
             && rm -f ~/terraform-docs.tar.gz \
@@ -63,30 +57,46 @@ tasks:
   # * Install Terrascan
   install:terrascan:
     desc: Install Terrascan
+    vars:
+      TERRASCAN_VERSION: "1.19.9"
+      TERRASCAN_OS:
+        sh: |
+          if [[ "{{.OS}}" == "darwin" ]]; then
+            echo "Darwin"
+          else
+            echo "Linux"
+          fi
+      TERRASCAN_ARCH:
+        sh: |
+          if [[ "{{.ARCH}}" == "amd64" ]]; then
+            echo "x86_64"
+          else
+            echo "{{.ARCH}}"
+          fi
+      TERRASCAN_URL: "https://github.com/tenable/terrascan/releases/download/v{{.TERRASCAN_VERSION}}/terrascan_{{.TERRASCAN_VERSION}}_{{.TERRASCAN_OS}}_{{.TERRASCAN_ARCH}}.tar.gz"
     cmds:
       - cmd: |
-          curl -L "$(curl {{.GH_CURL_AUTH}} -s https://api.github.com/repos/tenable/terrascan/releases/latest | grep -o -E "https://.+?_Darwin_x86_64.tar.gz")" > ~/terrascan.tar.gz
+          curl -L "{{.TERRASCAN_URL}}" > ~/terrascan.tar.gz
           tar -xf ~/terrascan.tar.gz --directory ~/ terrascan \
             && rm -f ~/terrascan.tar.gz \
             && sudo install ~/terrascan /usr/local/bin/terrascan \
             && rm ~/terrascan
-        platforms: [darwin]
-      - cmd: |
-          curl -L "$(curl {{.GH_CURL_AUTH}} -s https://api.github.com/repos/tenable/terrascan/releases/latest | grep -o -E "https://.+?_Linux_x86_64.tar.gz")" > ~/terrascan.tar.gz
-          tar -xf ~/terrascan.tar.gz --directory ~/ terrascan \
-            && rm -f ~/terrascan.tar.gz \
-            && sudo install ~/terrascan /usr/local/bin/terrascan \
-            && rm -f ~/terrascan
-        platforms: [linux]
 
   # * Install terrafmt
   install:terrafmt:
+    vars:
+      TERRAFMT_VERSION: "v0.5.4"
+      # NOTE: Using PabloZaiden/terrafmt-dist as the source for terrafmt prebuilt binaries instead of the original katbyte/terrafmt repository.
+      # This repository is a trusted mirror/distribution point for prebuilt binaries, as the original does not provide them for all platforms.
+      TERRAFMT_URL: "https://github.com/PabloZaiden/terrafmt-dist/releases/download/{{.TERRAFMT_VERSION}}/terrafmt-{{.TERRAFMT_VERSION}}-{{.OS}}-{{.ARCH}}"
+
     desc: Install terrafmt
-    cmds:
-      - for: [github.com/katbyte/terrafmt@latest]
-        task: internal:install:go
-        vars:
-          APP: "{{.ITEM}}"
+    cmd: |
+      download_url="{{.TERRAFMT_URL}}"
+      echo "Downloading terrafmt from ${download_url}"
+      curl -L {{.GH_CURL_AUTH}} -o ~/terrafmt "${download_url}" \
+        && chmod +x ~/terrafmt \
+        && sudo mv ~/terrafmt /usr/local/bin/
 
   # * Tools
   tools:

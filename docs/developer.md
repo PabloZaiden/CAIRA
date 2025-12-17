@@ -36,12 +36,11 @@ Local development is possible on Windows (with WSL 2), Linux and macOS.
 
 Prerequisites:
 
-- [Go](https://go.dev/doc/install) `>= 1.24.3`
-- [Python](https://www.python.org/downloads/) `>= 3.13` _OR_ [UV](https://docs.astral.sh/uv/getting-started/installation/)
 - [NodeJS](https://nodejs.org/en/download/) `v22.15.0` or whatever is `LTS` with npm
 
 Required tooling not included in the automated install:
 
+- [uv](https://docs.astral.sh/uv/getting-started/installation/)
 - [Git](https://git-scm.com/downloads)
 - [Task](https://taskfile.dev/installation)
 - [Azure CLI](https://learn.microsoft.com/en-us/dotnet/azure/install-azure-cli)
