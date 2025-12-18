@@ -159,7 +159,7 @@ tasks:
               exit 1
             fi
           fi
-        msg: "Azure CLI is not logged in. task tf:env:login to authenticate."
+        msg: "Azure CLI is not logged in. Run task tf:env:login to authenticate."
     silent: true
     cmd: |
       # set ARM_SUBSCRIPTION_ID if not set
@@ -173,9 +173,11 @@ tasks:
       - env:login
     silent: true
     cmd: |
-      export=$(task tf:env:setup)
+      set -e
 
-      eval "$export"
+      export_azure_sub=$(task tf:env:setup)
+
+      eval "$export_azure_sub"
 
       echo "Deploying Foundry Basic Private Pool..."
       pushd testing/infrastructure_pools/foundry_basic_private > /dev/null
@@ -206,6 +208,8 @@ tasks:
     desc: Output infrastructure pools for integration tests
     silent: true
     cmd: |
+      set -e
+
       echo "Foundry Basic Private Pool outputs:"
       pushd testing/infrastructure_pools/foundry_basic_private > /dev/null
       terraform output
@@ -220,6 +224,8 @@ tasks:
     desc: Export infrastructure pool outputs as environment variables
     silent: true
     cmd: |
+      set -e
+
       # Durable Infrastructure Pools - Foundry Standard Private
       pushd testing/infrastructure_pools/foundry_standard_private > /dev/null
       echo "export TF_VAR_fsp_resource_group_name=\"$(terraform output -raw resource_group_name)\""
