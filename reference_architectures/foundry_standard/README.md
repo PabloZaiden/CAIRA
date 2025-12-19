@@ -184,12 +184,14 @@ module "capability_host_resources_1" {
 | terraform | >= 1.13, < 2.0 |
 | azapi     | ~> 2.6         |
 | azurerm   | ~> 4.40        |
+| time      | ~> 0.13        |
 
 ## Providers
 
 | Name    | Version |
 |---------|---------|
 | azurerm | ~> 4.40 |
+| time    | ~> 0.13 |
 
 ## Modules
 
@@ -210,6 +212,8 @@ module "capability_host_resources_1" {
 |-------------------------------------------------------------------------------------------------------------------------------------------------|----------|
 | [azurerm_log_analytics_workspace.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/log_analytics_workspace) | resource |
 | [azurerm_resource_group.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group)                   | resource |
+| [time_sleep.wait_after_project1_destroy](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep)                    | resource |
+| [time_sleep.wait_after_project2_destroy](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep)                    | resource |
 
 ## Inputs
 

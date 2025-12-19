@@ -86,6 +86,14 @@ module "capability_host_resources_1" {
   ai_search_name         = module.naming.search_service.name_unique
 }
 
+# This time sleep gives time for pending locked resources to be released,
+# before proceeding to destroy the next set of capability host resources.
+resource "time_sleep" "wait_after_project1_destroy" {
+  destroy_duration = "60s"
+
+  depends_on = [module.capability_host_resources_1]
+}
+
 # Capability host resources for the secondary project.
 module "capability_host_resources_2" {
   source = "../../modules/new_resources_agent_capability_host_connections"
@@ -99,11 +107,19 @@ module "capability_host_resources_2" {
   ai_search_name         = "${module.naming.search_service.name_unique}2"
 }
 
+# This time sleep gives time for pending locked resources to be released,
+# before proceeding to destroy the next set of capability host resources.
+resource "time_sleep" "wait_after_project2_destroy" {
+  destroy_duration = "60s"
+
+  depends_on = [module.capability_host_resources_2]
+}
+
 # Foundry default project
 module "default_project" {
   source = "../../modules/ai_foundry_project"
 
-  depends_on = [module.ai_foundry]
+  depends_on = [module.ai_foundry, time_sleep.wait_after_project1_destroy]
 
   location      = var.location
   ai_foundry_id = module.ai_foundry.ai_foundry_id
@@ -120,7 +136,7 @@ module "secondary_project" {
   # Ensure the default project (and its capability host resources) completes create/destroy
   # before provisioning these resources so both projects do not concurrently modify the
   # shared AI Foundry parent resource, which has previously resulted in conflicting updates.
-  depends_on = [module.ai_foundry, module.default_project]
+  depends_on = [module.ai_foundry, module.default_project, time_sleep.wait_after_project2_destroy]
 
   location      = var.location
   ai_foundry_id = module.ai_foundry.ai_foundry_id
