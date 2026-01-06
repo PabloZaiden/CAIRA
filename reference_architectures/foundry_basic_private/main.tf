@@ -45,7 +45,7 @@ module "ai_foundry" {
   name              = module.naming.cognitive_account.name_unique
 
   model_deployments = [
-    module.common_models.gpt_5,
+    module.common_models.gpt_5_2_chat,
     module.common_models.gpt_5_nano,
     module.common_models.text_embedding_3_large
   ]

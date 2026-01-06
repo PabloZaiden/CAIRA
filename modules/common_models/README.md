@@ -70,6 +70,8 @@ model_deployments = [
 | gpt\_5\_1\_chat              | GPT-5.1-chat model - Built-in reasoning for chat                     |
 | gpt\_5\_1\_codex             | GPT-5.1-codex model - Optimized for Codex CLI/VS Code                |
 | gpt\_5\_1\_codex\_mini       | GPT-5.1-codex-mini model - Lightweight codex model                   |
+| gpt\_5\_2                    | GPT-5.2 model - Latest flagship reasoning model                      |
+| gpt\_5\_2\_chat              | GPT-5.2-chat model - Latest chat with advanced capabilities          |
 | text\_embedding\_3\_small    | Text embedding 3 small model                                         |
 | text\_embedding\_3\_large    | Text embedding 3 large model - Most capable embedding                |
 | gpt\_realtime                | GPT-realtime model (GA) - Real-time audio processing                 |

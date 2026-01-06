@@ -2,10 +2,6 @@
 # Copyright (c) Microsoft Corporation. Licensed under the MIT license.
 # ---------------------------------------------------------------------
 
-# ---------------------------------------------------------------------
-# GPT-5 Series Models (Latest generation)
-# ---------------------------------------------------------------------
-
 output "gpt_5" {
   value = {
     format  = "OpenAI"
@@ -41,10 +37,6 @@ output "gpt_5_chat" {
   }
   description = "GPT-5-chat model - Optimized for conversational AI with emotional intelligence"
 }
-
-# ---------------------------------------------------------------------
-# GPT-5.1 Series Models (Advanced generation)
-# ---------------------------------------------------------------------
 
 output "gpt_5_1" {
   value = {
@@ -82,9 +74,23 @@ output "gpt_5_1_codex_mini" {
   description = "GPT-5.1-codex-mini model - Lightweight codex model"
 }
 
-# ---------------------------------------------------------------------
-# Embedding Models
-# ---------------------------------------------------------------------
+output "gpt_5_2" {
+  value = {
+    format  = "OpenAI"
+    name    = "gpt-5.2"
+    version = "2025-12-11"
+  }
+  description = "GPT-5.2 model - Latest flagship reasoning model"
+}
+
+output "gpt_5_2_chat" {
+  value = {
+    format  = "OpenAI"
+    name    = "gpt-5.2-chat"
+    version = "2025-12-11"
+  }
+  description = "GPT-5.2-chat model - Latest chat model with advanced capabilities"
+}
 
 output "text_embedding_3_small" {
   value = {
@@ -104,10 +110,6 @@ output "text_embedding_3_large" {
   description = "Text embedding 3 large model - Most capable embedding model"
 }
 
-# ---------------------------------------------------------------------
-# Real-time Audio Models (GA)
-# ---------------------------------------------------------------------
-
 output "gpt_realtime" {
   value = {
     format  = "OpenAI"
@@ -126,10 +128,6 @@ output "gpt_realtime_mini" {
   description = "GPT-realtime-mini model - Lightweight real-time audio processing"
 }
 
-# ---------------------------------------------------------------------
-# Audio Generation Models (GA)
-# ---------------------------------------------------------------------
-
 output "gpt_audio" {
   value = {
     format  = "OpenAI"
@@ -147,10 +145,6 @@ output "gpt_audio_mini" {
   }
   description = "GPT-audio-mini model - Lightweight audio generation"
 }
-
-# ---------------------------------------------------------------------
-# Speech-to-Text Models
-# ---------------------------------------------------------------------
 
 output "gpt_4o_mini_transcribe" {
   value = {
