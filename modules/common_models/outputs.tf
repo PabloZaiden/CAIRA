@@ -8,7 +8,7 @@ output "gpt_5" {
     name    = "gpt-5"
     version = "2025-08-07"
   }
-  description = "GPT-5 model - Latest flagship reasoning model with advanced capabilities"
+  description = "GPT-5 model - Reasoning model with advanced capabilities"
 }
 
 output "gpt_5_mini" {
@@ -80,7 +80,7 @@ output "gpt_5_2" {
     name    = "gpt-5.2"
     version = "2025-12-11"
   }
-  description = "GPT-5.2 model - Latest flagship reasoning model"
+  description = "GPT-5.2 model - Reasoning model"
 }
 
 output "gpt_5_2_chat" {
@@ -89,7 +89,7 @@ output "gpt_5_2_chat" {
     name    = "gpt-5.2-chat"
     version = "2025-12-11"
   }
-  description = "GPT-5.2-chat model - Latest chat model with advanced capabilities"
+  description = "GPT-5.2-chat model - Chat model with advanced capabilities"
 }
 
 output "text_embedding_3_small" {
@@ -149,7 +149,7 @@ output "gpt_audio_mini" {
 output "gpt_4o_mini_transcribe" {
   value = {
     format  = "OpenAI"
-    name    = "gpt-4o-mini-transcribe-2025-12-15"
+    name    = "gpt-4o-mini-transcribe"
     version = "2025-12-15"
   }
   description = "GPT-4o-mini-transcribe model - Improved transcription accuracy and robustness"
