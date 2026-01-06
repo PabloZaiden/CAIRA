@@ -64,13 +64,13 @@ model_deployments = [
 |------------------------------|--------------------------------------------------------------------------------|
 | gpt\_4o\_mini\_transcribe    | GPT-4o-mini-transcribe model - Improved transcription accuracy and robustness  |
 | gpt\_4o\_transcribe\_diarize | GPT-4o-transcribe-diarize model - Speech-to-text with speaker diarization      |
-| gpt\_5                       | GPT-5 model - Latest flagship reasoning model with advanced capabilities       |
+| gpt\_5                       | GPT-5 model - Reasoning model with advanced capabilities                       |
 | gpt\_5\_1                    | GPT-5.1 model - Enhanced reasoning with configurable reasoning\_effort         |
 | gpt\_5\_1\_chat              | GPT-5.1-chat model - Built-in reasoning capabilities for chat                  |
 | gpt\_5\_1\_codex             | GPT-5.1-codex model - Optimized for Codex CLI and VS Code extension            |
 | gpt\_5\_1\_codex\_mini       | GPT-5.1-codex-mini model - Lightweight codex model                             |
-| gpt\_5\_2                    | GPT-5.2 model - Latest flagship reasoning model                                |
-| gpt\_5\_2\_chat              | GPT-5.2-chat model - Latest chat model with advanced capabilities              |
+| gpt\_5\_2                    | GPT-5.2 model - Reasoning model                                                |
+| gpt\_5\_2\_chat              | GPT-5.2-chat model - Chat model with advanced capabilities                     |
 | gpt\_5\_chat                 | GPT-5-chat model - Optimized for conversational AI with emotional intelligence |
 | gpt\_5\_mini                 | GPT-5-mini model - Balanced performance and cost efficiency                    |
 | gpt\_5\_nano                 | GPT-5-nano model - Lightweight model for high-throughput scenarios             |
