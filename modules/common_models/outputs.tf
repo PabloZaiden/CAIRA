@@ -2,59 +2,89 @@
 # Copyright (c) Microsoft Corporation. Licensed under the MIT license.
 # ---------------------------------------------------------------------
 
-output "gpt_4_1" {
+# ---------------------------------------------------------------------
+# GPT-5 Series Models (Latest generation)
+# ---------------------------------------------------------------------
+
+output "gpt_5" {
   value = {
     format  = "OpenAI"
-    name    = "gpt-4.1"
-    version = "2025-04-14"
+    name    = "gpt-5"
+    version = "2025-08-07"
   }
-  description = "GPT-4.1 model"
+  description = "GPT-5 model - Latest flagship reasoning model with advanced capabilities"
 }
 
-output "gpt_4_1_mini" {
+output "gpt_5_mini" {
   value = {
     format  = "OpenAI"
-    name    = "gpt-4.1-mini"
-    version = "2025-04-14"
+    name    = "gpt-5-mini"
+    version = "2025-08-07"
   }
-  description = "GPT-4.1-mini model"
+  description = "GPT-5-mini model - Balanced performance and cost efficiency"
 }
 
-output "gpt_4_1_nano" {
+output "gpt_5_nano" {
   value = {
     format  = "OpenAI"
-    name    = "gpt-4.1-nano"
-    version = "2025-04-14"
+    name    = "gpt-5-nano"
+    version = "2025-08-07"
   }
-  description = "GPT-4.1-nano model"
+  description = "GPT-5-nano model - Lightweight model for high-throughput scenarios"
 }
 
-output "gpt_4o" {
+output "gpt_5_chat" {
   value = {
     format  = "OpenAI"
-    name    = "gpt-4o"
-    version = "2024-11-20"
+    name    = "gpt-5-chat"
+    version = "2025-10-03"
   }
-  description = "GPT-4o model"
+  description = "GPT-5-chat model - Optimized for conversational AI with emotional intelligence"
 }
 
-output "gpt_4o_mini" {
+# ---------------------------------------------------------------------
+# GPT-5.1 Series Models (Advanced generation)
+# ---------------------------------------------------------------------
+
+output "gpt_5_1" {
   value = {
     format  = "OpenAI"
-    name    = "gpt-4o-mini"
-    version = "2024-07-18"
+    name    = "gpt-5.1"
+    version = "2025-11-13"
   }
-  description = "GPT-4o-mini model"
+  description = "GPT-5.1 model - Enhanced reasoning with configurable reasoning_effort"
 }
 
-output "o4_mini" {
+output "gpt_5_1_chat" {
   value = {
     format  = "OpenAI"
-    name    = "o4-mini"
-    version = "2025-04-16"
+    name    = "gpt-5.1-chat"
+    version = "2025-11-13"
   }
-  description = "O4-mini model"
+  description = "GPT-5.1-chat model - Built-in reasoning capabilities for chat"
 }
+
+output "gpt_5_1_codex" {
+  value = {
+    format  = "OpenAI"
+    name    = "gpt-5.1-codex"
+    version = "2025-11-13"
+  }
+  description = "GPT-5.1-codex model - Optimized for Codex CLI and VS Code extension"
+}
+
+output "gpt_5_1_codex_mini" {
+  value = {
+    format  = "OpenAI"
+    name    = "gpt-5.1-codex-mini"
+    version = "2025-11-13"
+  }
+  description = "GPT-5.1-codex-mini model - Lightweight codex model"
+}
+
+# ---------------------------------------------------------------------
+# Embedding Models
+# ---------------------------------------------------------------------
 
 output "text_embedding_3_small" {
   value = {
@@ -71,32 +101,71 @@ output "text_embedding_3_large" {
     name    = "text-embedding-3-large"
     version = "1"
   }
-  description = "Text embedding 3 large model"
+  description = "Text embedding 3 large model - Most capable embedding model"
 }
 
-output "gpt_4o_realtime_preview" {
+# ---------------------------------------------------------------------
+# Real-time Audio Models (GA)
+# ---------------------------------------------------------------------
+
+output "gpt_realtime" {
   value = {
     format  = "OpenAI"
-    name    = "gpt-4o-realtime-preview"
-    version = "2025-06-03"
+    name    = "gpt-realtime"
+    version = "2025-08-28"
   }
-  description = "GPT-4o realtime preview model"
+  description = "GPT-realtime model (GA) - Real-time audio processing"
 }
 
-output "gpt_4o_audio_preview" {
+output "gpt_realtime_mini" {
   value = {
     format  = "OpenAI"
-    name    = "gpt-4o-audio-preview"
-    version = "2024-12-17"
+    name    = "gpt-realtime-mini"
+    version = "2025-10-06"
   }
-  description = "GPT-4o audio preview model"
+  description = "GPT-realtime-mini model - Lightweight real-time audio processing"
 }
 
-output "gpt_4o_transcribe" {
+# ---------------------------------------------------------------------
+# Audio Generation Models (GA)
+# ---------------------------------------------------------------------
+
+output "gpt_audio" {
   value = {
     format  = "OpenAI"
-    name    = "gpt-4o-transcribe"
-    version = "2025-03-20"
+    name    = "gpt-audio"
+    version = "2025-08-28"
   }
-  description = "GPT-4o transcribe model"
+  description = "GPT-audio model (GA) - Audio generation capabilities"
+}
+
+output "gpt_audio_mini" {
+  value = {
+    format  = "OpenAI"
+    name    = "gpt-audio-mini"
+    version = "2025-10-06"
+  }
+  description = "GPT-audio-mini model - Lightweight audio generation"
+}
+
+# ---------------------------------------------------------------------
+# Speech-to-Text Models
+# ---------------------------------------------------------------------
+
+output "gpt_4o_mini_transcribe" {
+  value = {
+    format  = "OpenAI"
+    name    = "gpt-4o-mini-transcribe-2025-12-15"
+    version = "2025-12-15"
+  }
+  description = "GPT-4o-mini-transcribe model - Improved transcription accuracy and robustness"
+}
+
+output "gpt_4o_transcribe_diarize" {
+  value = {
+    format  = "OpenAI"
+    name    = "gpt-4o-transcribe-diarize"
+    version = "1"
+  }
+  description = "GPT-4o-transcribe-diarize model - Speech-to-text with speaker diarization"
 }

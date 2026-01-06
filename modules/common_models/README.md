@@ -35,8 +35,8 @@ module "ai_foundry" {
   # ... other required inputs ...
 
   model_deployments = [
-    module.common_models.gpt_4_1,
-    module.common_models.o4_mini,
+    module.common_models.gpt_5,
+    module.common_models.o3,
     module.common_models.text_embedding_3_large
   ]
 }
@@ -46,7 +46,7 @@ To override SKU per deployment:
 
 ```terraform
 model_deployments = [
-  merge(module.common_models.gpt_4_1, { sku = { name = "GlobalStandard", capacity = 2 } }),
+  merge(module.common_models.gpt_5, { sku = { name = "GlobalStandard", capacity = 2 } }),
   module.common_models.text_embedding_3_large
 ]
 ```
@@ -60,17 +60,22 @@ model_deployments = [
 
 ## Outputs
 
-| Name                       | Description                   |
-|----------------------------|-------------------------------|
-| gpt\_4\_1                  | GPT-4.1 model                 |
-| gpt\_4\_1\_mini            | GPT-4.1-mini model            |
-| gpt\_4\_1\_nano            | GPT-4.1-nano model            |
-| gpt\_4o                    | GPT-4o model                  |
-| gpt\_4o\_audio\_preview    | GPT-4o audio preview model    |
-| gpt\_4o\_mini              | GPT-4o-mini model             |
-| gpt\_4o\_realtime\_preview | GPT-4o realtime preview model |
-| gpt\_4o\_transcribe        | GPT-4o transcribe model       |
-| o4\_mini                   | O4-mini model                 |
-| text\_embedding\_3\_large  | Text embedding 3 large model  |
-| text\_embedding\_3\_small  | Text embedding 3 small model  |
+| Name                         | Description                                                           |
+|------------------------------|-----------------------------------------------------------------------|
+| gpt\_5                       | GPT-5 model - Latest flagship reasoning model                        |
+| gpt\_5\_mini                 | GPT-5-mini model - Balanced performance and cost                     |
+| gpt\_5\_nano                 | GPT-5-nano model - Lightweight high-throughput model                 |
+| gpt\_5\_chat                 | GPT-5-chat model - Conversational AI with emotional intelligence     |
+| gpt\_5\_1                    | GPT-5.1 model - Enhanced reasoning capabilities                      |
+| gpt\_5\_1\_chat              | GPT-5.1-chat model - Built-in reasoning for chat                     |
+| gpt\_5\_1\_codex             | GPT-5.1-codex model - Optimized for Codex CLI/VS Code                |
+| gpt\_5\_1\_codex\_mini       | GPT-5.1-codex-mini model - Lightweight codex model                   |
+| text\_embedding\_3\_small    | Text embedding 3 small model                                         |
+| text\_embedding\_3\_large    | Text embedding 3 large model - Most capable embedding                |
+| gpt\_realtime                | GPT-realtime model (GA) - Real-time audio processing                 |
+| gpt\_realtime\_mini          | GPT-realtime-mini model - Lightweight real-time audio                |
+| gpt\_audio                   | GPT-audio model (GA) - Audio generation                              |
+| gpt\_audio\_mini             | GPT-audio-mini model - Lightweight audio generation                  |
+| gpt\_4o\_mini\_transcribe    | GPT-4o-mini-transcribe model - Improved transcription                |
+| gpt\_4o\_transcribe\_diarize | GPT-4o-transcribe-diarize model - Speech-to-text with diarization    |
 <!-- END_TF_DOCS -->
