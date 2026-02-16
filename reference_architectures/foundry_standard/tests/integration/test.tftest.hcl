@@ -126,8 +126,8 @@ run "testint_foundry_standard_comprehensive" {
 
   # Verify specific number of model deployments
   assert {
-    condition     = length(module.ai_foundry.ai_foundry_model_deployments_ids) == 3
-    error_message = "Should have exactly 3 model deployments"
+    condition     = length(module.ai_foundry.ai_foundry_model_deployments_ids) == 4
+    error_message = "Should have exactly 4 model deployments"
   }
 
   # Validate all model deployment resource IDs
