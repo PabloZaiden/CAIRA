@@ -163,3 +163,12 @@ output "gpt_4o_transcribe_diarize" {
   }
   description = "GPT-4o-transcribe-diarize model - Speech-to-text with speaker diarization"
 }
+
+output "gpt_4o_mini" {
+  value = {
+    format  = "OpenAI"
+    name    = "gpt-4o-mini"
+    version = "2024-07-18"
+  }
+  description = "GPT-4o-mini model - Improved performance and cost efficiency for a wide range of tasks"
+}

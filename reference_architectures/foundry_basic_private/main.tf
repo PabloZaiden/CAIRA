@@ -47,7 +47,8 @@ module "ai_foundry" {
   model_deployments = [
     module.common_models.gpt_5_2_chat,
     module.common_models.gpt_5_nano,
-    module.common_models.text_embedding_3_large
+    module.common_models.text_embedding_3_large,
+    module.common_models.gpt_4o_mini
   ]
 
   application_insights = module.application_insights
