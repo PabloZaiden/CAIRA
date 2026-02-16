@@ -34,7 +34,7 @@ variable "model_deployments" {
       capacity = number
       }), {
       name     = "GlobalStandard"
-      capacity = 1
+      capacity = 50
     })
   }))
 }
