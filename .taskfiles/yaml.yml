@@ -25,5 +25,29 @@ tasks:
   lint:
     desc: Lint YAML files
     cmds:
-      - yamllint -c ./.github/linters/.yamllint.yml --format auto --strict .
+      - cmd: |
+          python3 <<'PY'
+          import os
+          import subprocess
+          import sys
+
+          root = os.getcwd()
+          skip_dirs = {'.git', 'node_modules', '.terraform', '.venv', '.dev', 'dist', 'coverage', 'site'}
+          files = []
+
+          for base, dirs, filenames in os.walk(root):
+              dirs[:] = [directory for directory in dirs if directory not in skip_dirs]
+              for name in filenames:
+                  if name.endswith(('.yml', '.yaml')):
+                      files.append(os.path.relpath(os.path.join(base, name), root))
+
+          files.sort()
+          if not files:
+              sys.exit(0)
+
+          subprocess.run(
+              ['yamllint', '-c', './.github/linters/.yamllint.yml', '--format', 'auto', '--strict', *files],
+              check=True
+          )
+          PY
     dir: "{{.ROOT_DIR}}"

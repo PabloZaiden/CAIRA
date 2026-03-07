@@ -4,10 +4,20 @@
 .terraform/
 
 # Ignore other common directories
+**/node_modules/
 node_modules/
+**/.git/
 .git/
+**/.venv/
 .venv/
+**/.dev/
 .dev/
+**/dist/
+dist/
+**/coverage/
+coverage/
+**/site/
+site/
 
 # Ignore generated files
 *.min.js

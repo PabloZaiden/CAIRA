@@ -1,0 +1,25 @@
+{
+  "name": "caira-contract-validator",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "OpenAPI 3.1.0 contract compliance validator — validates running services against their OpenAPI specs",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "validate": "node src/cli.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.3",
+    "ajv": "^8",
+    "ajv-formats": "^3",
+    "fastify": "^5",
+    "vitest": "^3",
+    "yaml": "^2"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  }
+}

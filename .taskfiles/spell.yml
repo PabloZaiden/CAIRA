@@ -55,7 +55,7 @@ tasks:
   lint:
     desc: Lint Spell files
     cmds:
-      - codespell --config ./.github/linters/.codespellrc --summary --write-changes
-      - cspell --config ./.github/linters/.cspell.yml "./**/*.md"
+      - codespell --config ./.github/linters/.codespellrc --summary
+      - cspell --config ./.github/linters/.cspell.yml --no-progress "./**/*.md"
       - lychee --config ./.github/linters/.lychee.toml --format markdown .
     dir: "{{.ROOT_DIR}}"

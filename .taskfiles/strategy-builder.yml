@@ -1,0 +1,96 @@
+#  yaml-language-server: $schema=https://taskfile.dev/schema.json
+# docs: https://taskfile.dev
+---
+version: "3"
+
+tasks:
+  install:
+    desc: Install strategy-builder workspace dependencies
+    cmds:
+      - npm install
+    dir: "{{.ROOT_DIR}}/strategy-builder"
+
+  generate:
+    desc: Regenerate deployment strategies
+    deps:
+      - task: install
+    cmds:
+      - npm run generate
+    dir: "{{.ROOT_DIR}}/strategy-builder"
+
+  validate:drift:
+    desc: Validate generated deployment strategies for drift
+    deps:
+      - task: install
+    cmds:
+      - node scripts/validate-strategies.ts
+    dir: "{{.ROOT_DIR}}/strategy-builder"
+
+  validate:pr:
+    desc: Run fast static validation for strategy-builder changes
+    deps:
+      - task: install
+    cmds:
+      - node scripts/test-all.ts --layer L1,L7,L8
+    dir: "{{.ROOT_DIR}}/strategy-builder"
+
+  test:local:
+    desc: Run the full local strategy-builder validation suite
+    deps:
+      - task: install
+    cmds:
+      - node scripts/test-all.ts
+    dir: "{{.ROOT_DIR}}/strategy-builder"
+
+  test:azure:
+    desc: Run the strategy-builder suite including Azure compose tests
+    deps:
+      - task: install
+    vars:
+      ARGS: "{{if empty .CLI_ARGS | not}} {{.CLI_ARGS}}{{end}}"
+    cmds:
+      - node scripts/test-all.ts --include-azure{{.ARGS}}
+    dir: "{{.ROOT_DIR}}/strategy-builder"
+
+  test:deployed:
+    desc: Deploy, validate, and destroy a deployment strategy on Azure
+    deps:
+      - task: install
+    preconditions:
+      - sh: test -n "{{.CLI_ARGS}}"
+        msg: "Provide a deployment strategy path, for example: task strategy:test:deployed -- deployment-strategies/typescript-openai-agent-sdk"
+    cmds:
+      - node scripts/test-deployed-strategy.ts --strategy {{.CLI_ARGS}}
+    dir: "{{.ROOT_DIR}}/strategy-builder"
+
+  deploy:reference:
+    desc: Deploy or update the CAIRA reference architecture foundation
+    deps:
+      - task: install
+    vars:
+      ARGS: "{{if empty .CLI_ARGS | not}} {{.CLI_ARGS}}{{end}}"
+    cmds:
+      - node scripts/deploy-reference-architecture.ts{{.ARGS}}
+    dir: "{{.ROOT_DIR}}/strategy-builder"
+
+  deploy:strategy:
+    desc: Deploy a generated strategy to Azure
+    deps:
+      - task: install
+    preconditions:
+      - sh: test -n "{{.CLI_ARGS}}"
+        msg: "Provide a deployment strategy path, for example: task strategy:deploy:strategy -- deployment-strategies/typescript-openai-agent-sdk"
+    cmds:
+      - node scripts/deploy-strategy-azure.ts --strategy {{.CLI_ARGS}}
+    dir: "{{.ROOT_DIR}}/strategy-builder"
+
+  destroy:strategy:
+    desc: Destroy a generated strategy deployment from Azure
+    deps:
+      - task: install
+    preconditions:
+      - sh: test -n "{{.CLI_ARGS}}"
+        msg: "Provide a deployment strategy path, for example: task strategy:destroy:strategy -- deployment-strategies/typescript-openai-agent-sdk"
+    cmds:
+      - node scripts/deploy-strategy-azure.ts --destroy --strategy {{.CLI_ARGS}}
+    dir: "{{.ROOT_DIR}}/strategy-builder"

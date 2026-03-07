@@ -1,0 +1,12 @@
+{
+  "name": "frontend",
+  "type": "frontend",
+  "variant": "react-typescript",
+  "language": "typescript",
+  "description": "React/TypeScript chat UI with pirate theme",
+  "port": 8080,
+  "healthEndpoint": "/health",
+  "requiredEnv": ["API_BASE_URL"],
+  "optionalEnv": [],
+  "contractSpec": "contracts/backend-api.openapi.yaml"
+}

@@ -1,0 +1,138 @@
+# API Container
+
+**Directory:** `components/api/typescript/`
+**Port:** 4000
+**Contract:** `contracts/backend-api.openapi.yaml`
+
+The API container is the **pirate-themed business operations layer**. It exposes business operations (start a sea shanty battle, seek treasure, enlist in crew) that create conversations on the agent container and return a mode-specific `syntheticMessage` for the frontend to send as the first parley. It also proxies ongoing chat via the adventures endpoints, **parsing the SSE stream** to detect `activity.resolved` events and capture resolution outcomes. Adventures gain `status` (`active`/`resolved`) and `outcome` fields. It is **agent-framework-agnostic** -- it only knows the agent API contract.
+
+## Architecture
+
+```text
+components/api/typescript/
+├── src/
+│   ├── server.ts          # Entry point: starts Fastify, graceful shutdown
+│   ├── app.ts             # Fastify factory: routes, auth config
+│   ├── config.ts          # Environment variable loading + validation
+│   ├── agent-client.ts    # HTTP client for the agent container (with retry + circuit breaker)
+│   ├── routes.ts          # Business API route handlers + SSE passthrough
+│   └── types.ts           # Types (mirrors backend-api.openapi.yaml schemas)
+├── tests/
+│   ├── config.test.ts     # Config loading tests
+│   ├── agent-client.test.ts # Agent HTTP client tests (mocked fetch)
+│   └── routes.test.ts     # Route handler tests (mocked agent client)
+├── Dockerfile
+├── .env.test              # Test environment variables
+├── package.json
+├── tsconfig.json
+├── vitest.config.ts
+└── component.json
+```
+
+## How it works
+
+### Request flow
+
+**Starting a new activity (business operation):**
+
+1. Frontend calls `POST /api/pirate/shanty` (or `/treasure`, `/crew/enlist`)
+1. API creates a conversation on the agent: `POST /conversations`
+1. API returns `{ id, mode, status, syntheticMessage, createdAt }` to the frontend
+1. Frontend sends `syntheticMessage` via `POST /api/pirate/adventures/{id}/parley` to get the first assistant response
+
+**Continuing a conversation:**
+
+1. Frontend calls `POST /api/pirate/adventures/{id}/parley` with `{ "message": "You fight like a dairy farmer!" }`
+1. API translates to `POST /conversations/{id}/messages` with `{ "content": "You fight like a dairy farmer!" }`
+1. If streaming: API opens SSE connection to agent, **parses events** to detect `activity.resolved` (captures outcome, stores it, passes event through), pipes remaining events to the frontend response
+1. If non-streaming: API waits for JSON response from agent (which may include an optional `resolution` field), wraps it in the business response format
+
+### Agent client (`agent-client.ts`)
+
+The `AgentClient` class is the HTTP client that talks to the agent container:
+
+- Base URL from `AGENT_SERVICE_URL` environment variable
+- Sends bearer tokens on downstream API→agent calls when `SKIP_AUTH=false`
+- Uses `DefaultAzureCredential` for token acquisition when available, otherwise falls back to an internal inter-service token for local/dev compatibility
+- Token scope: `AGENT_TOKEN_SCOPE` env var (defaults to the Azure AI Foundry scope)
+- Retry logic for 429 (rate limit) and 503 (service unavailable)
+- Circuit breaker pattern for cascading failure prevention
+- SSE stream parsing: detects `activity.resolved` events from the agent, captures outcomes, passes events through to the caller
+
+### Endpoints
+
+> **WS-12 rework:** These endpoints replace the previous `recruit`, `crew`, `crew/{crewId}/parley`, and `treasure` endpoints.
+
+| Endpoint                                  | Method | Maps to agent API                                 | Description                                                                                  |
+|-------------------------------------------|--------|---------------------------------------------------|----------------------------------------------------------------------------------------------|
+| `POST /api/pirate/shanty`                 | POST   | `POST /conversations`                             | Start a sea shanty battle (creates conversation and returns `syntheticMessage`)              |
+| `POST /api/pirate/treasure`               | POST   | `POST /conversations`                             | Start a treasure hunt (creates conversation and returns `syntheticMessage`)                  |
+| `POST /api/pirate/crew/enlist`            | POST   | `POST /conversations`                             | Enlist in the crew (creates conversation and returns `syntheticMessage`)                     |
+| `GET /api/pirate/adventures`              | GET    | `GET /conversations`                              | List all adventures (with `mode` + `status` fields)                                          |
+| `GET /api/pirate/adventures/{id}`         | GET    | `GET /conversations/{id}`                         | Get adventure detail with messages, `status`, and `outcome`                                  |
+| `POST /api/pirate/adventures/{id}/parley` | POST   | `POST /conversations/{id}/messages`               | Continue chatting (SSE stream; parses for `activity.resolved`)                               |
+| `GET /api/pirate/stats`                   | GET    | Computed from `GET /conversations`                | Activity stats per mode (shanty battles, treasures, enlistments); includes resolution counts |
+| `GET /health`                             | GET    | Also calls agent `/health`                        | Health check (self + agent dependency)                                                       |
+| `GET /health/deep`                        | GET    | Calls agent `GET /conversations?offset=0&limit=1` | Deep health check for authenticated API→agent connectivity                                   |
+| `GET /identity`                           | GET    | --                                                | Credential validation (returns identity claims from `DefaultAzureCredential`)                |
+
+### Health check
+
+The `/health` endpoint checks the API's downstream dependency via the agent `/health` endpoint:
+
+```json
+{
+  "status": "healthy",
+  "checks": [
+    { "name": "self", "status": "healthy" },
+    { "name": "agent-service", "status": "healthy", "latencyMs": 12 }
+  ]
+}
+```
+
+If the agent is unreachable, the API reports `degraded` (not `unhealthy`). The `/health/deep` endpoint performs an auth-required business-path probe (`GET /conversations`) to verify API→agent bearer propagation.
+
+## Configuration
+
+| Variable            | Required | Default                                        | Description                                                     |
+|---------------------|----------|------------------------------------------------|-----------------------------------------------------------------|
+| `AGENT_SERVICE_URL` | Yes      | --                                             | Base URL of the agent container (e.g., `http://localhost:3000`) |
+| `PORT`              | No       | `4000`                                         | Server port                                                     |
+| `HOST`              | No       | `0.0.0.0`                                      | Server host                                                     |
+| `AGENT_TOKEN_SCOPE` | No       | `https://cognitiveservices.azure.com/.default` | OAuth scope for agent tokens                                    |
+| `LOG_LEVEL`         | No       | `info`                                         | Pino log level                                                  |
+| `SKIP_AUTH`         | No       | `false`                                        | Disable bearer auth checks and downstream bearer forwarding     |
+
+## Dependencies
+
+- `fastify` ^5 -- HTTP framework
+- `@azure/identity` ^4 -- DefaultAzureCredential for agent-to-agent auth
+
+## Tests
+
+```bash
+cd components/api/typescript
+npm install && npm run test
+```
+
+- `config.test.ts` -- config loading, required vars, defaults
+- `agent-client.test.ts` -- HTTP client: request formation, auth headers, retry, circuit breaker, SSE passthrough, error handling
+- `routes.test.ts` -- endpoint behavior: pirate-to-agent translation, response formats, error mapping, health aggregation
+
+## Docker
+
+```bash
+# Build
+docker build -t caira-api components/api/typescript
+
+# Run
+docker run -p 4000:4000 \
+  -e AGENT_SERVICE_URL=http://agent:3000 \
+  -e SKIP_AUTH=true \
+  caira-api
+
+# Health check
+curl http://localhost:4000/health
+```
+
+The Dockerfile follows the same multi-stage pattern as the agent containers: dependency install stage, then lean runtime stage with `node`.

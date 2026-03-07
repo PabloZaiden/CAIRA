@@ -1,83 +1,76 @@
 # CAIRA
 
-CAIRA (Composable AI Reference Architectures) provides a modular, composable foundation that accelerates the setup of AI environments using infrastructure as code. CAIRA is not a turnkey solution, but a suite of assets designed to accelerate the creation of secure, observable, and repeatable enterprise environments.
+CAIRA (Composable AI Reference Architectures) is a single repository for composing, validating, and deploying Azure AI solutions end to end. It includes the shared foundation infrastructure, reusable infrastructure modules, application-layer components, a strategy builder that assembles supported deployment strategies, and the generated deployment strategies that CI validates every night.
 
-## CAIRA Assets
+For most users, the primary way to use CAIRA is to install the CAIRA skill and let a coding agent inspect this repository as reference material. Clone the repository only if you want to contribute to CAIRA itself or validate upstream assets directly.
 
-There are several acceleration assets within the CAIRA suite.
+## What CAIRA contains
 
-| Asset                                             | Purpose                                                                                                     | What it offers                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Link                                                                                                        |
-|---------------------------------------------------|-------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
-| **AI Foundry Acceleration**                       | For organizations building modern AI solutions in the cloud                                                 | • Faster time to value: Deploy enterprise AI solutions with minimal upfront investment using reliable accelerator components<br>• Enterprise-grade security and observability acceleration: Baseline configurations with private networking, security controls, and compliance patterns<br>• Infrastructure as Code: Repeatable, version-controlled deployments with composable Terraform modules for Azure AI Foundry and supporting infrastructure<br>• Agentic acceleration: Deploy and configure through natural language, with seamless agent communication | [Current repository](https://github.com/microsoft/CAIRA)                                                    |
-| **Copilot Studio + Azure AI Search Acceleration** | For customers building enterprise solutions involving the low-code platform Copilot Studio (Power Platform) | • Rapid provisioning: Deploy a full Copilot Studio + Azure AI Search environment<br>• Enterprise-ready baseline: Preconfigured networking (VNets, private endpoints) and secure authentication patterns<br>• CI/CD friendly: Modular Terraform templates for repeatable, automated deployments<br>• Faster time-to-value: Move from proof-of-concept to production quickly and confidently<br>• Extensible architecture: Supports bring-your-own networking and Application Lifecycle Management (ALM) patterns for dev/test/prod environments                   | [Copilot Studio with Azure AI Search](https://github.com/Azure-Samples/Copilot-Studio-with-Azure-AI-Search) |
+- `infra/architectures/` — foundation reference architectures for Azure AI workloads.
+- `infra/modules/` — reusable Terraform modules consumed by the reference architectures and generated strategies.
+- `infra/testing/` — Terraform test fixtures plus durable infrastructure pools reused by nightly validation.
+- `strategy-builder/` — source-of-truth application components, contracts, generators, and validation tooling.
+- `deployment-strategies/` — generated, committed end-to-end deployments built from the strategy builder.
+- `docs/` and `skills/` — contributor guidance, operating docs, and discovery assets.
 
-## AI Foundry Acceleration
+CAIRA is not Terraform-only and not infrastructure-only. The repository intentionally spans foundation infra, application infra, application components, and the generation of supported end-to-end deployment combinations.
 
-This CAIRA asset provides several baseline configurations for Azure AI Foundry based solutions, so users can have a consistent, scalable, reliable deployment of Azure AI Foundry and supporting infrastructure in an accelerated time frame in support of agentic workloads.
+## Primary entrypoint: CAIRA skill
 
-Look [here for documentation](https://github.com/microsoft/CAIRA/tree/main/reference_architectures) that details the available configurations.
+1. Install the CAIRA skill defined under `skills/caira/` in your coding agent or agent platform.
+1. Ask the agent to inspect the CAIRA reference architectures, modules, strategy-builder assets, deployment strategies, and docs that fit your scenario.
+1. Let the agent adapt those discovered CAIRA assets into a solution for your specific use case.
+1. Use the repository directly only when you need to contribute upstream or validate CAIRA itself.
 
-Foundry-only use case: If you only need Azure AI Foundry (account, project, model deployments, observability) and do NOT plan to use Azure AI Agent Service, choose one of the `_basic` reference architectures (`foundry_basic` for public endpoints or `foundry_basic_private` for private networking). The `_standard` variants add agent-focused dependent resources (Cosmos DB, Storage, AI Search) and capability host connection wiring that are unnecessary for a Foundry-only environment.
+## Contribute to the CAIRA repository
 
-## Getting Started
+1. Clone the repository.
+1. Preferred: open the repository in the provided devcontainer.
+1. Local setup: install Task, then run `task setup`.
+1. Authenticate with Azure when you need deployment or integration workflows: `az login`.
+1. Use the Taskfile-first workflow from the repository root.
 
-### Quick Start
+## Contributor Taskfile-first workflows
 
-Try the ['CAIRA Assistant' chat mode](./docs/chat_modes.md) for guided deployment assistance. After cloning the repo and starting the devcontainer, simply select "caira-assistant" chatmode in copilot and start chatting.
+| Command                                                          | Purpose                                                  |
+|------------------------------------------------------------------|----------------------------------------------------------|
+| `task bootstrap`                                                 | Install workspace dependencies after tools are available |
+| `task validate:pr`                                               | Run the fast pull-request validation suite               |
+| `task test`                                                      | Run the full local validation suite                      |
+| `task strategy:generate`                                         | Regenerate committed deployment strategies               |
+| `task strategy:deploy:reference`                                 | Deploy or refresh the shared CAIRA foundation            |
+| `task strategy:deploy:strategy -- deployment-strategies/<name>`  | Deploy one generated deployment strategy to Azure        |
+| `task strategy:destroy:strategy -- deployment-strategies/<name>` | Destroy one generated deployment strategy deployment     |
+| `task strategy:test:deployed -- deployment-strategies/<name>`    | Deploy, validate, and destroy one deployment strategy    |
+| `task validate:nightly -- deployment-strategies/<name>`          | Reproduce the nightly flow locally for one strategy      |
 
-![Caira Assistant](./docs/images/caira_assistant.gif)
+## Repository model
 
-The CAIRA assistant will walk you through the entire deployment experience of all four reference architectures, validate any necessary prerequisite resources, and even help verify resources post-deployment.
+```text
+CAIRA/
+├── infra/
+│   ├── architectures/
+│   ├── modules/
+│   └── testing/
+├── strategy-builder/
+├── deployment-strategies/
+├── docs/
+└── skills/
+```
 
-![Caira Assistant](./docs/images/caira_assistant_long.gif)
+- The foundation reference architecture under `infra/architectures/foundry-agent-api-frontend/` establishes the shared Azure AI foundation.
+- The strategy builder turns reusable app-layer components plus infrastructure templates into committed deployment strategies.
+- `deployment-strategies/` is generated output and should stay in sync with `strategy-builder/`.
 
-### Getting Started
+## Validation model
 
-To use CAIRA, you'll need to set up your development environment with the required tools and dependencies. The easiest way to do it is using the devcontainer provided in with the repository. If you rather configure the environment manually, follow the directions outlined in [Environment Setup](./docs/environment_setup.md)
+- **Pull requests** run fast static validation only: linting, formatting, docs generation, docs build, Terraform validation, generator drift checks, and security scanners.
+- **Nightly validation** runs Terraform acceptance coverage and deploys, validates, and destroys every committed deployment strategy in parallel while reusing durable supporting infrastructure.
 
-Want to jump right into CAIRA? Here are the details on getting started!
+## Learn more
 
-1. Clone the repo: `git clone https://github.com/microsoft/CAIRA.git`
-1. Start the devcontainer.
-1. Explore and choose a configuration: either **ask the caira-assistant**, or check the `/reference_architectures/` folder in this repository for a configuration that matches the baseline for your scenario. For example: `cd reference_architectures/foundry_basic`.
-1. Explore the configuration and customize as needed. Installation steps can be found in the nested README.md file, or through the caira-assistant.
-1. Happy AI-ing!
-
-## Contributing
-
-This project welcomes contributions and suggestions. For detailed information, refer to the [Contributing Guide](CONTRIBUTING.md).
-
-Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit <https://cla.opensource.microsoft.com>.
-
-When you submit a pull request, a CLA bot will automatically determine whether you need to provide a CLA and decorate the PR appropriately (e.g., status check, comment). Simply follow the instructions provided by the bot. You will only need to do this once across all repos using our CLA.
-
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
-
-## Responsible AI
-
-Microsoft encourages customers to review its Responsible AI Standard when developing AI-enabled systems to ensure ethical, safe, and inclusive AI practices. Learn more at [Responsible AI](https://www.microsoft.com/ai/responsible-ai).
-
-## Security Posture
-
-CAIRA reference architectures are designed to balance ease of deployment with security best practices. While the baseline configurations implement reasonable security controls, **production deployments will require additional security hardening**. For detailed information about security decisions, implementation patterns, and production recommendations, see our [Security Posture Documentation](./docs/security_posture.md).
-
-## Data Collection
-
-The software may collect information about you and your use of the software and send it to Microsoft. Microsoft may use this information to provide services and improve our products and services. You may turn off the telemetry as described in the repository. There are also some features in the software that may enable you and Microsoft to collect data from users of your applications. If you use these features, you must comply with applicable law, including providing appropriate notices to users of your applications together with a copy of Microsoft's privacy statement. Our privacy statement is located at <https://go.microsoft.com/fwlink/?LinkID=824704>. You can learn more about data collection and use in the help documentation and our privacy statement. Your use of the software operates as your consent to these practices.
-
-- Azure Verified Modules (AVM) collect telemetry on deployments. This is documented [on the AVM website](https://azure.github.io/Azure-Verified-Modules/help-support/telemetry/).
-
-The partner_id configuration in `reference_architectures/*/terraform.tf` enables telemetry that helps us justify ongoing investment in maintaining and improving this repository. Keeping this enabled supports the project and future feature development. When enabled, the partner_id is appended to the User-Agent on requests made by the configured terraform providers.
-
-### Opting Out
-
-To opt out of AVM and partner_id telemetry, set the variable `enable_telemetry` to `false`.
-
-## Disclaimer
-
-This repo is provided as a sample starting point, and as such, should be validated before any usage in production. This solution also utilizes AI, which occasionally makes mistakes and misunderstands intent. Please validate all outputs before usage.
-
-## Trademarks
-
-This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft trademarks or logos is subject to and must follow [Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general).
-Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship. Any use of third-party trademarks or logos are subject to those third-party's policies.
+- Start with `skills/caira/SKILL.md` if you want to use CAIRA through a coding agent.
+- Start with `docs/README.md` for contributor and operator documentation.
+- Review `infra/README.md` for the infrastructure layout.
+- Review `strategy-builder/README.md` for the app-layer and generator workflow.
+- Review the `deployment-strategies/*/README.md` files for generated strategy expectations.

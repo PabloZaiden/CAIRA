@@ -18,6 +18,8 @@ keywords:
 
 # Linters
 
+This guide is for contributors validating changes to the CAIRA repository. If you are using CAIRA through the skill, let the agent inspect these commands as reference material instead of treating this page as the primary entrypoint.
+
 - [GitHub Actions](#github-actions)
 - [Markdown](#markdown)
 - [Terraform](#terraform)

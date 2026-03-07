@@ -42,7 +42,6 @@
   ],
   // markdown
   "[markdown]": {
-    "editor.defaultFormatter": "DavidAnson.vscode-markdownlint",
     "editor.formatOnSave": true,
     "editor.formatOnPaste": true
   },
@@ -111,9 +110,4 @@
   "github.copilot.chat.codeGeneration.useInstructionFiles": true,
   "github.copilot.chat.agent.thinkingTool": true,
   "github.copilot.chat.codesearch.enabled": true,
-  "github.copilot.chat.commitMessageGeneration.instructions": [
-    {
-      "file": "./.github/instructions/commit-message.instructions.md"
-    }
-  ]
 }

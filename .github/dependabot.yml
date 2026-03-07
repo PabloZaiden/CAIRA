@@ -35,7 +35,7 @@ updates:
 
   - package-ecosystem: terraform
     directories:
-      - "/reference_architectures/**/*"
+      - "/infra/**/*"
     schedule:
       interval: daily
     commit-message:

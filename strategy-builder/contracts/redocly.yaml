@@ -1,0 +1,13 @@
+---
+extends:
+  - recommended
+
+rules:
+  # Enforce that all operations have operationId
+  operation-operationId: error
+  # Enforce that all operations have descriptions
+  operation-description: warn
+  # Enforce that all parameters have descriptions
+  parameter-description: warn
+  # Allow localhost in server URLs (used for local development)
+  no-server-example.com: off

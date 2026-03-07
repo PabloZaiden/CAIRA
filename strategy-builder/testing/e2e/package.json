@@ -1,0 +1,24 @@
+{
+  "name": "caira-e2e",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "End-to-end test suite for the CAIRA backend API — tests the pirate-themed business API against running services or mock-backed stacks",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.3",
+    "ajv": "^8",
+    "ajv-formats": "^3",
+    "fastify": "^5",
+    "vitest": "^3",
+    "yaml": "^2"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  }
+}

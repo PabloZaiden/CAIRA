@@ -1,110 +1,62 @@
 <!-- META
-title: Environment Setup
-description: Step-by-step instructions for configuring your environment for CAIRA.
-author: CAIRA Team
-ms.date: 08/18/2025
-ms.topic: guide
-estimated_reading_time: 7
-keywords:
-    - environment setup
-    - prerequisites
-    - CAIRA
-    - azure
-    - configuration
-    - tooling
-    - platform support
-    - developer workflow
+ title: Environment Setup
+ description: Configure a local or container-based CAIRA development environment.
+ author: CAIRA Team
+ ms.topic: guide
 -->
 
 # Environment Setup
 
-## Overview
+For most users, the primary CAIRA entrypoint is the installed CAIRA skill. Install the skill in your coding agent and let the agent inspect this repository as reference material for your scenario. Use the rest of this page only if you are contributing to CAIRA itself or validating upstream assets locally.
 
-This document provides step-by-step instructions for setting up your development environment to work with the Composable AI Reference Architectures (CAIRA). Before you can deploy a CAIRA configuration on Azure using Terraform, you need to ensure that your system is properly configured with the necessary tools and dependencies.
+## Contributor path: devcontainer
 
-## Requirements
+The repository devcontainer is the fastest way to get a working CAIRA environment because it is prepared for both the infrastructure workflows and the strategy-builder workflows.
 
-Before proceeding with the setup, you'll need:
+## Contributor local machine setup
 
-- An **Azure account**.
-- An **Azure subscription** with access to all resource types included in the chosen configuration.
-- **Azure account roles**:
-  - `Contributor` role at the subscription level, or Resource Group level if providing an existing one.
-  - `User Access Administrator` role at the subscription level, or Resource Group level if providing an existing one.
+Install [Task](https://taskfile.dev/installation) first, then run:
 
-## Choose Preferred Working Environment
+```bash
+task setup
+```
 
-Choose to proceed with the Visual Studio Code Development Container (_see the [CAIRA development container README](https://github.com/microsoft/CAIRA/blob/main/.devcontainer/README.md) for further detail_) or continue locally.
+This prepares the full local toolchain used across the repository, including:
 
-If proceeding locally, ensure all **required tooling** is installed before moving on.
+- Terraform validation and documentation tooling
+- security and markdown linters
+- Node.js, .NET, and strategy-builder prerequisites
+- workspace dependencies for the strategy builder
 
-If you just want to deploy one of the configurations, you can just install the [Azure CLI](https://docs.microsoft.com/cli/azure/install-azure-cli) and [Terraform](https://www.terraform.io/downloads.html).
+## Optional contributor verification
 
-If you want to develop or contribute to CAIRA, you will need to install additional tools as described in the [Developer Guide](./developer.md).
+For a detailed app-layer prerequisite check, run:
 
-## Authenticate with Azure
+```bash
+cd strategy-builder
+./scripts/verify-environment.sh
+```
 
-Authenticate to your Azure subscription. Terraform must be able to create and manage resources within Azure.
+## Azure authentication
 
-To ensure you are authenticated to Azure, and the subscription is set correctly, you can run the following commands in your terminal:
+Authenticate with Azure before running deployment or integration workflows:
 
-```shell
-task tf:env:login
+```bash
+az login
 eval "$(task tf:env:setup)"
 ```
 
-Alternatively, you can manually authenticate using the Azure CLI:
+## Typical contributor first commands
 
-Use the following command to login to Azure:
-
-```shell
-az login
+```bash
+task validate:pr
+task strategy:deploy:reference
+task strategy:deploy:strategy -- deployment-strategies/typescript-openai-agent-sdk
 ```
 
-If you have access to multiple subscriptions, you can set the active subscription using the following command:
+## Notes
 
-```shell
-az account set --subscription "<your_subscription_id>"
-```
-
-Export the subscription ID as an environment variable to make it available to the AzureRM and AzAPI Terraform providers:
-
-```shell
-export ARM_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
-```
-
-### Verify Your Setup
-
-To ensure everything is set up correctly, run the following commands:
-
-1. **Check Terraform Installation:**
-
-    ```shell
-    terraform version
-    ```
-
-1. **Check Azure CLI Installation:**
-
-    ```shell
-    az version
-    ```
-
-1. **Verify Azure Authentication:**
-
-    ```shell
-    az account show
-    ```
-
-    This command should return details about your currently selected Azure subscription.
-
-1. **Verify the `ARM_SUBSCRIPTION_ID` Environment Variable:**
-
-    ```shell
-    echo $ARM_SUBSCRIPTION_ID
-    ```
-
-    This should output the selected Azure subscription ID.
-
-## Conclusion
-
-Your environment should now be set up and ready to be used with CAIRA. If you encounter any issues during setup, consult the [troubleshooting guide](./troubleshooting.md) for help.
+- Clone the repository only when contributing to CAIRA itself or validating upstream assets directly.
+- The repository already contains the CAIRA foundation reference architecture and modules. No extra CAIRA checkout is required beyond the contributor clone you are already using.
+- Docker is required for local strategy compose workflows and for deployed strategy image builds.
+- Nightly-style validation depends on Azure access plus the durable infrastructure pool variables configured in GitHub.

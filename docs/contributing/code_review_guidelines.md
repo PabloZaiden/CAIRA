@@ -18,6 +18,8 @@ keywords:
 
 # Code Review Guidelines
 
+This guide is for contributors reviewing changes to the CAIRA repository. It is not the primary entrypoint for using CAIRA in your own solution; that path starts with the CAIRA skill.
+
 This guide outlines best practices for conducting inclusive, constructive code reviews in the CAIRA project. Good code reviews improve code quality, share knowledge, and build a welcoming community.
 
 ## Core Principles
@@ -176,7 +178,7 @@ resource "azurerm_storage_account" "example" {
 + public_network_access_enabled = false
 + allow_nested_items_to_be_public = false
 }
-```
+```text
 
 🟡 **Important**: Consider adding network rules to restrict access further:
 
@@ -185,7 +187,7 @@ network_rules {
   default_action = "Deny"
   ip_rules       = var.allowed_ips
 }
-```
+```text
 
 💡 **Learning**: The use of customer-managed keys is excellent for compliance requirements!
 
@@ -206,7 +208,7 @@ locals {
     error_message = "Address space must be a valid CIDR block."
   }
 }
-```
+```text
 
 🔵 **Consider**: We could use the `azurerm_client_config` data source instead of requiring tenant_id as input.
 
@@ -287,7 +289,7 @@ After making changes:
 
 For PRs with breaking changes:
 
-- [ ] **Migration guide provided** - Clear upgrade path documented
+- [ ] **Behavioral impact documented** - Breaking behavior and operator impact are clearly described
 - [ ] **Deprecation warnings** - Gradual transition plan if possible
 - [ ] **Version bump planned** - Semantic versioning considerations
 - [ ] **Stakeholder communication** - Impact assessment completed
@@ -324,7 +326,7 @@ For urgent security or critical bug fixes:
 Our CI/CD pipeline automatically checks:
 
 - **Linting** - Code style and formatting
-- **Testing** - Acceptance and integration tests
+- **Validation** - Fast PR checks and nightly deployment lifecycle coverage
 - **Security** - Static analysis and vulnerability scanning
 - **Documentation** - Link validation and spell checking
 

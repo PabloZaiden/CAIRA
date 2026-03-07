@@ -43,6 +43,8 @@ includes:
     taskfile: .taskfiles/yaml.yml
   site:
     taskfile: .taskfiles/site.yml
+  strategy:
+    taskfile: .taskfiles/strategy-builder.yml
 
 tasks:
   default:
@@ -65,9 +67,60 @@ tasks:
       - task: yml:tools
       - task: site:tools
 
+  bootstrap:
+    desc: Install workspace dependencies
+    cmds:
+      - task: strategy:install
+
+  setup:
+    desc: Prepare a local machine for CAIRA development
+    cmds:
+      - cmd: bash strategy-builder/scripts/prerequisites.sh
+        platforms: [linux]
+      - cmd: |
+          set -euo pipefail
+
+          if ! command -v brew >/dev/null 2>&1; then
+            echo "Homebrew is required for local macOS setup. Install Homebrew or use the devcontainer."
+            exit 1
+          fi
+
+          if ! command -v node >/dev/null 2>&1; then
+            brew install node
+          fi
+
+          if ! command -v python3 >/dev/null 2>&1; then
+            brew install python
+          fi
+
+          if ! command -v dotnet >/dev/null 2>&1; then
+            curl -fsSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 10.0
+          fi
+
+          if ! command -v bun >/dev/null 2>&1; then
+            brew install oven-sh/bun/bun
+          fi
+
+          if ! command -v az >/dev/null 2>&1; then
+            brew install azure-cli
+          fi
+
+          if ! command -v uv >/dev/null 2>&1; then
+            brew install uv
+          fi
+
+          if ! command -v docker >/dev/null 2>&1; then
+            echo "Docker Desktop is required for CAIRA local development. Install it or use the devcontainer."
+            exit 1
+          fi
+        platforms: [darwin]
+      - task tools
+      - task bootstrap
+
   lint:
     desc: Lint files
     deps:
+      - task: bootstrap
       - task: sh:lint
       - task: gh:lint
       - task: js:lint
@@ -78,9 +131,10 @@ tasks:
       - task: yml:lint
 
   test:
-    desc: Run all tests
+    desc: Run the full local validation suite
     cmds:
-      - task: tf:test
+      - task: tf:test:acc:all
+      - task: strategy:test:local
 
   docs:
     desc: Generate documentation
@@ -88,6 +142,47 @@ tasks:
       - task: tf:docs
       - task: spell:lint
       - task: md:lint
+
+  validate:pr:
+    desc: Run fast pull request validation
+    cmds:
+      - cmd: |
+          set -euo pipefail
+
+          before_status="$(mktemp)"
+          after_status="$(mktemp)"
+          cleanup() {
+            rm -f "${before_status}" "${after_status}"
+          }
+          trap cleanup EXIT
+
+          git status --porcelain=v1 --untracked-files=all > "${before_status}"
+
+          task tf:docs
+          task lint
+          task strategy:validate:pr
+          task site:build -- --strict
+
+          git status --porcelain=v1 --untracked-files=all > "${after_status}"
+
+          if ! diff -u "${before_status}" "${after_status}" >/dev/null; then
+            echo
+            echo "Validation changed tracked or untracked files. Run 'task docs' and 'task strategy:generate' if needed, review the resulting diff, and commit the intended updates."
+            diff -u "${before_status}" "${after_status}" || true
+            echo
+            git diff --compact-summary || true
+            exit 1
+          fi
+
+  validate:nightly:
+    desc: Run nightly validation for one deployment strategy
+    preconditions:
+      - sh: test -n "{{.CLI_ARGS}}"
+        msg: "Provide a deployment strategy path, for example: task validate:nightly -- deployment-strategies/typescript-openai-agent-sdk"
+    cmds:
+      - task: validate:pr
+      - task: tf:test:acc:all
+      - cmd: task strategy:test:deployed -- {{.CLI_ARGS}}
 
   clean:
     desc: Clean up files

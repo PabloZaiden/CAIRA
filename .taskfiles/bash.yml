@@ -28,9 +28,14 @@ tasks:
       SHFMT_VERSION: "v3.12.0"
       SHFMT_URL: "https://github.com/mvdan/sh/releases/download/{{.SHFMT_VERSION}}/shfmt_{{.SHFMT_VERSION}}_{{.OS}}_{{.ARCH}}"
     cmds:
+      - task: internal:install:brew
+        vars:
+          APP: shfmt
+        platforms: [darwin]
       - cmd: |
           curl -L "{{.SHFMT_URL}}" > ~/shfmt
           sudo install ~/shfmt /usr/local/bin/shfmt && rm -f ~/shfmt
+        platforms: [linux]
 
   # * Tools
   tools:
@@ -42,16 +47,43 @@ tasks:
   # * Lint
   lint:
     desc: Lint Bash files
-    vars:
-      SHELL_FILES:
-        sh: |
-          shfmt --find . | grep -v -E '\./\.git/|\./node_modules/|/\.terraform/|\.terraform/|\./\.venv/|\./\.dev/'
-      ITEMS:
-        sh: |
-          find . -type f -name "*.sh" -not -path "./.git/*" -not -path "./node_modules/*" -not -path "*/.venv/*" -not -path "*/.dev/*" -not -path "*/.terraform/*" -not -path ".terraform/*"
     cmds:
-      - for: { var: SHELL_FILES }
-        cmd: shfmt -w -i 2 -ci -bn "{{osClean .ITEM}}"
-      - for: { var: ITEMS }
-        cmd: shellcheck "{{osClean .ITEM}}"
+      - cmd: |
+          python3 <<'PY'
+          import os
+          import subprocess
+          import sys
+
+          root = os.getcwd()
+          skip_dirs = {'.git', 'node_modules', '.terraform', '.venv', '.dev', 'dist', 'coverage', 'site'}
+          files = []
+
+          for base, dirs, filenames in os.walk(root):
+              dirs[:] = [directory for directory in dirs if directory not in skip_dirs]
+              for name in filenames:
+                  path = os.path.join(base, name)
+                  rel_path = os.path.relpath(path, root)
+                  is_shell = name.endswith('.sh')
+
+                  if not is_shell:
+                      try:
+                          with open(path, 'rb') as handle:
+                              first_line = handle.readline(256)
+                      except OSError:
+                          continue
+
+                      is_shell = first_line.startswith(b'#!') and (
+                          b'/sh' in first_line or b'/bash' in first_line
+                      )
+
+                  if is_shell:
+                      files.append(rel_path)
+
+          files.sort()
+          if not files:
+              sys.exit(0)
+
+          subprocess.run(['shfmt', '-d', '-i', '2', '-ci', '-bn', *files], check=True)
+          subprocess.run(['shellcheck', *files], check=True)
+          PY
     dir: "{{.ROOT_DIR}}"

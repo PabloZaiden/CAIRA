@@ -1,0 +1,11 @@
+{
+  "name": "api",
+  "type": "api",
+  "language": "typescript",
+  "description": "Pirate-themed business API — agent-framework-agnostic proxy to agent container",
+  "port": 4000,
+  "healthEndpoint": "/health",
+  "requiredEnv": ["AGENT_SERVICE_URL"],
+  "optionalEnv": ["PORT", "HOST", "AGENT_TOKEN_SCOPE", "LOG_LEVEL", "SKIP_AUTH"],
+  "contractSpec": "contracts/backend-api.openapi.yaml"
+}

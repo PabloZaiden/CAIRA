@@ -1,0 +1,22 @@
+{
+  "name": "caira-ai-mock",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Unified AI mock server (Foundry Agent CRUD + OpenAI Responses API) for local testing",
+  "scripts": {
+    "start": "node src/server.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "fastify": "^5",
+    "vitest": "^3"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "iac",
+  "type": "iac",
+  "variant": "azure-container-apps",
+  "language": "typescript",
+  "description": "Terraform deployment for Azure Container Registry + Azure Container Apps sample runtime",
+  "port": 1,
+  "healthEndpoint": "/health",
+  "requiredEnv": [],
+  "optionalEnv": [],
+  "contractSpec": "contracts/backend-api.openapi.yaml"
+}

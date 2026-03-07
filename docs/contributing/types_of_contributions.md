@@ -19,6 +19,13 @@ keywords:
 
 CAIRA welcomes contributions of all types and skill levels. This guide outlines the different ways you can contribute.
 
+If you want to use CAIRA in your own project, the primary entrypoint is the CAIRA skill, not a repository contribution workflow. This guide is specifically about contributing changes back to CAIRA itself.
+
+## Using CAIRA vs contributing to CAIRA
+
+- **Use CAIRA through the skill** when you want a coding agent to inspect CAIRA and build something tailored to your own scenario.
+- **Use the repository contribution workflow** when you want to change CAIRA's reference assets, docs, automation, or generated outputs upstream.
+
 ## Issue States
 
 We manage contributions with a backlog, and we manage that backlog with issues of various types which transition between various states.

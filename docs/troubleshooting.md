@@ -1,6 +1,6 @@
 <!-- META
 title: Troubleshooting Guide
-description: Solutions for common issues when using CAIRA with Terraform.
+description: Solutions for common issues when using CAIRA assets, skills, and deployment workflows.
 author: CAIRA Team
 ms.date: 08/18/2025
 ms.topic: guide
@@ -18,33 +18,40 @@ keywords:
 
 # Troubleshooting Guide
 
-This troubleshooting guide is designed to help you diagnose and resolve common issues that may arise when using the Composable AI Reference Architectures (CAIRA) with Terraform. If you encounter a problem, please review the sections below before seeking further assistance.
+This troubleshooting guide helps you diagnose and resolve common issues that may arise when using the CAIRA skill, the CAIRA reference assets, or the related deployment workflows. If you encounter a problem, review the sections below before seeking further assistance.
+
+## Choose the right CAIRA path
+
+- **Most users** should install the CAIRA skill and let their coding agent inspect CAIRA as reference material.
+- **Repository contributors** should clone CAIRA locally and use the repository workflows documented in the contributor guides.
 
 ## Quick Deployment Checks
 
 Before encountering deployment issues, run through these essential checks to prevent common problems:
 
-* **Run `terraform plan`** before applying changes to preview what will be deployed
-* **Verify Azure account**: Confirm `az account show` shows the correct subscription
-* **Check variable configuration**: Ensure required variables are set in `terraform.tfvars`
-* **Validate permissions**: Confirm you have "Contributor" and "User Access Administrator" roles
-* **Test connectivity**: Ensure stable internet connection for provider plugin downloads
+- **Run `terraform plan`** before applying changes to preview what will be deployed
+- **Verify Azure account**: Confirm `az account show` shows the correct subscription
+- **Check variable configuration**: Ensure required variables are set in `terraform.tfvars`
+- **Validate permissions**: Confirm you have "Contributor" and "User Access Administrator" roles
+- **Test connectivity**: Ensure stable internet connection for provider plugin downloads
 
 For detailed troubleshooting of specific issues, see the sections below.
 
 ## Common Issues and Solutions
 
-### 1. Incorrect Repository or Configuration Path
+### 1. Incorrect Repository, Source Ref, or Configuration Path
 
-**Issue:** Terraform fails to find the correct configuration folder or reports an error related to the source files.
+**Issue:** A Terraform run or coding agent cannot find the expected CAIRA files, paths, or source revision.
 
 **Solution:**
 
-* Ensure that you have cloned the CAIRA repository correctly and are working within the appropriate configuration folder under `/reference_architectures/`.
+- If you are contributing to CAIRA itself, ensure that you cloned the repository correctly and are working within the intended folder under `infra/`, `strategy-builder/`, `deployment-strategies/`, or `docs/`.
 
-* Verify that your internet connection is stable, as Terraform may need to download provider plugins when initializing the project.
+- If you are using the CAIRA skill, confirm that the agent is inspecting the intended repository ref and the correct asset path for your scenario.
 
-* If you moved or renamed any folders, ensure that all paths in your Terraform configuration are correctly updated.
+- Verify that your internet connection is stable, as Terraform may need to download provider plugins when initializing the project.
+
+- If you moved or renamed any folders, ensure that all paths in your Terraform configuration are correctly updated.
 
 ### 2. Incorrect Azure Account or Subscription
 
@@ -52,19 +59,19 @@ For detailed troubleshooting of specific issues, see the sections below.
 
 **Solution:**
 
-* Ensure you are authenticated to the correct Azure account using the Azure CLI:
+- Ensure you are authenticated to the correct Azure account using the Azure CLI:
 
     ```shell
     az login
     ```
 
-* Confirm that you have selected the correct Azure subscription:
+- Confirm that you have selected the correct Azure subscription:
 
     ```shell
     az account set --subscription "<your_subscription_id>"
     ```
 
-* Confirm that the environment variable `ARM_SUBSCRIPTION_ID` is set to the correct subscription ID.
+- Confirm that the environment variable `ARM_SUBSCRIPTION_ID` is set to the correct subscription ID.
 
     ```shell
     export ARM_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
@@ -76,11 +83,11 @@ For detailed troubleshooting of specific issues, see the sections below.
 
 **Solution:**
 
-* Verify that your Azure account has the necessary roles to create and manage resources within the target subscription. Typically, you should have at least the "Contributor" and "User Access Administrator" roles assigned at the subscription or resource group level.
+- Verify that your Azure account has the necessary roles to create and manage resources within the target subscription. Typically, you should have at least the "Contributor" and "User Access Administrator" roles assigned at the subscription or resource group level.
 
-* Check that your Terraform service principal (if using one) also has the required permissions.
+- Check that your Terraform service principal (if using one) also has the required permissions.
 
-* You can use the following command to check your role assignments:
+- You can use the following command to check your role assignments:
 
     ```shell
     az role assignment list --assignee "<your_assignee>"
@@ -92,7 +99,7 @@ For detailed troubleshooting of specific issues, see the sections below.
 
 **Solution:**
 
-* Ensure that Terraform and Azure CLI are correctly installed and are on compatible versions.
+- Ensure that Terraform and Azure CLI are correctly installed and are on compatible versions.
 
     Verify Terraform installation:
 
@@ -106,9 +113,9 @@ For detailed troubleshooting of specific issues, see the sections below.
     az version
     ```
 
-* Make sure your PATH is correctly set up to include Terraform and Azure CLI executables.
+- Make sure your PATH is correctly set up to include Terraform and Azure CLI executables.
 
-* Review the [Developer Guide](./developer.md) to ensure all prerequisites are installed and configured correctly.
+- Review the [Developer Guide](./developer.md) to ensure all prerequisites are installed and configured correctly.
 
 ### 5. Incorrect Variable Configuration
 
@@ -116,11 +123,11 @@ For detailed troubleshooting of specific issues, see the sections below.
 
 **Solution:**
 
-* Double-check your Terraform files (`main.tf`, `variables.tf`, etc.) to ensure all required variables are correctly defined and populated with valid values. Refer to the configuration's README and documentation for details on required and optional variables.
+- Double-check your Terraform files (`main.tf`, `variables.tf`, etc.) to ensure all required variables are correctly defined and populated with valid values. Refer to the configuration's README and documentation for details on required and optional variables.
 
-* If you have a `terraform.tfvars` file, verify that it contains all necessary variables and that they are correctly referenced in your configuration.
+- If you have a `terraform.tfvars` file, verify that it contains all necessary variables and that they are correctly referenced in your configuration.
 
-* Run `terraform plan` to preview the deployment and identify any missing or misconfigured variables before applying changes.
+- Run `terraform plan` to preview the deployment and identify any missing or misconfigured variables before applying changes.
 
 ### 6. Resource Conflicts or Quotas
 
@@ -128,9 +135,9 @@ For detailed troubleshooting of specific issues, see the sections below.
 
 **Solution:**
 
-* Review your existing Azure resources to ensure there are no conflicts with the resources Terraform is trying to create. Common issues include duplicate resource names or overlapping IP address ranges in virtual networks.
+- Review your existing Azure resources to ensure there are no conflicts with the resources Terraform is trying to create. Common issues include duplicate resource names or overlapping IP address ranges in virtual networks.
 
-* Check your Azure subscription's resource quotas to ensure you have enough capacity to deploy the required resources. You can view and request quota increases in the Azure portal under the "Usage + quotas" section.
+- Check your Azure subscription's resource quotas to ensure you have enough capacity to deploy the required resources. You can view and request quota increases in the Azure portal under the "Usage + quotas" section.
 
 ### 7. General Debugging Tips
 
@@ -138,7 +145,7 @@ For detailed troubleshooting of specific issues, see the sections below.
 
 **Solution:**
 
-* **Enable Debug Logging:** You can increase Terraform's verbosity by setting the `TF_LOG` environment variable:
+- **Enable Debug Logging:** You can increase Terraform's verbosity by setting the `TF_LOG` environment variable:
 
     ```shell
     export TF_LOG=DEBUG
@@ -147,23 +154,23 @@ For detailed troubleshooting of specific issues, see the sections below.
 
     This will provide more detailed output, which can help diagnose the issue.
 
-* **Re-run Terraform Init:** If you suspect an issue with provider plugins or dependencies, try re-running the initialization process:
+- **Re-run Terraform Init:** If you suspect an issue with provider plugins or dependencies, try re-running the initialization process:
 
     ```shell
     terraform init -reconfigure
     ```
 
-* **Check State Files:** Ensure that the Terraform state files (`terraform.tfstate`) are not corrupted. You can inspect the state file with:
+- **Check State Files:** Ensure that the Terraform state files (`terraform.tfstate`) are not corrupted. You can inspect the state file with:
 
     ```shell
     terraform show
     ```
 
-* **Clean Up Resources:** If deployment fails partway through, you may need to clean up partially created resources before retrying. You can manually delete these resources via the Azure portal or use `terraform destroy` to roll back changes. If you delete resources manually, be sure to update your Terraform state file accordingly.
+- **Clean Up Resources:** If deployment fails partway through, you may need to clean up partially created resources before retrying. You can manually delete these resources via the Azure portal or use `terraform destroy` to roll back changes. If you delete resources manually, be sure to update your Terraform state file accordingly.
 
 ## Getting Additional Help
 
 If you've tried the above solutions and are still encountering issues, please:
 
-* Review the [Support](https://github.com/microsoft/CAIRA/blob/main/SUPPORT.md) guide for how to file issues or request help.
-* Search existing issues in the GitHub repository to see if your problem has already been addressed.
+- Review the [Support](https://github.com/microsoft/CAIRA/blob/main/SUPPORT.md) guide for how to file issues or request help.
+- Search existing issues in the GitHub repository to see if your problem has already been addressed.

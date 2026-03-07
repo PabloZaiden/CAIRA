@@ -1,0 +1,560 @@
+---
+openapi: 3.1.0
+info:
+  title: CAIRA Agent Container API
+  version: 1.0.0
+  description: |
+    REST contract for the CAIRA agent container. All agent implementations
+    (Foundry Agent Service, OpenAI Agent SDK, etc.) must conform to this spec
+    so they can be swapped behind the same interface.
+
+    ## Streaming
+
+    The `POST /conversations/{conversationId}/messages` endpoint supports
+    Server-Sent Events (SSE) for streaming LLM responses. The client controls
+    the behavior via the `Accept` header:
+
+    - `Accept: text/event-stream` — streams tokens as SSE events (default)
+    - `Accept: application/json` — returns the complete response after generation
+
+    ### SSE Event Format
+
+    ```
+    event: message.delta
+    data: {"content": "token text"}
+
+    event: activity.resolved
+    data: {"tool": "resolve_shanty", "result": {"winner": "user", "rounds": 4, "best_verse": "..."}}
+
+    event: message.complete
+    data: {"messageId": "...", "content": "full response", "usage": {"promptTokens": 10, "completionTokens": 42}}
+
+    event: error
+    data: {"code": "agent_error", "message": "Something went wrong"}
+    ```
+
+    ### Activity Resolution
+
+    When a specialist agent calls a resolution tool (e.g., `resolve_shanty`,
+    `resolve_treasure`, `resolve_crew`), the agent container emits an
+    `activity.resolved` SSE event with the tool name and structured result.
+    This event appears in the stream between `message.delta` events and
+    the final `message.complete` event. The `result` field is an opaque
+    object — the business API layer interprets the domain-specific fields.
+
+    ## Authentication
+
+    This API is called by the API container (business layer). The API container
+    authenticates using `DefaultAzureCredential`, passing a bearer token in the
+    `Authorization` header. See `INTER-SERVICE.md` for the full auth flow.
+  license:
+    name: MIT
+    identifier: MIT
+
+servers:
+  - url: http://localhost:3000
+    description: Local development
+
+tags:
+  - name: Conversations
+    description: Conversation lifecycle and messaging
+  - name: Observability
+    description: Health checks and metrics
+
+paths:
+  /conversations:
+    post:
+      operationId: createConversation
+      summary: Create a new conversation
+      tags: [Conversations]
+      description: |
+        Creates a new conversation session. Returns the conversation object
+        with a unique ID that can be used for subsequent message operations.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateConversationRequest'
+      responses:
+        '201':
+          description: Conversation created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    get:
+      operationId: listConversations
+      summary: List conversations
+      tags: [Conversations]
+      description: Returns a paginated list of conversations, ordered by most recently updated.
+      parameters:
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Paginated list of conversations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /conversations/{conversationId}:
+    get:
+      operationId: getConversation
+      summary: Get conversation details
+      tags: [Conversations]
+      description: Returns conversation metadata and the full message history.
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+      responses:
+        '200':
+          description: Conversation with message history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /conversations/{conversationId}/messages:
+    post:
+      operationId: sendMessage
+      summary: Send a message to the conversation
+      tags: [Conversations]
+      description: |
+        Sends a user message and receives the assistant's response. The response
+        format depends on the `Accept` header:
+
+        - `Accept: text/event-stream` (default) — streams the response as SSE events:
+          - `message.delta` — individual token/chunk of the response
+          - `activity.resolved` — activity reached its conclusion (resolution tool called)
+          - `message.complete` — final message with full content and token usage
+          - `error` — error during generation
+
+        - `Accept: application/json` — waits for generation to complete, then
+          returns the full message as JSON. If a resolution tool was called during
+          generation, the response includes an optional `resolution` field.
+
+        ### SSE Event Schema
+
+        **`message.delta`**
+        ```json
+        {"content": "partial token text"}
+        ```
+
+        **`activity.resolved`**
+        ```json
+        {"tool": "resolve_shanty", "result": {"winner": "user", "rounds": 4, "best_verse": "..."}}
+        ```
+
+        **`message.complete`**
+        ```json
+        {
+          "messageId": "msg_abc123",
+          "content": "full response text",
+          "usage": {
+            "promptTokens": 10,
+            "completionTokens": 42
+          }
+        }
+        ```
+
+        **`error`**
+        ```json
+        {"code": "agent_error", "message": "description of what went wrong"}
+        ```
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMessageRequest'
+      responses:
+        '200':
+          description: |
+            Assistant response. Content type depends on the `Accept` header:
+            - `text/event-stream` for SSE streaming
+            - `application/json` for complete response
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: SSE event stream. See operation description for event format.
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /health:
+    get:
+      operationId: getHealth
+      summary: Health check
+      tags: [Observability]
+      description: |
+        Returns the health status of the agent container and its dependencies
+        (e.g., connectivity to Azure AI Foundry). Used by container orchestrators
+        and the API container to determine service readiness.
+      responses:
+        '200':
+          description: Service is healthy or degraded (still accepting traffic)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '503':
+          description: Service is unhealthy (should not receive traffic)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /metrics:
+    get:
+      operationId: getMetrics
+      summary: Prometheus metrics
+      tags: [Observability]
+      description: |
+        Returns metrics in Prometheus exposition format. Includes request counts,
+        latencies, active conversations, and token usage counters.
+      responses:
+        '200':
+          description: Prometheus-compatible metrics
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: Prometheus exposition format text
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  parameters:
+    ConversationId:
+      name: conversationId
+      in: path
+      required: true
+      description: Unique identifier of the conversation
+      schema:
+        type: string
+        minLength: 1
+
+    Offset:
+      name: offset
+      in: query
+      required: false
+      description: Number of items to skip for pagination
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: Maximum number of items to return
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  schemas:
+    CreateConversationRequest:
+      type: object
+      description: Optional metadata for a new conversation
+      properties:
+        metadata:
+          type: object
+          description: Arbitrary key-value metadata to attach to the conversation
+          additionalProperties: true
+
+    Conversation:
+      type: object
+      description: A conversation session
+      required:
+        - id
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          minLength: 1
+          description: Unique conversation identifier
+        createdAt:
+          type: string
+          format: date-time
+          description: When the conversation was created
+        updatedAt:
+          type: string
+          format: date-time
+          description: When the conversation was last updated
+        metadata:
+          type: object
+          description: Arbitrary key-value metadata
+          additionalProperties: true
+
+    ConversationList:
+      type: object
+      description: Paginated list of conversations
+      required:
+        - items
+        - offset
+        - limit
+        - total
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/Conversation'
+          description: Conversations on this page
+        offset:
+          type: integer
+          description: Number of items skipped
+        limit:
+          type: integer
+          description: Maximum items per page
+        total:
+          type: integer
+          description: Total number of conversations
+
+    ConversationDetail:
+      type: object
+      description: Conversation with full message history
+      required:
+        - id
+        - createdAt
+        - updatedAt
+        - messages
+      properties:
+        id:
+          type: string
+          minLength: 1
+          description: Unique conversation identifier
+        createdAt:
+          type: string
+          format: date-time
+          description: When the conversation was created
+        updatedAt:
+          type: string
+          format: date-time
+          description: When the conversation was last updated
+        metadata:
+          type: object
+          description: Arbitrary key-value metadata
+          additionalProperties: true
+        messages:
+          type: array
+          maxItems: 1000
+          items:
+            $ref: '#/components/schemas/Message'
+          description: Messages in chronological order
+
+    Message:
+      type: object
+      description: A single message in a conversation
+      required:
+        - id
+        - role
+        - content
+        - createdAt
+      properties:
+        id:
+          type: string
+          description: Unique message identifier
+        role:
+          type: string
+          enum: [user, assistant, system]
+          description: Who sent the message
+        content:
+          type: string
+          description: Message text content
+        createdAt:
+          type: string
+          format: date-time
+          description: When the message was created
+        usage:
+          $ref: '#/components/schemas/TokenUsage'
+        resolution:
+          $ref: '#/components/schemas/ActivityResolution'
+
+    ActivityResolution:
+      type: object
+      description: |
+        Resolution data from an activity resolution tool call. Present on a
+        message when a specialist agent called its resolution tool during
+        generation. The `result` field is an opaque object — the business
+        API layer interprets the domain-specific fields.
+      required:
+        - tool
+        - result
+      properties:
+        tool:
+          type: string
+          description: The resolution tool that was called (e.g., resolve_shanty)
+        result:
+          type: object
+          description: Domain-specific outcome data from the resolution tool
+          additionalProperties: true
+
+    SendMessageRequest:
+      type: object
+      description: A user message to send to the conversation
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          minLength: 1
+          description: The user's message text
+        metadata:
+          type: object
+          description: Optional metadata for this message
+          additionalProperties: true
+
+    TokenUsage:
+      type: object
+      description: Token usage statistics for a message
+      properties:
+        promptTokens:
+          type: integer
+          description: Number of tokens in the prompt
+        completionTokens:
+          type: integer
+          description: Number of tokens in the completion
+
+    HealthResponse:
+      type: object
+      description: Health check result
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          description: Overall health status
+        checks:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/HealthCheck'
+          description: Individual dependency health checks
+
+    HealthCheck:
+      type: object
+      description: Health status of a single dependency
+      required:
+        - name
+        - status
+      properties:
+        name:
+          type: string
+          description: Name of the dependency (e.g., "azure-ai-foundry")
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          description: Health status of this dependency
+        latencyMs:
+          type: number
+          description: Response time in milliseconds
+
+    ErrorResponse:
+      type: object
+      description: Standard error response
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code
+        message:
+          type: string
+          description: Human-readable error description
+        details:
+          type: object
+          description: Additional error context
+          additionalProperties: true
+
+  responses:
+    BadRequest:
+      description: Invalid request (malformed body, missing required fields)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Unauthorized:
+      description: Missing or invalid authentication token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    RateLimited:
+      description: Too many requests — upstream LLM rate limit exceeded
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds to wait before retrying
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Azure AD bearer token acquired via `DefaultAzureCredential`.
+        The API container passes this token when calling the agent container.
+
+security:
+  - bearerAuth: []

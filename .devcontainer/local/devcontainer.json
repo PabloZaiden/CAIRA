@@ -1,9 +1,6 @@
-// For format details, see https://aka.ms/devcontainer.json
 {
   "name": "CAIRA",
-  // Available base images: https://mcr.microsoft.com/v2/devcontainers/base/tags/list
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu24.04",
-  // Features to add to the dev container. More info: https://containers.dev/features
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
       "configureZshAsDefaultShell": true
@@ -12,7 +9,9 @@
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
     "ghcr.io/devcontainers/features/github-cli:1": {},
     "ghcr.io/jsburckhardt/devcontainer-features/uv:1": {},
-    "ghcr.io/devcontainers/features/node:1": {},
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "24"
+    },
     "ghcr.io/eitsupi/devcontainer-features/jq-likes:2": {
       "jqVersion": "latest",
       "yqVersion": "latest"
@@ -21,7 +20,9 @@
   },
   "onCreateCommand": {
     "chown-local": "sudo chown -R $(id -un):$(id -gn) $HOME",
-    "setup-tools": "task tools"
+    "setup-tools": "task tools",
+    "setup-strategy-builder-prereqs": "bash strategy-builder/scripts/prerequisites.sh",
+    "bootstrap-workspace": "task bootstrap"
   },
   "postCreateCommand": {
     "git-safe-dir": "git config --global --add safe.directory ${containerWorkspaceFolder}"
@@ -29,20 +30,56 @@
   "workspaceMount": "source=${localWorkspaceFolder},target=${containerWorkspaceFolder},type=bind,consistency=cached",
   "workspaceFolder": "/workspace",
   "remoteEnv": {
-    "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}"
+    "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}",
+    "DOTNET_ROOT": "/home/vscode/.dotnet",
+    "BUN_INSTALL": "/home/vscode/.bun",
+    "PATH": "/home/vscode/.dotnet:/home/vscode/.bun/bin:/home/vscode/.local/bin:${containerEnv:PATH}"
   },
   "remoteUser": "vscode",
-  // Use 'forwardPorts' to make a list of ports inside the container available locally.
   "forwardPorts": [
-    8000
+    8000,
+    8080,
+    5173,
+    4173,
+    4000,
+    3000,
+    8100,
+    8079
   ],
   "portsAttributes": {
     "8000": {
       "label": "mkdocs serve",
       "onAutoForward": "notify"
+    },
+    "8080": {
+      "label": "strategy frontend",
+      "onAutoForward": "openPreview"
+    },
+    "5173": {
+      "label": "frontend dev server",
+      "onAutoForward": "openBrowserOnce"
+    },
+    "4173": {
+      "label": "frontend preview",
+      "onAutoForward": "notify"
+    },
+    "4000": {
+      "label": "business API",
+      "onAutoForward": "silent"
+    },
+    "3000": {
+      "label": "agent service",
+      "onAutoForward": "silent"
+    },
+    "8100": {
+      "label": "AI mock",
+      "onAutoForward": "silent"
+    },
+    "8079": {
+      "label": "azcred sidecar",
+      "onAutoForward": "silent"
     }
   },
-  // Configure tool-specific properties.
   "customizations": {
     "vscode": {
       "settings": {
@@ -75,10 +112,10 @@
         "timonwong.shellcheck",
         "streetsidesoftware.code-spell-checker",
         "hashicorp.hcl",
-        "esbenp.prettier-vscode"
+        "esbenp.prettier-vscode",
+        "ms-dotnettools.csharp",
+        "ms-vscode.vscode-typescript-next"
       ]
     }
   }
-  // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-  // "remoteUser": "root"
 }

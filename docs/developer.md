@@ -1,70 +1,79 @@
 <!-- META
-title: Developer Guide
-description: Guide for setting up and using the CAIRA development environment.
-author: CAIRA Team
-ms.date: 08/18/2025
-ms.topic: guide
-estimated_reading_time: 6
-keywords:
-  - devcontainer
-  - codespaces
-  - local development
-  - prerequisites
-  - tooling
-  - automation
-  - cross-platform
-  - azure cli
+ title: Developer Guide
+ description: Day-to-day development guide for CAIRA contributors.
+ author: CAIRA Team
+ ms.topic: guide
 -->
 
 # Developer Guide
 
-## Developer Environment
+This guide is for contributors working on the CAIRA repository itself. If you want to use CAIRA in your own solution, install the CAIRA skill and let your coding agent use this repository as reference material.
 
-Depending on your needs and preferences, you can use a pre-configured development environment with either a devcontainer or GitHub Codespaces, or opt to develop on your local machine.
+## Recommended contributor environment
 
-### Developer Containers
+Use the repository devcontainer whenever possible. It is configured for the full CAIRA workflow: foundation Terraform validation, strategy-builder development, deployment-strategy generation, local compose testing, and Azure-backed validation.
 
-Using a pre-configured environment is the **preferred** approach as it comes with all the required tooling installed without changing your local environment. However, running a devcontainer requires Docker Desktop, so it may not be suitable for everyone.
+If you prefer a local machine setup, install Task first and then run:
 
-To run on your machine with the cloned repo, follow [official getting started](https://code.visualstudio.com/docs/devcontainers/containers#_getting-started) and [open the folder containing the repository in a container](https://code.visualstudio.com/docs/devcontainers/containers#_quick-start-open-an-existing-folder-in-a-container).
-
-[GitHub Codespaces](https://code.visualstudio.com/docs/remote/codespaces) provides a cloud-backed option. A Codespace can be created through GitHub in the browser or within VS Code. Both options are described in ["Creating a codespace for a repository"](https://docs.github.com/codespaces/developing-in-codespaces/creating-a-codespace-for-a-repository). As Codespace usage could lead to billable charges, please review [GitHub documentation on codespaces](https://docs.github.com/codespaces/about-codespaces/what-are-codespaces) for additional details.
-
-### Local Environments
-
-Local development is possible on Windows (with WSL 2), Linux and macOS.
-
-Prerequisites:
-
-- [NodeJS](https://nodejs.org/en/download/) `v22.15.0` or whatever is `LTS` with npm
-
-Required tooling not included in the automated install:
-
-- [uv](https://docs.astral.sh/uv/getting-started/installation/)
-- [Git](https://git-scm.com/downloads)
-- [Task](https://taskfile.dev/installation)
-- [Azure CLI](https://learn.microsoft.com/en-us/dotnet/azure/install-azure-cli)
-
-To install the remaining required tooling, execute the following:
-
-```sh
-task tools
+```bash
+task setup
 ```
 
-## Integration Tests
+That command installs the repo-level tooling, strategy-builder prerequisites, and the workspace dependencies used by the root Taskfile.
 
-Integration tests can be run locally or in a devcontainer/Codespace. Some integration tests require additional setup, such as existing Azure resources provided by infrastructure pools or specific environment variables.
+## Repository layout
 
-To create/verify the existence of the required Azure resources and run all integration tests, execute the following:
-
-```sh
-task tf:test:int:all:local
+```text
+infra/architectures     Foundation reference architectures
+infra/modules           Reusable Terraform modules
+infra/testing           Terraform test helpers and durable pools
+strategy-builder/       App-layer components, generator, and validation tooling
+deployment-strategies/  Generated, committed end-to-end deployments
 ```
 
-If this is the first time you are running the integration tests, you will be prompted to authenticate with Azure and select a subscription. It will be used to create the required infrastructure pools and resources during the tests.
+## Common contributor workflows
 
-If you want to run only specific integration tests for a specific reference architecture, go to the corresponding folder under `reference_architectures` and run:
+### Fast validation before opening a pull request
 
-```sh
-task tf:test:int:local
+```bash
+task validate:pr
 ```
+
+This runs the same fast static validation suite used by the PR workflow.
+
+### Full local validation
+
+```bash
+task test
+```
+
+This runs Terraform acceptance coverage plus the full local strategy-builder suite.
+
+### Regenerate deployment strategies
+
+```bash
+task strategy:generate
+```
+
+Use this after changing generator logic, app-layer components, or shared strategy templates.
+
+### Deploy the CAIRA foundation
+
+```bash
+task strategy:deploy:reference
+```
+
+### Deploy, validate, and destroy a generated deployment strategy
+
+```bash
+task strategy:test:deployed -- deployment-strategies/typescript-openai-agent-sdk
+```
+
+## Validation model
+
+- **PR validation** is intentionally fast and static: linting, formatting, docs generation, docs build, Terraform validation, generator drift checks, and security scanning.
+- **Nightly validation** reuses durable supporting infrastructure and deploys, validates, and destroys each committed deployment strategy in parallel.
+
+## Direct component work
+
+Most everyday workflows should start at the repository root via `task ...`. When you are iterating on a specific component inside `strategy-builder/`, direct `npm` or `dotnet` commands are still appropriate inside that component directory.

@@ -1,0 +1,16 @@
+{
+  "name": "caira-contracts",
+  "private": true,
+  "description": "OpenAPI contract definitions and validation for CAIRA samples",
+  "scripts": {
+    "validate": "redocly lint agent-api.openapi.yaml backend-api.openapi.yaml",
+    "validate:agent": "redocly lint agent-api.openapi.yaml",
+    "validate:backend": "redocly lint backend-api.openapi.yaml"
+  },
+  "devDependencies": {
+    "@redocly/cli": "^1"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  }
+}

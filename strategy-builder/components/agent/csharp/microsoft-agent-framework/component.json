@@ -1,0 +1,24 @@
+{
+  "name": "agent",
+  "type": "agent",
+  "variant": "microsoft-agent-framework",
+  "language": "csharp",
+  "description": "Agent container using Microsoft Agent Framework (Microsoft.Extensions.AI)",
+  "port": 3000,
+  "healthEndpoint": "/health",
+  "requiredEnv": ["AZURE_OPENAI_ENDPOINT"],
+  "optionalEnv": [
+    "PORT",
+    "HOST",
+    "AZURE_OPENAI_API_VERSION",
+    "AGENT_MODEL",
+    "AGENT_NAME",
+    "CAPTAIN_INSTRUCTIONS",
+    "SHANTY_INSTRUCTIONS",
+    "TREASURE_INSTRUCTIONS",
+    "CREW_INSTRUCTIONS",
+    "LOG_LEVEL",
+    "SKIP_AUTH"
+  ],
+  "contractSpec": "contracts/agent-api.openapi.yaml"
+}

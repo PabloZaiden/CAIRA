@@ -75,12 +75,17 @@ tasks:
           fi
       TERRASCAN_URL: "https://github.com/tenable/terrascan/releases/download/v{{.TERRASCAN_VERSION}}/terrascan_{{.TERRASCAN_VERSION}}_{{.TERRASCAN_OS}}_{{.TERRASCAN_ARCH}}.tar.gz"
     cmds:
+      - task: internal:install:brew
+        vars:
+          APP: terrascan
+        platforms: [darwin]
       - cmd: |
           curl -L "{{.TERRASCAN_URL}}" > ~/terrascan.tar.gz
           tar -xf ~/terrascan.tar.gz --directory ~/ terrascan \
             && rm -f ~/terrascan.tar.gz \
             && sudo install ~/terrascan /usr/local/bin/terrascan \
             && rm ~/terrascan
+        platforms: [linux]
 
   # * Install terrafmt
   install:terrafmt:
@@ -91,12 +96,22 @@ tasks:
       TERRAFMT_URL: "https://github.com/PabloZaiden/terrafmt-dist/releases/download/{{.TERRAFMT_VERSION}}/terrafmt-{{.TERRAFMT_VERSION}}-{{.OS}}-{{.ARCH}}"
 
     desc: Install terrafmt
-    cmd: |
-      download_url="{{.TERRAFMT_URL}}"
-      echo "Downloading terrafmt from ${download_url}"
-      curl -L {{.GH_CURL_AUTH}} -o ~/terrafmt "${download_url}" \
-        && chmod +x ~/terrafmt \
-        && sudo mv ~/terrafmt /usr/local/bin/
+    cmds:
+      - cmd: |
+          download_url="{{.TERRAFMT_URL}}"
+          install_dir="$(brew --prefix)/bin"
+          echo "Downloading terrafmt from ${download_url}"
+          curl -L {{.GH_CURL_AUTH}} -o ~/terrafmt "${download_url}" \
+            && chmod +x ~/terrafmt \
+            && mv ~/terrafmt "${install_dir}/terrafmt"
+        platforms: [darwin]
+      - cmd: |
+          download_url="{{.TERRAFMT_URL}}"
+          echo "Downloading terrafmt from ${download_url}"
+          curl -L {{.GH_CURL_AUTH}} -o ~/terrafmt "${download_url}" \
+            && chmod +x ~/terrafmt \
+            && sudo mv ~/terrafmt /usr/local/bin/
+        platforms: [linux]
 
   # * Tools
   tools:
@@ -113,20 +128,91 @@ tasks:
     desc: Run Terraform linters
     cmds:
       - cmd: |
-          terraform fmt -recursive
+          terraform fmt -check -recursive
           tflint --init --config "$(pwd)/.github/linters/.tflint.hcl"
-          tflint --recursive --fix --config "$(pwd)/.github/linters/.tflint.hcl"
+          tflint --recursive --config "$(pwd)/.github/linters/.tflint.hcl"
       - cmd: |
-          find . -type f -name "*.md" -not -path "*/.terraform/*" -exec terrafmt fmt {} --fix-finish-lines --quiet \;
+          find . -type f -name "*.md" \
+            -not -path "*/.terraform/*" \
+            -not -path "*/node_modules/*" \
+            -not -path "*/.venv/*" \
+            -not -path "*/.dev/*" \
+            -not -path "*/dist/*" \
+            -not -path "*/coverage/*" \
+            -not -path "*/site/*" \
+            -exec terrafmt fmt {} --check --quiet \;
     dir: "{{.ROOT_DIR}}"
 
   # * Docs
   docs:
     desc: Generate Terraform documentation
     cmds:
-      - terraform-docs -c ./.github/configs/.terraform-docs.yml modules
-      - terraform-docs -c ./.github/configs/.terraform-docs.yml reference_architectures
-      - terraform-docs -c ./.github/configs/.terraform-docs.yml testing
+      - terraform-docs -c ./.github/configs/.terraform-docs.yml infra/modules
+      - terraform-docs -c ./.github/configs/.terraform-docs.yml infra/architectures
+      - terraform-docs -c ./.github/configs/.terraform-docs.yml infra/testing
+      - cmd: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          BEGIN = "<!-- BEGIN_TF_DOCS -->"
+          END = "<!-- END_TF_DOCS -->"
+          SKIP_DIRS = {".git", "node_modules", ".terraform", ".venv", ".dev", "dist", "coverage", "site"}
+
+
+          def normalize_block(block: str) -> str:
+              lines = [line.rstrip() for line in block.splitlines()]
+
+              while lines and not lines[0]:
+                  lines.pop(0)
+
+              while lines and not lines[-1]:
+                  lines.pop()
+
+              normalized: list[str] = []
+              for line in lines:
+                  is_blank = line == ""
+                  is_table = line.startswith("|")
+
+                  if is_table and normalized and normalized[-1] != "":
+                      normalized.append("")
+
+                  if normalized and normalized[-1].startswith("|") and not is_blank and not is_table:
+                      normalized.append("")
+
+                  if is_blank:
+                      if normalized and normalized[-1] == "":
+                          continue
+                      if normalized:
+                          normalized.append("")
+                      continue
+
+                  normalized.append(line)
+
+              return "\n".join(normalized)
+
+
+          for readme in Path(".").rglob("README.md"):
+              if any(part in SKIP_DIRS for part in readme.parts):
+                  continue
+
+              text = readme.read_text()
+              if BEGIN not in text or END not in text:
+                  continue
+
+              prefix, remainder = text.split(BEGIN, maxsplit=1)
+              block, suffix = remainder.split(END, maxsplit=1)
+              normalized_block = normalize_block(block)
+
+              new_text = f"{prefix}{BEGIN}\n"
+              if normalized_block:
+                  new_text += f"\n{normalized_block}\n\n"
+              else:
+                  new_text += "\n"
+              new_text += f"{END}{suffix}"
+
+              if new_text != text:
+                  readme.write_text(new_text)
+          PY
     dir: "{{.ROOT_DIR}}"
 
   # * Clean
@@ -180,7 +266,7 @@ tasks:
       eval "$export_azure_sub"
 
       echo "Deploying Foundry Basic Private Pool..."
-      pushd testing/infrastructure_pools/foundry_basic_private > /dev/null
+      pushd infra/testing/infrastructure_pools/foundry_basic_private > /dev/null
 
       # if there is a terraform.tfstate file, skip init/apply
       if [[ -f "terraform.tfstate" ]]; then
@@ -193,7 +279,7 @@ tasks:
       popd > /dev/null
 
       echo "Deploying Foundry Standard Private Pool..."
-      pushd testing/infrastructure_pools/foundry_standard_private > /dev/null
+      pushd infra/testing/infrastructure_pools/foundry_standard_private > /dev/null
 
       # if there is a terraform.tfstate file, skip init/apply
       if [[ -f "terraform.tfstate" ]]; then
@@ -211,12 +297,12 @@ tasks:
       set -e
 
       echo "Foundry Basic Private Pool outputs:"
-      pushd testing/infrastructure_pools/foundry_basic_private > /dev/null
+      pushd infra/testing/infrastructure_pools/foundry_basic_private > /dev/null
       terraform output
       popd > /dev/null
 
       echo "Foundry Standard Private Pool outputs:"
-      pushd testing/infrastructure_pools/foundry_standard_private > /dev/null
+      pushd infra/testing/infrastructure_pools/foundry_standard_private > /dev/null
       terraform output
       popd > /dev/null
 
@@ -227,7 +313,7 @@ tasks:
       set -e
 
       # Durable Infrastructure Pools - Foundry Standard Private
-      pushd testing/infrastructure_pools/foundry_standard_private > /dev/null
+      pushd infra/testing/infrastructure_pools/foundry_standard_private > /dev/null
       echo "export TF_VAR_fsp_resource_group_name=\"$(terraform output -raw resource_group_name)\""
       echo "export TF_VAR_fsp_vnet_name=\"$(terraform output -json connection | jq -r '.virtual_network_name')\""
       echo "export TF_VAR_fsp_cosmosdb_account_name=\"$(terraform output -raw cosmosdb_account_name)\""
@@ -236,7 +322,7 @@ tasks:
       popd > /dev/null
 
       # Durable Infrastructure Pools - Foundry Basic Private (Pool 1)
-      pushd testing/infrastructure_pools/foundry_basic_private > /dev/null
+      pushd infra/testing/infrastructure_pools/foundry_basic_private > /dev/null
       echo "export TF_VAR_fbp_resource_group_name=\"$(terraform output -raw resource_group_name)\""
       echo "export TF_VAR_fbp_vnet_name=\"$(terraform output -json connection | jq -r '.virtual_network_name')\""
       popd > /dev/null
@@ -340,7 +426,7 @@ tasks:
   get:modules:
     desc: Get all TF modules
     vars:
-      PATH: "{{if empty .CLI_ARGS | not}}{{.CLI_ARGS}}{{else}}modules{{end}}"
+      PATH: "{{if empty .CLI_ARGS | not}}{{.CLI_ARGS}}{{else}}infra/modules{{end}}"
     silent: true
     cmds:
       - cmd: find "{{osClean .PATH}}" -mindepth 2 -not -path "*/.*" -type f -name "*.tf" -exec dirname {} \; | sort -u

@@ -1,0 +1,156 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+---
+name: Nightly Validation
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+    inputs:
+      strategy:
+        description: "Specific deployment strategy name or path to validate ('*' runs all committed strategies)"
+        required: false
+        default: "*"
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+  checks: write
+  actions: read
+
+env:
+  STRATEGY_FILTER: ${{ github.event_name == 'workflow_dispatch' && inputs.strategy || '*' }}
+
+  TF_VAR_fsp_resource_group_name: ${{ vars.TF_VAR_FSP_RESOURCE_GROUP_NAME }}
+  TF_VAR_fsp_vnet_name: ${{ vars.TF_VAR_FSP_VNET_NAME }}
+  TF_VAR_fsp_cosmosdb_account_name: ${{ vars.TF_VAR_FSP_COSMOSDB_ACCOUNT_NAME }}
+  TF_VAR_fsp_storage_account_name: ${{ vars.TF_VAR_FSP_STORAGE_ACCOUNT_NAME }}
+  TF_VAR_fsp_search_service_name: ${{ vars.TF_VAR_FSP_SEARCH_SERVICE_NAME }}
+  TF_VAR_fbp_resource_group_name: ${{ vars.TF_VAR_FBP_RESOURCE_GROUP_NAME }}
+  TF_VAR_fbp_vnet_name: ${{ vars.TF_VAR_FBP_VNET_NAME }}
+
+jobs:
+  discover_strategies:
+    name: Discover deployment strategies
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.discover.outputs.matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Build strategy matrix
+        id: discover
+        run: |
+          python3 <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          import os
+          from pathlib import Path
+
+          filter_value = (os.environ.get('STRATEGY_FILTER') or '*').strip()
+          requested = {item.strip() for item in filter_value.split(',') if item.strip() and item.strip() != '*'}
+
+          strategies = []
+          root = Path('deployment-strategies')
+          for path in sorted(root.iterdir()):
+            if not path.is_dir():
+              continue
+            if not (path / 'infra').exists():
+              continue
+            if requested and path.name not in requested and str(path) not in requested:
+              continue
+            strategies.append({
+              'name': path.name,
+              'strategy': str(path),
+            })
+
+          print(f"matrix={json.dumps(strategies)}")
+          PY
+
+  terraform_acceptance:
+    name: Terraform acceptance
+    runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      TF_IN_AUTOMATION: true
+      TF_CLI_ARGS: -no-color
+      ARM_USE_AZUREAD: true
+      ARM_USE_OIDC: true
+      ARM_TENANT_ID: ${{ vars.PERSISTENT_SUB_AZURE_TENANT_ID }}
+      ARM_CLIENT_ID: ${{ vars.PERSISTENT_SUB_AZURE_CLIENT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.PERSISTENT_SUB_AZURE_SUBSCRIPTION_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Setup Task
+        uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611 # v2.0.0
+        with:
+          repo-token: ${{ github.token }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+
+      - name: Run Terraform acceptance suite
+        run: task tf:test:acc:all
+
+  deployment_strategy_lifecycle:
+    name: Strategy ${{ matrix.name }}
+    needs: [discover_strategies]
+    if: ${{ needs.discover_strategies.outputs.matrix != '[]' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.discover_strategies.outputs.matrix) }}
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      ARM_USE_AZUREAD: true
+      ARM_USE_OIDC: true
+      ARM_TENANT_ID: ${{ vars.PERSISTENT_SUB_AZURE_TENANT_ID }}
+      ARM_CLIENT_ID: ${{ vars.PERSISTENT_SUB_AZURE_CLIENT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.PERSISTENT_SUB_AZURE_SUBSCRIPTION_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Setup Node
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            strategy-builder/package-lock.json
+            strategy-builder/**/package-lock.json
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Setup Task
+        uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611 # v2.0.0
+        with:
+          repo-token: ${{ github.token }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.PERSISTENT_SUB_AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.PERSISTENT_SUB_AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.PERSISTENT_SUB_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install workspace dependencies
+        run: task bootstrap
+
+      - name: Deploy, validate, and destroy strategy
+        run: task strategy:test:deployed -- ${{ matrix.strategy }}

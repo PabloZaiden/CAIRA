@@ -69,6 +69,24 @@ tasks:
     desc: Run Security linters
     cmds:
       - gitleaks detect --config ./.github/linters/.gitleaks.toml --redact=90 --verbose --source .
-      - trivy --config ./.github/linters/.trivy.yml fs .
-      - checkov --config-file ./.github/linters/.checkov.yml --directory .
+      - cmd: |
+          trivy --config ./.github/linters/.trivy.yml fs . \
+            --skip-dirs "**/node_modules" \
+            --skip-dirs "**/.terraform" \
+            --skip-dirs "**/.venv" \
+            --skip-dirs "**/.dev" \
+            --skip-dirs "**/dist" \
+            --skip-dirs "**/coverage" \
+            --skip-dirs "**/site" \
+            --skip-dirs "strategy-builder/testing/container-health/tests/fixtures"
+      - cmd: |
+          checkov --config-file ./.github/linters/.checkov.yml --directory . \
+            --skip-path node_modules \
+            --skip-path .terraform \
+            --skip-path .venv \
+            --skip-path .dev \
+            --skip-path dist \
+            --skip-path coverage \
+            --skip-path site \
+            --skip-path strategy-builder/testing/container-health/tests/fixtures
     dir: "{{.ROOT_DIR}}"

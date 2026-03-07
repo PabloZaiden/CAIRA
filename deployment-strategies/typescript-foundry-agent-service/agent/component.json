@@ -1,0 +1,23 @@
+{
+  "name": "agent",
+  "type": "agent",
+  "variant": "foundry-agent-service",
+  "language": "typescript",
+  "description": "Agent container using Azure AI Foundry (AI Projects v2 SDK)",
+  "port": 3000,
+  "healthEndpoint": "/health",
+  "requiredEnv": ["AZURE_AI_PROJECT_ENDPOINT"],
+  "optionalEnv": [
+    "PORT",
+    "HOST",
+    "AGENT_MODEL",
+    "AGENT_NAME",
+    "TRIAGE_INSTRUCTIONS",
+    "SHANTY_INSTRUCTIONS",
+    "TREASURE_INSTRUCTIONS",
+    "CREW_INSTRUCTIONS",
+    "LOG_LEVEL",
+    "SKIP_AUTH"
+  ],
+  "contractSpec": "contracts/agent-api.openapi.yaml"
+}

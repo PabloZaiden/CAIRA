@@ -2,6 +2,8 @@
 
 Welcome to CAIRA (Composable AI Reference Architectures)! We're excited that you're interested in contributing to this open-source project that provides different reference architectures and infrastructure patterns for AI workloads on Azure.
 
+If your goal is to use CAIRA in your own solution, start with the CAIRA skill defined in `skills/caira/`. This guide is for contributors who want to change the CAIRA repository itself.
+
 ## Microsoft CLA
 
 This project welcomes contributions and suggestions. Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to grant us the rights to use your contribution. When you submit a pull request, a CLA bot will automatically determine whether you need to provide a CLA.
@@ -20,10 +22,10 @@ There are many ways to contribute to CAIRA:
 - **Improve documentation** - Help make our docs clearer and more comprehensive
 - **Review pull requests** - Help review and test changes from other contributors
 
-## Quick Start
+## Contributor Quick Start
 
 1. **Read our [Code of Conduct](CODE_OF_CONDUCT.md)**
-1. **Set up your development environment** - Refer to the [developer guide](docs/developer.md)
+1. **Set up your contributor environment** - Refer to the [developer guide](docs/developer.md)
 1. **Choose your contribution type** - Refer to [Types of Contributions](docs/contributing/types_of_contributions.md)
 1. **Follow our development workflow** - Refer to [Development Workflow](docs/contributing/development_workflow.md)
 1. **Submit a pull request** - Refer to [Pull Request Guide](docs/contributing/pull_request_guide.md)
@@ -66,5 +68,6 @@ task lint
 - **Documentation**: Check our [docs](docs/) directory
 - **Issues**: Search existing issues or create a new one
 - **Developer Guide**: Consult the [developer guide](docs/developer.md) for setup help
+- **CAIRA Skill**: Use `skills/caira/SKILL.md` when you want CAIRA guidance for your own solution instead of contributing upstream
 
 Thank you for contributing to CAIRA!

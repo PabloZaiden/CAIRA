@@ -1,75 +1,51 @@
 <!-- META
-title: CAIRA Documentation
-description: Index of documentation for developing and contributing to the CAIRA project.
-author: CAIRA Team
-ms.date: 08/18/2025
-ms.topic: overview
+name: CAIRA Documentation
 -->
 
 # CAIRA Documentation
 
-Welcome to the CAIRA (Composable AI Reference Architecture) documentation! This directory contains comprehensive guides for developers, contributors, and users working with Azure AI Foundry reference architectures.
+CAIRA documentation covers the whole product surface: shared Azure AI foundation infrastructure, reusable infrastructure modules, app-layer components, generated deployment strategies, and the workflows used to validate all of them together.
 
-## 📚 Quick Navigation
+For most users, the primary CAIRA entrypoint is the installed CAIRA skill. The repository docs then become reference material the skill can inspect. The rest of this folder is mainly for contributors and maintainers working on CAIRA itself.
 
-### 🚀 Getting Started
+## Start here
 
-- **[Environment Setup](environment_setup.md)** - Set up your development environment
-- **[Developer Guide](developer.md)** - Complete guide for CAIRA developers
-- **[Troubleshooting](troubleshooting.md)** - Common issues and solutions
+- Use the CAIRA skill defined in `skills/caira/SKILL.md` when you want CAIRA guidance for your own solution.
+- [Environment Setup](environment_setup.md) for contributors validating or extending CAIRA itself.
+- [Developer Guide](developer.md) for contributor workflows.
+- [Troubleshooting](troubleshooting.md) for skill-guided and repository-based troubleshooting.
+- [Pull Request Guide](contributing/pull_request_guide.md) for contributors opening PRs.
+- [Development Workflow](contributing/development_workflow.md) for contributors changing CAIRA itself.
+- [Code Review Guidelines](contributing/code_review_guidelines.md) for contributor review expectations.
+- [Security Posture](security_posture.md) for product-level security guidance.
 
-### 🤝 Contributing
+## Operating model
 
-- **[Development Workflow](contributing/development_workflow.md)** - Step-by-step contribution process
-- **[Types of Contributions](contributing/types_of_contributions.md)** - Ways to contribute to CAIRA
-- **[Pull Request Guide](contributing/pull_request_guide.md)** - How to create effective PRs
-- **[Code Review Guidelines](contributing/code_review_guidelines.md)** - Review process and standards
-- **[Linting Tools](contributing/linters.md)** - Code quality and formatting tools
+CAIRA is organized around four connected layers:
 
-## 🏗️ Architecture Documentation
+1. **Foundation reference architectures** in `infra/architectures/`
+1. **Reusable infrastructure modules** in `infra/modules/`
+1. **Application and deployment-strategy source code** in `strategy-builder/`
+1. **Committed generated deployments** in `deployment-strategies/`
 
-### Reference Architectures
+The repository validation story matches that model, and these docs double as reference material for the CAIRA skill:
 
-Look [here for documentation](https://github.com/microsoft/CAIRA/tree/main/reference_architectures) that details the available configurations.
+- **Pull requests** run fast static checks with `task validate:pr`
+- **Nightly validation** runs Terraform acceptance coverage plus deployed strategy lifecycle tests for every committed deployment strategy
 
-## 🎯 Quick Start Paths
+## Useful contributor root commands
 
-### For Users
+```bash
+task setup
+task validate:pr
+task test
+task strategy:generate
+task strategy:deploy:reference
+task strategy:test:deployed -- deployment-strategies/typescript-openai-agent-sdk
+```
 
-1. Look [here for documentation](https://github.com/microsoft/CAIRA/tree/main/reference_architectures) that details the available configurations.
-1. ❓ [Troubleshooting](troubleshooting.md) - Get help with deployment issues
+## Additional areas
 
-### For New Contributors
-
-1. 📋 [Types of Contributions](contributing/types_of_contributions.md) - Understand how you can help
-1. 🛠️ [Environment Setup](environment_setup.md) - Set up your development environment
-1. 🔄 [Development Workflow](contributing/development_workflow.md) - Learn our contribution process
-1. 📝 [Pull Request Guide](contributing/pull_request_guide.md) - Create your first PR
-
-### For Developers
-
-1. 👨‍💻 [Developer Guide](developer.md) - Complete development setup
-1. 🏗️ [Architecture Documentation](#️-architecture-documentation) - Understand CAIRA components
-1. 🧪 [Linting Tools](contributing/linters.md) - Code quality requirements
-1. 🔍 [Troubleshooting](troubleshooting.md) - Resolve common issues
-
-## 🔧 Development Tools
-
-- **Task Runner**: Use `task` commands for common operations
-- **Linting**: Automated code quality checks
-- **Testing**: Terraform validation and integration tests
-- **Documentation**: Auto-generated from Terraform configurations
-
-## 📞 Getting Help
-
-- **Issues**: Report bugs and request features via [GitHub Issues](https://github.com/microsoft/CAIRA/issues)
-- **Discussions**: Ask questions in [GitHub Discussions](https://github.com/microsoft/CAIRA/discussions)
-- **Documentation**: Check existing guides before asking questions
-
-## 🤝 Community
-
-We welcome contributions from the community! Whether you're fixing bugs, adding features, improving documentation, or sharing your experiences, every contribution helps make CAIRA better.
-
----
-
-**Next Steps**: Choose a path above based on your role and goals. All documentation includes step-by-step instructions to get you started quickly.
+- Contributing guidance lives under `docs/contributing/`
+- Infrastructure-specific guidance starts in `infra/README.md`
+- App-layer and generator guidance starts in `strategy-builder/README.md`

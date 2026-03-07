@@ -25,5 +25,5 @@ tasks:
   lint:
     desc: Lint JavaScript files
     cmds:
-      - prettier --config .github/linters/.prettierrc.yml --write "./**/*.{js,cjs,mjs,ts,tsx,jsx}"
+      - prettier --config .github/linters/.prettierrc.yml --ignore-path .prettierignore --check "./**/*.{js,cjs,mjs,ts,tsx,jsx}"
     dir: "{{.ROOT_DIR}}"

@@ -13,7 +13,7 @@
 set -euo pipefail
 
 # Default values
-PATHS=("docs" "modules" "reference_architectures" ".github" "copilot" "capabilities")
+PATHS=("docs" "modules" "infra" ".github" "copilot" "capabilities")
 FILES=()
 EXCLUDE_PATTERNS=("*/.terraform/*")
 WARNINGS_AS_ERRORS=false
@@ -54,7 +54,7 @@ Usage: $0 [OPTIONS]
 Validates frontmatter consistency across markdown files in the repository.
 
 OPTIONS:
-    -p, --paths PATHS           Comma-separated list of paths to search (default: docs,modules,reference_architectures,.github)
+    -p, --paths PATHS           Comma-separated list of paths to search (default: docs,modules,infra,.github)
     -f, --files FILES           Comma-separated list of specific files to validate
     -e, --exclude PATTERNS      Comma-separated list of path patterns to exclude (default: */.terraform/*)
     -w, --warnings-as-errors    Treat warnings as errors
@@ -247,7 +247,7 @@ check_frontmatter() {
 
   # Check for required fields (for main documentation)
   local is_main_doc=false
-  if [[ ("$file" == *"docs"* || "$file" == *"modules"* || "$file" == *"reference_architectures"* || "$file" == *"copilot"* || "$file" == *"capabilities"*) && "$file" != *".github"* ]]; then
+  if [[ ("$file" == *"docs"* || "$file" == *"modules"* || "$file" == *"infra"* || "$file" == *"copilot"* || "$file" == *"capabilities"*) && "$file" != *".github"* ]]; then
     is_main_doc=true
   fi
 
@@ -455,7 +455,7 @@ validate_markdown_frontmatter() {
         is_github=true
       fi
 
-      if [[ ("$file" == *"docs"* || "$file" == *"modules"* || "$file" == *"reference_architectures"*) && "$is_github" == "false" ]]; then
+      if [[ ("$file" == *"docs"* || "$file" == *"modules"* || "$file" == *"infra"*) && "$is_github" == "false" ]]; then
         is_main_doc=true
       fi
 

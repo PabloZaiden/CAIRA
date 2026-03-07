@@ -1,0 +1,20 @@
+{
+  "name": "caira-strategy-builder-scripts",
+  "private": true,
+  "type": "module",
+  "description": "Scripts and tooling for the CAIRA strategy builder",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.3",
+    "execa": "^9.6.1",
+    "vitest": "^3"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  }
+}

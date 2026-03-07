@@ -1,0 +1,732 @@
+---
+openapi: 3.1.0
+info:
+  title: CAIRA Business API (Pirate Theme)
+  version: 2.0.0
+  description: |
+    REST contract for the CAIRA business API container. This is the public-facing
+    API that the frontend calls. It wraps the agent container's generic conversation
+    API with a pirate-themed business layer.
+
+    The API container is agent-framework-agnostic — it only knows the agent API
+    contract (`agent-api.openapi.yaml`) and proxies requests to whichever agent
+    implementation is deployed.
+
+    ## Business Operations
+
+    Every conversation starts from a **business operation** — there is no generic
+    "create a conversation" endpoint. The three operations are:
+
+    - `POST /api/pirate/shanty` — Start a Sea Shanty Battle (lyrical verse duel)
+    - `POST /api/pirate/treasure` — Seek Treasure (adventure with choices)
+    - `POST /api/pirate/crew/enlist` — Join the Crew (interview and role assignment)
+
+    Each operation creates a conversation on the agent container, sends a synthetic
+    first message to prime the triage agent, and returns the adventure ID and the
+    agent's opening response.
+
+    ## Activity Resolution
+
+    Each activity has a **definitive conclusion** captured via agent-driven resolution
+    tools (`resolve_shanty`, `resolve_treasure`, `resolve_crew`). When an activity
+    resolves, the SSE stream includes an `activity.resolved` event with structured
+    outcome data. The API captures this outcome and stores it on the adventure.
+
+    Adventures remain **open after resolution** — the user can keep chatting, but
+    the outcome is preserved.
+
+    ## Streaming
+
+    The `POST /api/pirate/adventures/{adventureId}/parley` endpoint supports
+    Server-Sent Events (SSE) for streaming pirate responses. The API parses the
+    agent's SSE stream to detect `activity.resolved` events and passes all events
+    through to the frontend.
+
+    - `Accept: text/event-stream` (default) — streams tokens as SSE events
+    - `Accept: application/json` — returns the complete response after generation
+
+    ### SSE Event Format
+
+    ```
+    event: message.delta
+    data: {"content": "Arr, "}
+
+    event: activity.resolved
+    data: {"tool": "resolve_shanty", "result": {"winner": "user", "rounds": 4, "best_verse": "..."}}
+
+    event: message.complete
+    data: {"messageId": "...", "content": "Arr, ye've won!", "usage": {"promptTokens": 10, "completionTokens": 8}}
+
+    event: error
+    data: {"code": "agent_error", "message": "The seas be rough today"}
+    ```
+
+    ## Authentication
+
+    This API is **not exposed to the public network**. It is only accessible from
+    the BFF (Backend for Frontend) server, which proxies requests from the browser
+    and injects a bearer token for service-to-service authentication. Authentication
+    between the API container and the agent container is handled internally via
+    `DefaultAzureCredential` (see `INTER-SERVICE.md`).
+  license:
+    name: MIT
+    identifier: MIT
+
+servers:
+  - url: http://localhost:4000
+    description: Local development
+
+tags:
+  - name: Activities
+    description: Pirate activity business operations
+  - name: Adventures
+    description: Adventure management and chat
+  - name: Observability
+    description: Health checks and statistics
+
+paths:
+  /api/pirate/shanty:
+    post:
+      operationId: startShanty
+      summary: Start a Sea Shanty Battle
+      tags: [Activities]
+      description: |
+        Starts a sea shanty battle — a lyrical verse duel at sea. Creates a
+        conversation on the agent container, sends a synthetic first message to
+        prime the triage agent for shanty routing, and returns the adventure ID
+        with the agent's opening verse.
+      responses:
+        '201':
+          description: Shanty battle started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdventureStarted'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '502':
+          $ref: '#/components/responses/AgentUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/pirate/treasure:
+    post:
+      operationId: seekTreasure
+      summary: Start a Treasure Hunt
+      tags: [Activities]
+      description: |
+        Starts a treasure hunting adventure. The pirate guide describes locations,
+        poses choices, and narrates the discovery (or peril) that follows. Creates
+        a conversation on the agent container and returns the adventure ID with the
+        agent's opening response.
+      responses:
+        '201':
+          description: Treasure hunt started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdventureStarted'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '502':
+          $ref: '#/components/responses/AgentUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/pirate/crew/enlist:
+    post:
+      operationId: enlistInCrew
+      summary: Join the Pirate Crew
+      tags: [Activities]
+      description: |
+        Starts a crew enlistment interview. The first mate evaluates the user's
+        pirate skills and assigns a rank, role, and ship. Creates a conversation
+        on the agent container and returns the adventure ID with the agent's
+        opening response.
+      responses:
+        '201':
+          description: Crew interview started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdventureStarted'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '502':
+          $ref: '#/components/responses/AgentUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/pirate/adventures:
+    get:
+      operationId: listAdventures
+      summary: List all adventures
+      tags: [Adventures]
+      description: |
+        Returns a paginated list of adventures (conversations), ordered by most
+        recent activity. Each adventure includes its mode, status, and outcome
+        (if resolved). Maps to `GET /conversations` on the agent container with
+        business-layer enrichment.
+      parameters:
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Paginated adventure list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdventureList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '502':
+          $ref: '#/components/responses/AgentUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/pirate/adventures/{adventureId}:
+    get:
+      operationId: getAdventure
+      summary: Get adventure details
+      tags: [Adventures]
+      description: |
+        Returns an adventure's details including mode, status, outcome (if resolved),
+        and full parley (message) history. Maps to `GET /conversations/{conversationId}`
+        on the agent container with business-layer enrichment.
+      parameters:
+        - $ref: '#/components/parameters/AdventureId'
+      responses:
+        '200':
+          description: Adventure with parley history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdventureDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '502':
+          $ref: '#/components/responses/AgentUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/pirate/adventures/{adventureId}/parley:
+    post:
+      operationId: parley
+      summary: Send a message in an adventure
+      tags: [Adventures]
+      description: |
+        Sends a message to the pirate agent within an existing adventure and receives
+        a response. The response format depends on the `Accept` header:
+
+        - `Accept: text/event-stream` (default) — streams the pirate's response
+          as SSE events. The API parses the agent stream to detect `activity.resolved`
+          events, captures the outcome, and passes all events through to the frontend.
+        - `Accept: application/json` — waits for the full response
+
+        Maps to `POST /conversations/{conversationId}/messages` on the agent container.
+
+        ### SSE Event Schema
+
+        **`message.delta`**
+        ```json
+        {"content": "partial pirate text"}
+        ```
+
+        **`activity.resolved`**
+        ```json
+        {"tool": "resolve_shanty", "result": {"winner": "user", "rounds": 4, "best_verse": "..."}}
+        ```
+
+        **`message.complete`**
+        ```json
+        {
+          "messageId": "msg_abc123",
+          "content": "Arr, that be a fine question!",
+          "usage": {
+            "promptTokens": 10,
+            "completionTokens": 12
+          }
+        }
+        ```
+
+        **`error`**
+        ```json
+        {"code": "agent_error", "message": "The seas be too rough for parley"}
+        ```
+      parameters:
+        - $ref: '#/components/parameters/AdventureId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParleyRequest'
+      responses:
+        '200':
+          description: |
+            Pirate response. Content type depends on the `Accept` header:
+            - `text/event-stream` for SSE streaming
+            - `application/json` for complete response
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: SSE event stream. See operation description for event format.
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParleyMessage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '502':
+          $ref: '#/components/responses/AgentUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/pirate/stats:
+    get:
+      operationId: getStats
+      summary: Get activity statistics
+      tags: [Observability]
+      description: |
+        Returns aggregate statistics about pirate activities — total adventures
+        per mode, resolution counts, and active adventures.
+      responses:
+        '200':
+          description: Activity statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivityStats'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '502':
+          $ref: '#/components/responses/AgentUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /health:
+    get:
+      operationId: getHealth
+      summary: Health check
+      tags: [Observability]
+      description: |
+        Returns the health status of the API container and its dependencies,
+        including the agent container. Used by container orchestrators for
+        readiness probes.
+      responses:
+        '200':
+          description: Service is healthy or degraded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+components:
+  securitySchemes:
+    bffBearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Bearer token injected by the frontend BFF for internal service-to-service authentication.
+
+  parameters:
+    AdventureId:
+      name: adventureId
+      in: path
+      required: true
+      description: Unique identifier of the adventure / conversation
+      schema:
+        type: string
+
+    Offset:
+      name: offset
+      in: query
+      required: false
+      description: Number of items to skip for pagination
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: Maximum number of items to return
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  schemas:
+    AdventureMode:
+      type: string
+      description: The type of pirate activity
+      enum:
+        - shanty
+        - treasure
+        - crew
+
+    AdventureStatus:
+      type: string
+      description: Whether the activity has reached its conclusion
+      enum:
+        - active
+        - resolved
+
+    AdventureStarted:
+      type: object
+      description: |
+        Response from a business operation that starts an adventure. Contains
+        the adventure ID, mode, initial status, and the synthetic user message
+        that the frontend should display and send via the streaming parley
+        endpoint to get the agent's first response.
+      required:
+        - id
+        - mode
+        - status
+        - syntheticMessage
+        - createdAt
+      properties:
+        id:
+          type: string
+          description: Unique adventure identifier (same as conversation ID)
+        mode:
+          $ref: '#/components/schemas/AdventureMode'
+        status:
+          $ref: '#/components/schemas/AdventureStatus'
+        syntheticMessage:
+          type: string
+          description: >
+            The synthetic user message for this adventure mode. The frontend
+            should display this as the first user bubble and send it via
+            the parley streaming endpoint to obtain the agent's opening response.
+        createdAt:
+          type: string
+          format: date-time
+          description: When the adventure was created
+
+    Adventure:
+      type: object
+      description: An adventure (maps to a conversation with business metadata)
+      required:
+        - id
+        - mode
+        - status
+        - createdAt
+        - lastParleyAt
+        - messageCount
+      properties:
+        id:
+          type: string
+          description: Unique adventure identifier (same as conversation ID)
+        mode:
+          $ref: '#/components/schemas/AdventureMode'
+        status:
+          $ref: '#/components/schemas/AdventureStatus'
+        outcome:
+          $ref: '#/components/schemas/AdventureOutcome'
+        createdAt:
+          type: string
+          format: date-time
+          description: When the adventure was created
+        lastParleyAt:
+          type: string
+          format: date-time
+          description: When the last parley occurred
+        messageCount:
+          type: integer
+          description: Total number of messages in this adventure
+
+    AdventureDetail:
+      type: object
+      description: Adventure with full parley history
+      required:
+        - id
+        - mode
+        - status
+        - createdAt
+        - lastParleyAt
+        - messageCount
+        - parleys
+      properties:
+        id:
+          type: string
+          description: Unique adventure identifier
+        mode:
+          $ref: '#/components/schemas/AdventureMode'
+        status:
+          $ref: '#/components/schemas/AdventureStatus'
+        outcome:
+          $ref: '#/components/schemas/AdventureOutcome'
+        createdAt:
+          type: string
+          format: date-time
+          description: When the adventure was created
+        lastParleyAt:
+          type: string
+          format: date-time
+          description: When the last parley occurred
+        messageCount:
+          type: integer
+          description: Total number of messages
+        parleys:
+          type: array
+          maxItems: 1000
+          items:
+            $ref: '#/components/schemas/ParleyMessage'
+          description: Messages in chronological order
+
+    AdventureOutcome:
+      type: object
+      description: |
+        Structured outcome from an activity resolution. The `result` field
+        contains the domain-specific data from the resolution tool (e.g.,
+        winner/rounds for shanty, found/treasure for treasure hunt).
+      required:
+        - tool
+        - result
+      properties:
+        tool:
+          type: string
+          description: The resolution tool that was called (e.g., resolve_shanty)
+        result:
+          type: object
+          description: Domain-specific outcome data from the resolution tool
+          additionalProperties: true
+
+    AdventureList:
+      type: object
+      description: Paginated list of adventures
+      required:
+        - adventures
+        - offset
+        - limit
+        - total
+      properties:
+        adventures:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/Adventure'
+          description: Adventures on this page
+        offset:
+          type: integer
+          description: Number of items skipped
+        limit:
+          type: integer
+          description: Maximum items per page
+        total:
+          type: integer
+          description: Total number of adventures
+
+    ParleyRequest:
+      type: object
+      description: A message to send to the pirate
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          minLength: 1
+          description: The user's message text
+
+    ParleyMessage:
+      type: object
+      description: A single message in a parley (conversation)
+      required:
+        - id
+        - role
+        - content
+        - createdAt
+      properties:
+        id:
+          type: string
+          description: Unique message identifier
+        role:
+          type: string
+          enum: [user, assistant, system]
+          description: Who sent the message
+        content:
+          type: string
+          description: Message text content
+        createdAt:
+          type: string
+          format: date-time
+          description: When the message was sent
+        usage:
+          $ref: '#/components/schemas/TokenUsage'
+        resolution:
+          $ref: '#/components/schemas/AdventureOutcome'
+
+    TokenUsage:
+      type: object
+      description: Token usage statistics
+      properties:
+        promptTokens:
+          type: integer
+          description: Number of tokens in the prompt
+        completionTokens:
+          type: integer
+          description: Number of tokens in the completion
+
+    ActivityStats:
+      type: object
+      description: Aggregate statistics about pirate activities
+      required:
+        - totalAdventures
+        - activeAdventures
+        - resolvedAdventures
+        - byMode
+      properties:
+        totalAdventures:
+          type: integer
+          description: Total number of adventures across all modes
+        activeAdventures:
+          type: integer
+          description: Adventures currently in progress
+        resolvedAdventures:
+          type: integer
+          description: Adventures that have reached a conclusion
+        byMode:
+          type: object
+          description: Per-mode adventure counts
+          required:
+            - shanty
+            - treasure
+            - crew
+          properties:
+            shanty:
+              $ref: '#/components/schemas/ModeStats'
+            treasure:
+              $ref: '#/components/schemas/ModeStats'
+            crew:
+              $ref: '#/components/schemas/ModeStats'
+
+    ModeStats:
+      type: object
+      description: Statistics for a single activity mode
+      required:
+        - total
+        - active
+        - resolved
+      properties:
+        total:
+          type: integer
+          description: Total adventures in this mode
+        active:
+          type: integer
+          description: Active adventures in this mode
+        resolved:
+          type: integer
+          description: Resolved adventures in this mode
+
+    HealthResponse:
+      type: object
+      description: Health check result
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          description: Overall health status
+        dependencies:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/DependencyHealth'
+          description: Health of downstream dependencies
+
+    DependencyHealth:
+      type: object
+      description: Health status of a single dependency
+      required:
+        - name
+        - status
+      properties:
+        name:
+          type: string
+          description: Dependency name (e.g., "agent-container")
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          description: Health status
+        latencyMs:
+          type: number
+          description: Response time in milliseconds
+
+    ErrorResponse:
+      type: object
+      description: Standard error response
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code
+        message:
+          type: string
+          description: Human-readable error description
+        details:
+          type: object
+          description: Additional error context
+          additionalProperties: true
+
+  responses:
+    BadRequest:
+      description: Invalid request (malformed body, missing required fields)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Adventure not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    RateLimited:
+      description: Too many requests — upstream LLM rate limit exceeded
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds to wait before retrying
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    AgentUnavailable:
+      description: Agent container is unavailable or returned an error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+security:
+  - bffBearerAuth: []

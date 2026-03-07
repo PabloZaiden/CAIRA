@@ -39,10 +39,17 @@ dictionaryDefinitions:
     path: ../../.cspellignore
     addWords: true
 allowCompoundWords: true
+words:
+  - pablozaiden
+  - afterAll
+  - AKS
 ignorePaths:
-  - node_modules
-  - .dev
+  - "**/node_modules/**"
+  - "**/.dev/**"
   - .cspellignore
-  - .venv
-  - venv
-  - .terraform
+  - "**/.venv/**"
+  - "**/venv/**"
+  - "**/.terraform/**"
+  - "**/dist/**"
+  - "**/coverage/**"
+  - "**/site/**"

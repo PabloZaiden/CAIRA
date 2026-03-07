@@ -1,0 +1,12 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "allowImportingTsExtensions": true,
+    "noEmit": true
+  },
+  "include": ["__tests__/**/*.ts", "lib/**/*.ts", "*.ts"],
+  "exclude": ["dist", "node_modules"]
+}
