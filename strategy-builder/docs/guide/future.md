@@ -1,6 +1,6 @@
 # Future Work
 
-This document tracks the main follow-up themes for the strategy-builder area now that CAIRA is organized as a single product repository spanning foundation infrastructure, application infrastructure, application components, and generated deployment strategies.
+This document tracks the main follow-up themes for the strategy-builder area now that CAIRA is organized as a single product repository spanning macro reference architectures, application components, and generated deployment strategies.
 
 ## WS-8: Application-layer Infrastructure Hardening
 
@@ -9,7 +9,7 @@ This document tracks the main follow-up themes for the strategy-builder area now
 ### Current state
 
 - `deployment-strategies/*/infra/` is generated from `components/iac/azure-container-apps/`.
-- `task strategy:deploy:strategy -- deployment-strategies/<name>` deploys the application layer on top of the CAIRA foundation.
+- `task strategy:deploy -- deployment-strategies/<name>` deploys one implementation of the layered CAIRA reference architecture.
 - ACA images are built, pushed to ACR, and consumed with managed identity.
 - Frontend ingress is exposed while API and agent services stay internal.
 - Local Docker workflows use the `azcred` sidecar so `DefaultAzureCredential` works inside containers.
@@ -17,7 +17,7 @@ This document tracks the main follow-up themes for the strategy-builder area now
 ### Remaining focus
 
 - Expand deployed validation coverage across the full committed strategy set.
-- Keep application-layer Terraform aligned with the latest `infra/architectures/` and `infra/modules/` contracts.
+- Keep strategy Terraform aligned with the latest layered reference architecture under `infra/` and the shared `infra/modules/` contracts.
 - Continue reliability hardening for long-running Azure operations and retry behavior.
 
 ## WS-9: Observability & Telemetry
@@ -40,7 +40,7 @@ The compose-based local workflow remains the fastest way to validate the full ap
 
 **Status:** Complete and maintained.
 
-The generator produces the committed deployment strategies under `deployment-strategies/`. Each generated directory is a deployable end-to-end deliverable built from strategy-builder source plus CAIRA foundation inputs.
+The generator produces the committed deployment strategies under `deployment-strategies/`. Each generated directory is a deployable end-to-end deliverable built from strategy-builder source plus the layered CAIRA reference architecture.
 
 ### Ongoing expectations
 

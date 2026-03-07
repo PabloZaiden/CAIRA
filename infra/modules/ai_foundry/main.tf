@@ -97,16 +97,17 @@ resource "azurerm_cognitive_deployment" "model_deployments" {
   }
 }
 
-# Wait before deleting capability host to ensure dependent resources are properly cleaned up
+# Wait before deleting capability host to ensure dependent resources are properly cleaned up.
 resource "time_sleep" "wait_before_delete_capability_host" {
+  count            = var.enable_agents_capability_host && var.agents_subnet_id == null ? 1 : 0
   destroy_duration = "60s"
 
   depends_on = [azapi_resource.ai_foundry_capability_host]
 }
 
 resource "azapi_resource" "ai_foundry_capability_host" {
-  # Only create account-level capability host if there are connections but no agent subnet is provided
-  count = var.agents_subnet_id == null ? 1 : 0
+  # Only create the public capability host when project-level capability-host connections are needed.
+  count = var.enable_agents_capability_host && var.agents_subnet_id == null ? 1 : 0
 
   type                      = "Microsoft.CognitiveServices/accounts/capabilityHosts@2025-04-01-preview"
   name                      = "${azapi_resource.ai_foundry.name}-agents-capability-host"

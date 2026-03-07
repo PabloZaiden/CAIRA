@@ -13,11 +13,9 @@ const E2E_DIR = resolve(REPO_ROOT, 'testing', 'e2e');
 interface CliOptions {
   strategy: string | undefined;
   keepDeployed: boolean;
-  forceDeploy: boolean;
   location: string | undefined;
   allowedCidr: string | undefined;
   projectName: string | undefined;
-  aiResourceId: string | undefined;
   tag: string | undefined;
 }
 
@@ -27,18 +25,19 @@ function printUsage(): void {
 Test a deployed strategy on Azure Container Apps
 
 Usage:
-  node scripts/test-deployed-strategy.ts --strategy <path> [options]
+  task strategy:test:deployed -- <path>
 
 Options:
   --strategy <path>       Path or name of the deployment strategy directory (required)
   --keep-deployed         Skip destroy after validation
-  --force-deploy          Force the shared CAIRA foundation to re-apply
   --location <region>     Azure region override
   --allowed-cidr <cidr>   Ingress allowlist CIDR override
   --name <project-name>   Resource naming prefix override
-  --ai-resource-id <id>   Explicit Azure AI resource ID
   --tag <tag>             Image tag override
   --help, -h              Show help
+
+Advanced direct script usage:
+  node scripts/test-deployed-strategy.ts --strategy deployment-strategies/typescript-openai-agent-sdk
 `.trimStart()
   );
 }
@@ -47,11 +46,9 @@ function parseArgs(args: string[]): CliOptions | null {
   const options: CliOptions = {
     strategy: undefined,
     keepDeployed: false,
-    forceDeploy: false,
     location: undefined,
     allowedCidr: undefined,
     projectName: undefined,
-    aiResourceId: undefined,
     tag: undefined
   };
 
@@ -64,9 +61,6 @@ function parseArgs(args: string[]): CliOptions | null {
       case '--keep-deployed':
         options.keepDeployed = true;
         break;
-      case '--force-deploy':
-        options.forceDeploy = true;
-        break;
       case '--location':
         options.location = args[++i];
         break;
@@ -75,9 +69,6 @@ function parseArgs(args: string[]): CliOptions | null {
         break;
       case '--name':
         options.projectName = args[++i];
-        break;
-      case '--ai-resource-id':
-        options.aiResourceId = args[++i];
         break;
       case '--tag':
         options.tag = args[++i];
@@ -155,11 +146,9 @@ async function main(): Promise<void> {
   const infraDir = resolve(strategyDir, 'infra');
   const deployArgs = [DEPLOY_SCRIPT, '--strategy', options.strategy];
 
-  if (options.forceDeploy) deployArgs.push('--force-deploy');
   if (options.location) deployArgs.push('--location', options.location);
   if (options.allowedCidr) deployArgs.push('--allowed-cidr', options.allowedCidr);
   if (options.projectName) deployArgs.push('--name', options.projectName);
-  if (options.aiResourceId) deployArgs.push('--ai-resource-id', options.aiResourceId);
   if (options.tag) deployArgs.push('--tag', options.tag);
 
   try {

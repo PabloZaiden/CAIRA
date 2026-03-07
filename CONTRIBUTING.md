@@ -68,6 +68,6 @@ task lint
 - **Documentation**: Check our [docs](docs/) directory
 - **Issues**: Search existing issues or create a new one
 - **Developer Guide**: Consult the [developer guide](docs/developer.md) for setup help
-- **CAIRA Skill**: Use `skills/caira/SKILL.md` when you want CAIRA guidance for your own solution instead of contributing upstream
+- **CAIRA Skill**: Use `skills/caira/SKILL.md` when you want CAIRA guidance for your own solution instead of changing CAIRA itself
 
 Thank you for contributing to CAIRA!

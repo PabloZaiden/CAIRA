@@ -1,7 +1,7 @@
 /**
  * CAIRA Deploy — Terraform deployment + output extraction + .env generation.
  *
- * Ensures the CAIRA foundation reference architecture is deployed,
+ * Ensures the CAIRA macro reference architecture infrastructure is deployed,
  * extracts Terraform outputs, and writes .env files for deployment strategy directories
  * with the correct Azure endpoints and model names.
  *
@@ -27,7 +27,7 @@ const execFileAsync = promisify(execFile);
 
 // ─── Constants ──────────────────────────────────────────────────────────
 
-const TF_DIR = resolve(MONOREPO_ROOT, 'infra', 'architectures', 'foundry-agent-api-frontend');
+const TF_DIR = resolve(MONOREPO_ROOT, 'infra', 'foundry_agentic_app');
 const STRATEGIES_DIR = DEPLOYMENT_STRATEGIES_ROOT;
 
 /**
@@ -66,7 +66,7 @@ function logError(message: string): void {
 
 // ─── Terraform helpers ──────────────────────────────────────────────────
 
-interface TerraformOutputs {
+export interface TerraformOutputs {
   ai_foundry_name: string;
   ai_foundry_default_project_name: string;
   ai_foundry_id: string;
@@ -203,7 +203,7 @@ async function terraformDestroy(): Promise<void> {
  * Derive the Azure AI Foundry project endpoint from Terraform outputs.
  * This is the endpoint the Foundry Agent Service SDK expects.
  */
-function deriveFoundryEndpoint(outputs: TerraformOutputs): string {
+export function deriveFoundryEndpoint(outputs: TerraformOutputs): string {
   return `https://${outputs.ai_foundry_name}.services.ai.azure.com/api/projects/${outputs.ai_foundry_default_project_name}`;
 }
 
@@ -211,7 +211,7 @@ function deriveFoundryEndpoint(outputs: TerraformOutputs): string {
  * Derive the Azure OpenAI-compatible endpoint from Terraform outputs.
  * This is the endpoint the OpenAI Agent SDK expects.
  */
-function deriveOpenAIEndpoint(outputs: TerraformOutputs): string {
+export function deriveOpenAIEndpoint(outputs: TerraformOutputs): string {
   return `https://${outputs.ai_foundry_name}.openai.azure.com/`;
 }
 
@@ -262,7 +262,7 @@ ${config.modelEnvVar}=${config.defaultModel}
 /**
  * Write .env files for all deployment strategy directories, or a specific one.
  */
-async function writeEnvFiles(outputs: TerraformOutputs, specificStrategy?: string): Promise<void> {
+export async function writeEnvFiles(outputs: TerraformOutputs, specificStrategy?: string): Promise<void> {
   if (specificStrategy) {
     const strategyDir = resolveStrategyPath(specificStrategy);
     if (!existsSync(strategyDir)) {
@@ -408,7 +408,7 @@ async function getExistingRoleAssignments(scope: string, principalId: string): P
  * Ensure the deploying principal has the required RBAC roles on the AI Foundry
  * account. Only assigns roles that are missing.
  */
-async function ensureRbac(aiFoundryId: string): Promise<void> {
+export async function ensureRbac(aiFoundryId: string): Promise<void> {
   log('Checking RBAC role assignments for deploying principal...');
 
   const principal = await getSignedInPrincipal();

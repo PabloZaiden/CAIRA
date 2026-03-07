@@ -4,7 +4,7 @@ Discover the current repository structure at execution time instead of maintaini
 
 ## Canonical discovery endpoints
 
-- Reference architectures: `https://api.github.com/repos/microsoft/CAIRA/contents/infra/architectures?ref=<ref>`
+- Reference architectures: `https://api.github.com/repos/microsoft/CAIRA/contents/infra?ref=<ref>` (inspect directories directly under `infra/`, excluding `modules/` and `testing/`)
 - Modules: `https://api.github.com/repos/microsoft/CAIRA/contents/infra/modules?ref=<ref>`
 - Strategy builder: `https://api.github.com/repos/microsoft/CAIRA/contents/strategy-builder?ref=<ref>`
 - Deployment strategies: `https://api.github.com/repos/microsoft/CAIRA/contents/deployment-strategies?ref=<ref>`

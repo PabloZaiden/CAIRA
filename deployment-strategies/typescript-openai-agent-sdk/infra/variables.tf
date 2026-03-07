@@ -15,38 +15,32 @@ variable "allowed_cidr" {
   type        = string
 }
 
-variable "deploy_apps" {
-  description = "When false, only shared infra (RG, Log Analytics, ACA env, ACR) is created."
+variable "enable_telemetry" {
+  description = "Controls whether AVM telemetry and partner attribution are enabled."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "enable_registry_auth" {
   description = "When true, container apps use managed identity auth against ACR."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "agent_image" {
-  description = "Container image for the agent app (used when deploy_apps=true)."
+  description = "Container image for the agent app. When empty, the bootstrap image is used."
   type        = string
   default     = ""
 }
 
 variable "api_image" {
-  description = "Container image for the API app (used when deploy_apps=true)."
+  description = "Container image for the API app. When empty, the bootstrap image is used."
   type        = string
   default     = ""
 }
 
 variable "frontend_image" {
-  description = "Container image for the frontend/BFF app (used when deploy_apps=true)."
-  type        = string
-  default     = ""
-}
-
-variable "ai_resource_id" {
-  description = "Azure AI / Cognitive Services account resource ID used for agent role assignments."
+  description = "Container image for the frontend/BFF app. When empty, the bootstrap image is used."
   type        = string
   default     = ""
 }

@@ -1,6 +1,6 @@
 {
   "strategyName": "typescript-openai-agent-sdk",
-  "derivedFromReferenceArchitecture": "foundry-agent-api-frontend",
+  "derivedFromReferenceArchitecture": "foundry_agentic_app",
   "flavor": {
     "language": "typescript",
     "agentVariant": "openai-agent-sdk"

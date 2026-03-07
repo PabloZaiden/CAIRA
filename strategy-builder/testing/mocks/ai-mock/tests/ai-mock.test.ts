@@ -1635,7 +1635,7 @@ describe('API surface completeness', () => {
     expect(res.status).toBe(200);
   });
 
-  it('does NOT have /assistants endpoint (legacy)', async () => {
+  it('does NOT have /assistants endpoint', async () => {
     const res = await fetch(`${baseUrl}/assistants`, {
       method: 'POST',
       headers: { ...AUTH_HEADER, 'Content-Type': 'application/json' },
@@ -1644,7 +1644,7 @@ describe('API surface completeness', () => {
     expect(res.status).toBe(404);
   });
 
-  it('does NOT have /threads endpoint (legacy)', async () => {
+  it('does NOT have /threads endpoint', async () => {
     const res = await fetch(`${baseUrl}/threads`, {
       method: 'POST',
       headers: { ...AUTH_HEADER }

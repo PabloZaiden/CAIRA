@@ -6,11 +6,12 @@ This template is for coding agents to decide using discovered CAIRA assets, not 
 
 1. Resolve `ref` (user-provided or latest release tag).
 1. List architectures dynamically:
-   - `GET https://api.github.com/repos/microsoft/CAIRA/contents/infra/architectures?ref=<ref>`
-1. For each discovered architecture directory:
-   - List files in that directory via contents API.
-   - Read `README.md` and `*.tf` from returned `download_url` values.
-   - Extract capabilities from content (networking posture, dependencies, capability host patterns, required inputs, complexity, observability components).
+   - `GET https://api.github.com/repos/microsoft/CAIRA/contents/infra?ref=<ref>`
+1. For each discovered architecture directory directly under `infra/` (excluding `modules/` and `testing/`):
+    - List files in that directory via contents API.
+    - Read `README.md` and `*.tf` from returned `download_url` values.
+    - Extract capabilities from content (networking posture, dependencies, capability host patterns, required inputs, complexity, observability components).
+1. Default to reviewing `foundry_agentic_app` first because it is the baseline layered reference architecture sample.
 
 ## Decision rubric (content-driven)
 
@@ -21,6 +22,8 @@ For each discovered architecture, score fit by user requirements:
 - Application integration fit
 - Operational model fit (monitoring/compliance/enterprise controls)
 - Complexity and maintainability fit
+
+Treat capability-host connectivity, private networking, and extra projects as advanced requirements. If the user's needs are satisfied by the baseline sample, keep the recommendation anchored on the simpler default instead of copying those advanced additions.
 
 Pick highest fit score and provide alternatives.
 

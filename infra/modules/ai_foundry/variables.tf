@@ -51,6 +51,12 @@ variable "agents_subnet_id" {
   default     = null
 }
 
+variable "enable_agents_capability_host" {
+  description = "When true, create the public Agents capability host required for project-level capability-host connections."
+  type        = bool
+  default     = false
+}
+
 variable "foundry_subnet_id" {
   description = "Optional subnet ID to inject the AI Foundry."
   type        = string

@@ -269,13 +269,13 @@ node scripts/test-all.ts --layer L6
 
 ### Interactive dev mode (dev-compose)
 
-For manual frontend testing, use the npm script or the `dev-compose.ts` script directly:
+For manual frontend testing, prefer the root Taskfile wrapper or call the script directly:
 
 ```bash
-# npm shorthand
-npm run dev -- deployment-strategies/typescript-openai-agent-sdk
+# Preferred from the repo root
+task strategy:dev -- deployment-strategies/typescript-openai-agent-sdk
 
-# Or directly
+# Advanced direct script usage
 node scripts/dev-compose.ts --strategy deployment-strategies/typescript-openai-agent-sdk
 ```
 

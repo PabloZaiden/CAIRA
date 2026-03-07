@@ -20,10 +20,12 @@ From the repository root, prefer the Taskfile wrappers:
 task strategy:generate
 task strategy:validate:pr
 task strategy:test:local
-task strategy:deploy:reference
-task strategy:deploy:strategy -- deployment-strategies/typescript-openai-agent-sdk
+task strategy:dev -- deployment-strategies/typescript-openai-agent-sdk
+task strategy:deploy -- deployment-strategies/typescript-openai-agent-sdk
 task strategy:test:deployed -- deployment-strategies/typescript-openai-agent-sdk
 ```
+
+Use `task strategy:deploy:reference` only when you are explicitly working on the shared baseline deployment or the generated `.env` synchronization flow.
 
 If you are iterating inside a specific component, direct `npm` or `dotnet` commands inside that component directory are still fine.
 

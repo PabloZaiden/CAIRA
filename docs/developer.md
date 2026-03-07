@@ -11,7 +11,7 @@ This guide is for contributors working on the CAIRA repository itself. If you wa
 
 ## Recommended contributor environment
 
-Use the repository devcontainer whenever possible. It is configured for the full CAIRA workflow: foundation Terraform validation, strategy-builder development, deployment-strategy generation, local compose testing, and Azure-backed validation.
+Use the repository devcontainer whenever possible. It is configured for the full CAIRA workflow: reference-architecture Terraform validation, strategy-builder development, deployment-strategy generation, local compose testing, and Azure-backed validation.
 
 If you prefer a local machine setup, install Task first and then run:
 
@@ -24,11 +24,11 @@ That command installs the repo-level tooling, strategy-builder prerequisites, an
 ## Repository layout
 
 ```text
-infra/architectures     Foundation reference architectures
-infra/modules           Reusable Terraform modules
-infra/testing           Terraform test helpers and durable pools
-strategy-builder/       App-layer components, generator, and validation tooling
-deployment-strategies/  Generated, committed end-to-end deployments
+infra/foundry_agentic_app  Default layered reference architecture
+infra/modules              Reusable Terraform modules
+infra/testing              Terraform test helpers and durable pools
+strategy-builder/          App-layer components, generator, and validation tooling
+deployment-strategies/     Generated, committed end-to-end deployments
 ```
 
 ## Common contributor workflows
@@ -57,17 +57,31 @@ task strategy:generate
 
 Use this after changing generator logic, app-layer components, or shared strategy templates.
 
-### Deploy the CAIRA foundation
+### Run one strategy locally with Docker Compose
 
 ```bash
-task strategy:deploy:reference
+task strategy:dev -- deployment-strategies/typescript-openai-agent-sdk
 ```
 
-### Deploy, validate, and destroy a generated deployment strategy
+### Run one strategy locally against Azure
+
+```bash
+task strategy:dev:azure -- deployment-strategies/typescript-foundry-agent-service
+```
+
+### Deploy one generated strategy to Azure
+
+```bash
+task strategy:deploy -- deployment-strategies/typescript-openai-agent-sdk
+```
+
+### Deploy, validate, and destroy one generated strategy
 
 ```bash
 task strategy:test:deployed -- deployment-strategies/typescript-openai-agent-sdk
 ```
+
+Use `task strategy:deploy:reference` only when you are explicitly working on the shared baseline deployment or the generated `.env` synchronization path.
 
 ## Validation model
 

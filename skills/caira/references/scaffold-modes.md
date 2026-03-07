@@ -6,7 +6,7 @@ Default to `reference` mode unless the user explicitly asks for a copied, self-c
 
 ## `reference` mode
 
-- Keep selected reference architecture files close to upstream.
+- Keep selected reference architecture files close to the published CAIRA source.
 - Convert local module paths to pinned git module references.
 - Pin to an explicit tag or commit for reproducibility.
 

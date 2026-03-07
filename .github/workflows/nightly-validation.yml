@@ -22,13 +22,13 @@ permissions:
 env:
   STRATEGY_FILTER: ${{ github.event_name == 'workflow_dispatch' && inputs.strategy || '*' }}
 
-  TF_VAR_fsp_resource_group_name: ${{ vars.TF_VAR_FSP_RESOURCE_GROUP_NAME }}
-  TF_VAR_fsp_vnet_name: ${{ vars.TF_VAR_FSP_VNET_NAME }}
-  TF_VAR_fsp_cosmosdb_account_name: ${{ vars.TF_VAR_FSP_COSMOSDB_ACCOUNT_NAME }}
-  TF_VAR_fsp_storage_account_name: ${{ vars.TF_VAR_FSP_STORAGE_ACCOUNT_NAME }}
-  TF_VAR_fsp_search_service_name: ${{ vars.TF_VAR_FSP_SEARCH_SERVICE_NAME }}
-  TF_VAR_fbp_resource_group_name: ${{ vars.TF_VAR_FBP_RESOURCE_GROUP_NAME }}
-  TF_VAR_fbp_vnet_name: ${{ vars.TF_VAR_FBP_VNET_NAME }}
+  TF_VAR_private_foundry_capability_hosts_pool_resource_group_name: ${{ vars.TF_VAR_PRIVATE_FOUNDRY_CAPABILITY_HOSTS_POOL_RESOURCE_GROUP_NAME }}
+  TF_VAR_private_foundry_capability_hosts_pool_vnet_name: ${{ vars.TF_VAR_PRIVATE_FOUNDRY_CAPABILITY_HOSTS_POOL_VNET_NAME }}
+  TF_VAR_private_foundry_capability_hosts_pool_cosmosdb_account_name: ${{ vars.TF_VAR_PRIVATE_FOUNDRY_CAPABILITY_HOSTS_POOL_COSMOSDB_ACCOUNT_NAME }}
+  TF_VAR_private_foundry_capability_hosts_pool_storage_account_name: ${{ vars.TF_VAR_PRIVATE_FOUNDRY_CAPABILITY_HOSTS_POOL_STORAGE_ACCOUNT_NAME }}
+  TF_VAR_private_foundry_capability_hosts_pool_search_service_name: ${{ vars.TF_VAR_PRIVATE_FOUNDRY_CAPABILITY_HOSTS_POOL_SEARCH_SERVICE_NAME }}
+  TF_VAR_private_foundry_pool_resource_group_name: ${{ vars.TF_VAR_PRIVATE_FOUNDRY_POOL_RESOURCE_GROUP_NAME }}
+  TF_VAR_private_foundry_pool_vnet_name: ${{ vars.TF_VAR_PRIVATE_FOUNDRY_POOL_VNET_NAME }}
 
 jobs:
   discover_strategies:

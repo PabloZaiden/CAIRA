@@ -329,8 +329,11 @@ describe('generateReadme', () => {
 
   it('includes Azure deployment command section', () => {
     const content = generateReadme(makeFoundryConfig());
-    expect(content).toContain('npm run deploy:strategy -- deployment-strategies/typescript-foundry-agent-service');
-    expect(content).toContain('Ensures CAIRA is deployed');
+    expect(content).toContain('task strategy:deploy -- deployment-strategies/typescript-foundry-agent-service');
+    expect(content).toContain(
+      'Deploys the layered CAIRA foundation (Foundry foundation + composable app-infra layers)'
+    );
+    expect(content).toContain('bootstrap app shells');
     expect(content).toContain('curl ifconfig.io');
     expect(content).toContain('managed identity auth');
     expect(content).toContain('HTTPS termination');

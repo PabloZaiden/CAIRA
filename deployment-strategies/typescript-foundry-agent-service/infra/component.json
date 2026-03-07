@@ -3,7 +3,7 @@
   "type": "iac",
   "variant": "azure-container-apps",
   "language": "typescript",
-  "description": "Terraform deployment for Azure Container Registry + Azure Container Apps sample runtime",
+  "description": "Terraform composition of the CAIRA Foundry foundation and composable Container Apps app-infra layers",
   "port": 1,
   "healthEndpoint": "/health",
   "requiredEnv": [],

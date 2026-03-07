@@ -1,6 +1,6 @@
 {
   "strategyName": "csharp-microsoft-agent-framework",
-  "derivedFromReferenceArchitecture": "foundry-agent-api-frontend",
+  "derivedFromReferenceArchitecture": "foundry_agentic_app",
   "flavor": {
     "language": "csharp",
     "agentVariant": "microsoft-agent-framework"

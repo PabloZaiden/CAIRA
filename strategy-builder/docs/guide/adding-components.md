@@ -251,7 +251,7 @@ components/iac/<compute-target>/
 
 ### 2. Reference CAIRA modules
 
-Reference the checked-in CAIRA foundation and module sources under `infra/architectures/` and `infra/modules/`. The application-layer IaC must map CAIRA foundation outputs (AI Foundry endpoint, resource group, shared networking, and similar inputs) to strategy-specific resource inputs.
+Reference the checked-in CAIRA macro reference-architecture and module sources under `infra/` and `infra/modules/`. Strategy IaC should stay a thin implementation wrapper over those shared infrastructure contracts instead of redefining the macro infrastructure separately.
 
 ### 3. Deployment strategy configs
 

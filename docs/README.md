@@ -1,12 +1,12 @@
 <!-- META
-name: CAIRA Documentation
+ name: CAIRA Documentation
 -->
 
 # CAIRA Documentation
 
-CAIRA documentation covers the whole product surface: shared Azure AI foundation infrastructure, reusable infrastructure modules, app-layer components, generated deployment strategies, and the workflows used to validate all of them together.
+CAIRA documentation covers the whole product surface: macro reference architectures, reusable infrastructure modules, app-layer components, generated deployment strategies, and the workflows used to validate all of them together.
 
-For most users, the primary CAIRA entrypoint is the installed CAIRA skill. The repository docs then become reference material the skill can inspect. The rest of this folder is mainly for contributors and maintainers working on CAIRA itself.
+For most users, the primary CAIRA entrypoint is the installed CAIRA skill. Install it with the quickstart in the repository root README, then treat these docs as reference material the skill can inspect. The rest of this folder is mainly for contributors and maintainers working on CAIRA itself.
 
 ## Start here
 
@@ -23,7 +23,7 @@ For most users, the primary CAIRA entrypoint is the installed CAIRA skill. The r
 
 CAIRA is organized around four connected layers:
 
-1. **Foundation reference architectures** in `infra/architectures/`
+1. **Reference architectures** as directories directly under `infra/` (for example `infra/foundry_agentic_app/`, which composes a Foundry foundation with composable application-platform and service layers)
 1. **Reusable infrastructure modules** in `infra/modules/`
 1. **Application and deployment-strategy source code** in `strategy-builder/`
 1. **Committed generated deployments** in `deployment-strategies/`
@@ -40,9 +40,12 @@ task setup
 task validate:pr
 task test
 task strategy:generate
-task strategy:deploy:reference
+task strategy:dev -- deployment-strategies/typescript-openai-agent-sdk
+task strategy:deploy -- deployment-strategies/typescript-openai-agent-sdk
 task strategy:test:deployed -- deployment-strategies/typescript-openai-agent-sdk
 ```
+
+Use `task strategy:deploy:reference` only when you are specifically working on the shared baseline deployment or the strategy `.env` generation flow.
 
 ## Additional areas
 

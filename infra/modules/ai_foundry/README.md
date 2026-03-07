@@ -240,6 +240,8 @@ When using agent subnet injection (`agents_subnet_id`), Azure creates a Containe
 
 | agents\_subnet\_id | Optional subnet ID to inject the AI Foundry Agents capability host. | `string` | `null` | no |
 
+| enable\_agents\_capability\_host | When true, create the public Agents capability host required for project-level capability-host connections. | `bool` | `false` | no |
+
 | foundry\_subnet\_id | Optional subnet ID to inject the AI Foundry. | `string` | `null` | no |
 
 | sku | The SKU for the AI Foundry resource. | `string` | `"S0"` | no |

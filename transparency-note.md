@@ -10,23 +10,23 @@ Microsoft’s Transparency Notes are part of a broader effort at Microsoft to pu
 
 ### Introduction
 
-CAIRA (Composable AI Reference Architecture) provides a modular, composable foundation for building Azure AI solutions. It combines repository-based reference assets (foundation infrastructure, application infrastructure, reusable components, and generated deployment strategies) with an installable CAIRA skill that helps coding agents inspect those assets and adapt them to a user's scenario. Outputs can include recommended designs, generated solution code and infrastructure, and provisioned resources in an Azure environment.
+CAIRA (Composable AI Reference Architecture) provides a modular, composable baseline for building Azure AI solutions. It combines repository-based reference assets (macro reference architectures, application infrastructure, reusable components, and generated deployment strategies) with an installable CAIRA skill that helps coding agents inspect those assets and adapt them to a user's scenario. Outputs can include recommended designs, generated solution code and infrastructure, and provisioned resources in an Azure environment.
 
 ### Key terms
 
-| Term                             | Definition                                                                                                                                                                                                                        |
-|----------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **CAIRA**                        | Composable AI Reference Architecture. A repository of reference architectures, reusable infrastructure modules, application-layer assets, generated deployment strategies, and guidance for Azure AI solutions.                   |
-| **Infrastructure as Code (IaC)** | The management of infrastructure (networks, virtual machines, load balancers, and connection topology) in a descriptive model, using the same versioning as source code. CAIRA uses Terraform for its infrastructure definitions. |
-| **Azure AI Foundry**             | A service that provides a comprehensive and collaborative environment for building, training, and deploying machine learning models and AI applications on Azure.                                                                 |
-| **Reference Architecture (RA)**  | A deployable CAIRA foundation design under `infra/architectures/` that serves as a starting point for supported Azure AI environments.                                                                                            |
-| **CAIRA skill**                  | An installable skill for coding agents that inspects CAIRA's repository assets at runtime and uses them as reference material for architecture selection, solution generation, and troubleshooting guidance.                      |
+| Term                             | Definition                                                                                                                                                                                                                         |
+|----------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **CAIRA**                        | Composable AI Reference Architecture. A repository of reference architectures, reusable infrastructure modules, application-layer assets, generated deployment strategies, and guidance for Azure AI solutions.                    |
+| **Infrastructure as Code (IaC)** | The management of infrastructure (networks, virtual machines, load balancers, and connection topology) in a descriptive model, using the same versioning as source code. CAIRA uses Terraform for its infrastructure definitions.  |
+| **Azure AI Foundry**             | A service that provides a comprehensive and collaborative environment for building, training, and deploying machine learning models and AI applications on Azure.                                                                  |
+| **Reference Architecture (RA)**  | A deployable CAIRA macro design under `infra/` (for example `infra/foundry_agentic_app/`) that combines Azure AI platform infrastructure with the baseline application-hosting infrastructure for supported Azure AI environments. |
+| **CAIRA skill**                  | An installable skill for coding agents that inspects CAIRA's repository assets at runtime and uses them as reference material for architecture selection, solution generation, and troubleshooting guidance.                       |
 
 ## Capabilities
 
 ### System behavior
 
-CAIRA's core functionality is providing pre-built, tested, and modular foundation assets for Azure AI solutions. It simplifies the process of selecting, adapting, and deploying Azure AI environments by combining reference architectures, reusable modules, application components, generated deployment strategies, and skill-guided discovery. The deployment behavior is deterministic based on the selected assets and user-provided configuration.
+CAIRA's core functionality is providing pre-built, tested, and modular reference assets for Azure AI solutions. It simplifies the process of selecting, adapting, and deploying Azure AI environments by combining macro reference architectures, reusable modules, application components, generated deployment strategies, and skill-guided discovery. The deployment behavior is deterministic based on the selected assets and user-provided configuration.
 
 The installable CAIRA skill enhances the user experience. The skill draws from the repository's documentation and best practices to provide step-by-step guidance, explain architectural choices based on the Azure Well-Architected Framework, and help troubleshoot deployment issues. This is not a general-purpose end-user chatbot; its purpose is scoped to helping builders discover, adapt, deploy, and maintain CAIRA-inspired solutions.
 

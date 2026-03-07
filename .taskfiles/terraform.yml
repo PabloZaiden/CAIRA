@@ -148,7 +148,7 @@ tasks:
     desc: Generate Terraform documentation
     cmds:
       - terraform-docs -c ./.github/configs/.terraform-docs.yml infra/modules
-      - terraform-docs -c ./.github/configs/.terraform-docs.yml infra/architectures
+      - terraform-docs -c ./.github/configs/.terraform-docs.yml infra/foundry_agentic_app
       - terraform-docs -c ./.github/configs/.terraform-docs.yml infra/testing
       - cmd: |
           python3 <<'PY'
@@ -265,8 +265,8 @@ tasks:
 
       eval "$export_azure_sub"
 
-      echo "Deploying Foundry Basic Private Pool..."
-      pushd infra/testing/infrastructure_pools/foundry_basic_private > /dev/null
+      echo "Deploying Private Foundry Pool..."
+      pushd infra/testing/infrastructure_pools/private_foundry_pool > /dev/null
 
       # if there is a terraform.tfstate file, skip init/apply
       if [[ -f "terraform.tfstate" ]]; then
@@ -278,8 +278,8 @@ tasks:
 
       popd > /dev/null
 
-      echo "Deploying Foundry Standard Private Pool..."
-      pushd infra/testing/infrastructure_pools/foundry_standard_private > /dev/null
+      echo "Deploying Private Foundry Capability Hosts Pool..."
+      pushd infra/testing/infrastructure_pools/private_foundry_capability_hosts_pool > /dev/null
 
       # if there is a terraform.tfstate file, skip init/apply
       if [[ -f "terraform.tfstate" ]]; then
@@ -296,13 +296,13 @@ tasks:
     cmd: |
       set -e
 
-      echo "Foundry Basic Private Pool outputs:"
-      pushd infra/testing/infrastructure_pools/foundry_basic_private > /dev/null
+      echo "Private Foundry Pool outputs:"
+      pushd infra/testing/infrastructure_pools/private_foundry_pool > /dev/null
       terraform output
       popd > /dev/null
 
-      echo "Foundry Standard Private Pool outputs:"
-      pushd infra/testing/infrastructure_pools/foundry_standard_private > /dev/null
+      echo "Private Foundry Capability Hosts Pool outputs:"
+      pushd infra/testing/infrastructure_pools/private_foundry_capability_hosts_pool > /dev/null
       terraform output
       popd > /dev/null
 
@@ -312,19 +312,19 @@ tasks:
     cmd: |
       set -e
 
-      # Durable Infrastructure Pools - Foundry Standard Private
-      pushd infra/testing/infrastructure_pools/foundry_standard_private > /dev/null
-      echo "export TF_VAR_fsp_resource_group_name=\"$(terraform output -raw resource_group_name)\""
-      echo "export TF_VAR_fsp_vnet_name=\"$(terraform output -json connection | jq -r '.virtual_network_name')\""
-      echo "export TF_VAR_fsp_cosmosdb_account_name=\"$(terraform output -raw cosmosdb_account_name)\""
-      echo "export TF_VAR_fsp_storage_account_name=\"$(terraform output -raw storage_account_name)\""
-      echo "export TF_VAR_fsp_search_service_name=\"$(terraform output -raw search_service_name)\""
+      # Durable Infrastructure Pools - Private Foundry Capability Hosts
+      pushd infra/testing/infrastructure_pools/private_foundry_capability_hosts_pool > /dev/null
+      echo "export TF_VAR_private_foundry_capability_hosts_pool_resource_group_name=\"$(terraform output -raw resource_group_name)\""
+      echo "export TF_VAR_private_foundry_capability_hosts_pool_vnet_name=\"$(terraform output -json connection | jq -r '.virtual_network_name')\""
+      echo "export TF_VAR_private_foundry_capability_hosts_pool_cosmosdb_account_name=\"$(terraform output -raw cosmosdb_account_name)\""
+      echo "export TF_VAR_private_foundry_capability_hosts_pool_storage_account_name=\"$(terraform output -raw storage_account_name)\""
+      echo "export TF_VAR_private_foundry_capability_hosts_pool_search_service_name=\"$(terraform output -raw search_service_name)\""
       popd > /dev/null
 
-      # Durable Infrastructure Pools - Foundry Basic Private (Pool 1)
-      pushd infra/testing/infrastructure_pools/foundry_basic_private > /dev/null
-      echo "export TF_VAR_fbp_resource_group_name=\"$(terraform output -raw resource_group_name)\""
-      echo "export TF_VAR_fbp_vnet_name=\"$(terraform output -json connection | jq -r '.virtual_network_name')\""
+      # Durable Infrastructure Pools - Private Foundry
+      pushd infra/testing/infrastructure_pools/private_foundry_pool > /dev/null
+      echo "export TF_VAR_private_foundry_pool_resource_group_name=\"$(terraform output -raw resource_group_name)\""
+      echo "export TF_VAR_private_foundry_pool_vnet_name=\"$(terraform output -json connection | jq -r '.virtual_network_name')\""
       popd > /dev/null
 
   # * Run Acceptance Test

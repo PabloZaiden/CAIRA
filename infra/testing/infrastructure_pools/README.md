@@ -4,8 +4,8 @@ This directory contains Terraform modules that provision durable supporting infr
 
 ## Available pools
 
-- `foundry_basic_private/` — shared private networking for private basic profiles
-- `foundry_standard_private/` — shared private networking plus capability-host resources for private standard profiles
+- `private_foundry_pool/` — shared private networking and DNS for private Foundry validation
+- `private_foundry_capability_hosts_pool/` — the same private foundation plus reusable capability-host resources for agent-service validation
 
 ## How the pools are used
 
@@ -25,7 +25,7 @@ task tf:test:pools:outputs:env
 You can also manage a pool directly with Terraform, for example:
 
 ```bash
-cd infra/testing/infrastructure_pools/foundry_basic_private
+cd infra/testing/infrastructure_pools/private_foundry_pool
 terraform init
 terraform apply
 ```

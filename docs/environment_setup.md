@@ -7,7 +7,7 @@
 
 # Environment Setup
 
-For most users, the primary CAIRA entrypoint is the installed CAIRA skill. Install the skill in your coding agent and let the agent inspect this repository as reference material for your scenario. Use the rest of this page only if you are contributing to CAIRA itself or validating upstream assets locally.
+For most users, the primary CAIRA entrypoint is the installed CAIRA skill. Install it with the quickstart in the repository root README, then let the agent inspect this repository as reference material for your scenario. Use the rest of this page only if you are contributing to CAIRA itself or validating CAIRA locally.
 
 ## Contributor path: devcontainer
 
@@ -50,13 +50,21 @@ eval "$(task tf:env:setup)"
 
 ```bash
 task validate:pr
-task strategy:deploy:reference
-task strategy:deploy:strategy -- deployment-strategies/typescript-openai-agent-sdk
+task strategy:dev -- deployment-strategies/typescript-openai-agent-sdk
+task strategy:deploy -- deployment-strategies/typescript-openai-agent-sdk
 ```
+
+If you want your local Docker Compose stack to talk to real Azure services instead of mocks, use:
+
+```bash
+task strategy:dev:azure -- deployment-strategies/typescript-foundry-agent-service
+```
+
+Use `task strategy:deploy:reference` only when you are specifically validating the shared baseline deployment or regenerating strategy `.env` files from that baseline.
 
 ## Notes
 
-- Clone the repository only when contributing to CAIRA itself or validating upstream assets directly.
-- The repository already contains the CAIRA foundation reference architecture and modules. No extra CAIRA checkout is required beyond the contributor clone you are already using.
+- Clone the repository only when contributing to CAIRA itself or validating CAIRA directly.
+- The repository already contains the CAIRA reference architectures and reusable modules. No extra CAIRA checkout is required beyond the contributor clone you are already using.
 - Docker is required for local strategy compose workflows and for deployed strategy image builds.
 - Nightly-style validation depends on Azure access plus the durable infrastructure pool variables configured in GitHub.

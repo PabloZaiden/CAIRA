@@ -70,15 +70,16 @@ This deployment strategy includes Terraform IaC under `infra/` and can be deploy
 repository root with:
 
 ```bash
-npm run deploy:strategy -- deployment-strategies/csharp-microsoft-agent-framework
+task strategy:deploy -- deployment-strategies/csharp-microsoft-agent-framework
 ```
 
 The deploy command:
 
-- Ensures CAIRA is deployed (or reused) and writes strategy `.env` values automatically
+- Deploys the layered CAIRA foundation (Foundry foundation + composable app-infra layers) and writes strategy `.env` values automatically
 - Detects your current IP via `curl ifconfig.io`
 - Restricts frontend ingress to that single CIDR
-- Creates ACR + Container Apps infra with Terraform
+- Creates the layered Azure AI + Container Registry + Container Apps infrastructure with Terraform
+- Rolls out bootstrap app shells first, then updates them to the strategy images
 - Uses managed identity auth for Container Apps image pulls from ACR
 - Creates required role assignments (AcrPull + Azure AI roles for the agent)
 - Exposes frontend via HTTPS termination (container still serves HTTP internally)
@@ -87,7 +88,7 @@ The deploy command:
 To tear down:
 
 ```bash
-npm run deploy:strategy:destroy -- deployment-strategies/csharp-microsoft-agent-framework
+task strategy:destroy -- deployment-strategies/csharp-microsoft-agent-framework
 ```
 
 ## Services

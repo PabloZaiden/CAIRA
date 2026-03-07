@@ -154,7 +154,7 @@ function makeStreamedRunResult(
     });
   }
 
-  // Optionally emit a bare tool_output event (legacy, for backward compat tests)
+  // Optionally emit a bare tool_output event for focused tool_output coverage.
   if (options?.emitToolOutput) {
     events.push({
       type: 'run_item_stream_event',

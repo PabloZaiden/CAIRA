@@ -7,7 +7,7 @@
 
 # CAIRA Security Posture
 
-CAIRA provides a secure baseline for experimenting with and validating Azure AI solutions across the full stack: shared foundation infrastructure, application-layer infrastructure, and application components. The repository is designed to accelerate delivery while keeping security-relevant defaults explicit and easy to extend.
+CAIRA provides a secure baseline for experimenting with and validating Azure AI solutions across the full stack: macro reference-architecture infrastructure, application-layer infrastructure, and application components. The repository is designed to accelerate delivery while keeping security-relevant defaults explicit and easy to extend.
 
 ## Security principles
 
@@ -21,7 +21,7 @@ CAIRA provides a secure baseline for experimenting with and validating Azure AI 
 - RBAC-aware Azure resource deployment patterns
 - TLS-based service communication
 - optional private networking for Azure AI workloads
-- foundation support for observability and service composition
+- macro reference-architecture support for observability and service composition
 - secret scanning and infrastructure security checks in CI
 
 ## What teams should still add for production
@@ -36,4 +36,4 @@ CAIRA is a starting point, not a finished production landing zone. Production de
 
 ## Practical guidance
 
-Use CAIRA to validate architecture choices quickly, then harden the resulting foundation and deployment strategy for the target workload. The repository structure is intended to make that progression straightforward without separating infrastructure concerns from the application and deployment concerns they support.
+Use CAIRA to validate architecture choices quickly, then harden the resulting reference architecture and deployment strategy for the target workload. The repository structure is intended to make that progression straightforward without separating infrastructure concerns from the application and deployment concerns they support.

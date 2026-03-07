@@ -110,4 +110,15 @@
   "github.copilot.chat.codeGeneration.useInstructionFiles": true,
   "github.copilot.chat.agent.thinkingTool": true,
   "github.copilot.chat.codesearch.enabled": true,
+  "github.copilot.chat.commitMessageGeneration.instructions": [
+    {
+      "text": "Generate commit messages using the Conventional Commits format: <type>(<scope>): <description>."
+    },
+    {
+      "text": "Use one of these types when applicable: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert."
+    },
+    {
+      "text": "Use the imperative mood, keep the subject concise, and include a scope when it helps explain the change."
+    }
+  ],
 }

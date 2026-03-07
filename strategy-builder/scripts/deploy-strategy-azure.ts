@@ -2,16 +2,15 @@
  * Deploy one generated deployment strategy to Azure Container Apps with Terraform + ACR.
  *
  * Flow:
- *   1) Ensure CAIRA is deployed/reused and write strategy .env
- *   2) Detect current public IP via `curl ifconfig.io`
- *   3) Terraform apply (shared infra only) to create RG/ACA env/ACR
- *   4) Terraform apply bootstrap apps with public image to create system identities + RBAC
- *   5) Build and push strategy images to ACR
- *   6) Terraform apply with concrete image tags (updates bootstrap apps)
+ *   1) Detect current public IP via `curl ifconfig.io`
+ *   2) Terraform apply phase 1 to deploy the full macro reference-architecture infra with bootstrap app shells
+ *   3) Derive strategy .env values from the Terraform outputs
+ *   4) Build and push strategy images to ACR
+ *   5) Terraform apply phase 2 with the real images and app env
  *
  * Usage:
- *   node scripts/deploy-strategy-azure.ts --strategy deployment-strategies/typescript-foundry-agent-service
- *   node scripts/deploy-strategy-azure.ts --strategy deployment-strategies/typescript-foundry-agent-service --destroy
+ *   task strategy:deploy -- deployment-strategies/typescript-foundry-agent-service
+ *   task strategy:destroy -- deployment-strategies/typescript-foundry-agent-service
  */
 
 import { execFile, spawn } from 'node:child_process';
@@ -19,22 +18,25 @@ import { readFileSync, existsSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import { basename, resolve } from 'node:path';
 import { promisify } from 'node:util';
-import { ensureDeploy } from './deploy-reference-architecture.ts';
+import {
+  deriveFoundryEndpoint,
+  deriveOpenAIEndpoint,
+  ensureRbac,
+  writeEnvFiles,
+  type TerraformOutputs
+} from './deploy-reference-architecture.ts';
 import { resolveStrategyPath } from './lib/paths.ts';
 
 const execFileAsync = promisify(execFile);
 const REPO_ROOT = resolve(import.meta.dirname ?? '.', '..');
 const REQUIRED_RESOURCE_PROVIDERS = ['Microsoft.App'] as const;
 const ACA_TARGET_PLATFORM = 'linux/amd64';
-const BOOTSTRAP_IMAGE = 'mcr.microsoft.com/k8se/quickstart:latest';
 
 interface CliOptions {
   strategy: string | undefined;
   location: string;
   allowedCidr: string | undefined;
   projectName: string | undefined;
-  aiResourceId: string | undefined;
-  forceDeploy: boolean;
   destroy: boolean;
   tag: string | undefined;
 }
@@ -54,8 +56,7 @@ interface DeployVars {
   project_name: string;
   location: string;
   allowed_cidr: string;
-  ai_resource_id: string;
-  deploy_apps: boolean;
+  enable_telemetry: boolean;
   enable_registry_auth: boolean;
   agent_image: string;
   api_image: string;
@@ -80,26 +81,28 @@ function printUsage(): void {
   process.stdout.write(
     `
 Deploy generated sample to Azure Container Apps (Terraform + ACR)
-Automatically ensures CAIRA deployment and writes strategy .env values first.
 Automatically registers required Azure resource providers (for example Microsoft.App).
 
 Usage:
-  node scripts/deploy-strategy-azure.ts --strategy <path> [options]
+  task strategy:deploy -- <path>
+  task strategy:destroy -- <path>
 
 Options:
   --strategy <path>       Path to deployment strategy directory (required)
   --location <region>     Azure location (default: swedencentral)
   --name <project-name>   Resource naming prefix (default: strategy directory name)
-  --force-deploy          Force CAIRA terraform apply before writing strategy .env
-  --ai-resource-id <id>   Azure AI/Cognitive Services resource ID (optional auto-detected)
   --allowed-cidr <cidr>   Ingress allowlist CIDR (default: detected from curl ifconfig.io)
   --tag <tag>             Docker image tag (default: timestamp)
   --destroy               Destroy deployed strategy resources from Terraform state
   --help, -h              Show help
 
 Examples:
-  npm run deploy:strategy -- deployment-strategies/typescript-foundry-agent-service
-  npm run deploy:strategy:destroy -- deployment-strategies/typescript-foundry-agent-service
+  task strategy:deploy -- deployment-strategies/typescript-foundry-agent-service
+  task strategy:destroy -- deployment-strategies/typescript-foundry-agent-service
+
+Advanced direct script usage:
+  node scripts/deploy-strategy-azure.ts --strategy deployment-strategies/typescript-foundry-agent-service
+  node scripts/deploy-strategy-azure.ts --destroy --strategy deployment-strategies/typescript-foundry-agent-service
 `.trimStart()
   );
 }
@@ -110,8 +113,6 @@ function parseArgs(args: string[]): CliOptions | null {
     location: 'swedencentral',
     allowedCidr: undefined,
     projectName: undefined,
-    aiResourceId: undefined,
-    forceDeploy: false,
     destroy: false,
     tag: undefined
   };
@@ -130,12 +131,6 @@ function parseArgs(args: string[]): CliOptions | null {
         break;
       case '--name':
         options.projectName = args[++i];
-        break;
-      case '--force-deploy':
-        options.forceDeploy = true;
-        break;
-      case '--ai-resource-id':
-        options.aiResourceId = args[++i];
         break;
       case '--tag':
         options.tag = args[++i];
@@ -336,49 +331,20 @@ async function detectCurrentCidr(override: string | undefined): Promise<string> 
   return ip.includes(':') ? `${ip}/128` : `${ip}/32`;
 }
 
-function extractAiResourceName(agentEnv: Record<string, string>): string | null {
-  const endpoint = agentEnv['AZURE_AI_PROJECT_ENDPOINT'] ?? agentEnv['AZURE_OPENAI_ENDPOINT'];
-  if (!endpoint) return null;
-
-  try {
-    const hostname = new URL(endpoint).hostname;
-    const name = hostname.split('.')[0]?.trim() ?? '';
-    return name.length > 0 ? name : null;
-  } catch {
-    return null;
-  }
-}
-
-async function resolveAiResourceId(agentEnv: Record<string, string>): Promise<string | null> {
-  const resourceName = extractAiResourceName(agentEnv);
-  if (!resourceName) return null;
-
-  const raw = await runCapture(
-    'az',
-    [
-      'resource',
-      'list',
-      '--name',
-      resourceName,
-      '--resource-type',
-      'Microsoft.CognitiveServices/accounts',
-      '--query',
-      '[0].id',
-      '-o',
-      'tsv'
-    ],
-    { timeoutMs: 30_000 }
-  );
-  const id = raw.trim();
-  return id.length > 0 ? id : null;
-}
-
 async function readTerraformOutputs(infraDir: string): Promise<TerraformOutputMap> {
   const raw = await runCapture('terraform', ['output', '-json'], {
     cwd: infraDir,
     timeoutMs: 30_000
   });
   return JSON.parse(raw) as TerraformOutputMap;
+}
+
+function toReferenceOutputs(outputs: TerraformOutputMap): TerraformOutputs {
+  return {
+    ai_foundry_name: requireOutputString(outputs, 'ai_foundry_name'),
+    ai_foundry_default_project_name: requireOutputString(outputs, 'ai_foundry_default_project_name'),
+    ai_foundry_id: requireOutputString(outputs, 'ai_foundry_id')
+  };
 }
 
 async function main(): Promise<void> {
@@ -402,20 +368,12 @@ async function main(): Promise<void> {
     throw new Error(`Sample directory not found: ${sampleDir}`);
   }
   if (!existsSync(infraDir)) {
-    throw new Error(`Sample infra directory not found: ${infraDir}. Run npm run generate first.`);
+    throw new Error(`Sample infra directory not found: ${infraDir}. Run task strategy:generate first.`);
   }
 
   const projectName = parsed.projectName?.trim() || sampleName;
   const tag = parsed.tag?.trim() || generateDefaultTag();
 
-  if (!parsed.destroy) {
-    log('Ensuring CAIRA deployment and strategy .env...');
-    await ensureDeploy({ strategy: sampleDir, force: parsed.forceDeploy });
-    log('Ensuring required Azure resource providers are registered...');
-    await ensureRequiredProvidersRegistered();
-  }
-
-  const envValues = existsSync(envPath) ? parseDotEnv(readFileSync(envPath, 'utf-8')) : {};
   const agentManifest = readComponentManifest(sampleDir, 'agent');
   const apiManifest = readComponentManifest(sampleDir, 'api');
   const frontendManifest = readComponentManifest(sampleDir, 'frontend');
@@ -424,23 +382,9 @@ async function main(): Promise<void> {
   const blockedApi = new Set(['PORT', 'HOST', 'SKIP_AUTH', 'IDENTITY_ENDPOINT', 'IMDS_ENDPOINT', 'AGENT_SERVICE_URL']);
   const blockedFrontend = new Set(['PORT', 'API_BASE_URL']);
 
-  const agentEnv = pickComponentEnv(envValues, agentManifest, blockedAgent);
-  const apiEnv = pickComponentEnv(envValues, apiManifest, blockedApi);
-  const frontendEnv = pickComponentEnv(envValues, frontendManifest, blockedFrontend);
-
   if (!parsed.destroy) {
-    ensureRequiredEnv('agent', agentManifest, agentEnv, new Set());
-    ensureRequiredEnv('api', apiManifest, apiEnv, new Set(['AGENT_SERVICE_URL']));
-    ensureRequiredEnv('frontend', frontendManifest, frontendEnv, new Set(['API_BASE_URL']));
-  }
-
-  let aiResourceId = parsed.aiResourceId?.trim() ?? '';
-  if (!parsed.destroy && aiResourceId.length === 0) {
-    log('Resolving Azure AI resource ID from agent endpoint...');
-    aiResourceId = (await resolveAiResourceId(agentEnv)) ?? '';
-  }
-  if (!parsed.destroy && aiResourceId.length === 0) {
-    throw new Error('Could not resolve Azure AI resource ID automatically. Pass --ai-resource-id <resourceId>.');
+    log('Ensuring required Azure resource providers are registered...');
+    await ensureRequiredProvidersRegistered();
   }
 
   const allowedCidr = parsed.destroy
@@ -453,15 +397,14 @@ async function main(): Promise<void> {
     project_name: projectName,
     location: parsed.location,
     allowed_cidr: allowedCidr,
-    ai_resource_id: aiResourceId,
-    deploy_apps: false,
-    enable_registry_auth: true,
+    enable_telemetry: true,
+    enable_registry_auth: false,
     agent_image: '',
     api_image: '',
     frontend_image: '',
-    agent_env: agentEnv,
-    api_env: apiEnv,
-    frontend_env: frontendEnv,
+    agent_env: {},
+    api_env: {},
+    frontend_env: {},
     tags: {
       sample: sampleName,
       managed_by: 'deploy-strategy-azure.ts'
@@ -482,10 +425,27 @@ async function main(): Promise<void> {
     return;
   }
 
-  log('Terraform apply phase 1 (shared infra + ACR)...');
+  log('Terraform apply phase 1 (macro reference architecture infra + bootstrap app shells)...');
   await runStream('terraform', ['apply', '-auto-approve', '-input=false', '-var-file', tfVarsPath], { cwd: infraDir });
 
   const phase1Outputs = await readTerraformOutputs(infraDir);
+  const referenceOutputs = toReferenceOutputs(phase1Outputs);
+  const foundryEndpoint = deriveFoundryEndpoint(referenceOutputs);
+  const openaiEndpoint = deriveOpenAIEndpoint(referenceOutputs);
+  log(`Foundry endpoint: ${foundryEndpoint}`);
+  log(`OpenAI endpoint:  ${openaiEndpoint}`);
+  await writeEnvFiles(referenceOutputs, sampleDir);
+  await ensureRbac(referenceOutputs.ai_foundry_id);
+
+  const envValues = existsSync(envPath) ? parseDotEnv(readFileSync(envPath, 'utf-8')) : {};
+  const agentEnv = pickComponentEnv(envValues, agentManifest, blockedAgent);
+  const apiEnv = pickComponentEnv(envValues, apiManifest, blockedApi);
+  const frontendEnv = pickComponentEnv(envValues, frontendManifest, blockedFrontend);
+
+  ensureRequiredEnv('agent', agentManifest, agentEnv, new Set());
+  ensureRequiredEnv('api', apiManifest, apiEnv, new Set(['AGENT_SERVICE_URL']));
+  ensureRequiredEnv('frontend', frontendManifest, frontendEnv, new Set(['API_BASE_URL']));
+
   const acrName = requireOutputString(phase1Outputs, 'acr_name');
   const loginServer = requireOutputString(phase1Outputs, 'acr_login_server');
 
@@ -493,19 +453,6 @@ async function main(): Promise<void> {
   const agentImage = `${imagePrefix}/agent:${tag}`;
   const apiImage = `${imagePrefix}/api:${tag}`;
   const frontendImage = `${imagePrefix}/frontend:${tag}`;
-
-  const bootstrapVars: DeployVars = {
-    ...baseVars,
-    deploy_apps: true,
-    enable_registry_auth: false,
-    agent_image: BOOTSTRAP_IMAGE,
-    api_image: BOOTSTRAP_IMAGE,
-    frontend_image: BOOTSTRAP_IMAGE
-  };
-  await writeFile(tfVarsPath, JSON.stringify(bootstrapVars, null, 2));
-
-  log('Terraform apply phase 2 (bootstrap apps for identity/RBAC setup)...');
-  await runStream('terraform', ['apply', '-auto-approve', '-input=false', '-var-file', tfVarsPath], { cwd: infraDir });
 
   log('Waiting 60s for RBAC propagation before rolling out private images...');
   await sleep(60_000);
@@ -530,15 +477,17 @@ async function main(): Promise<void> {
 
   const finalVars: DeployVars = {
     ...baseVars,
-    deploy_apps: true,
     enable_registry_auth: true,
     agent_image: agentImage,
     api_image: apiImage,
-    frontend_image: frontendImage
+    frontend_image: frontendImage,
+    agent_env: agentEnv,
+    api_env: apiEnv,
+    frontend_env: frontendEnv
   };
   await writeFile(tfVarsPath, JSON.stringify(finalVars, null, 2));
 
-  log('Terraform apply phase 3 (container apps with pushed images)...');
+  log('Terraform apply phase 2 (container apps with pushed images)...');
   await runStream('terraform', ['apply', '-auto-approve', '-input=false', '-var-file', tfVarsPath], { cwd: infraDir });
 
   const finalOutputs = await readTerraformOutputs(infraDir);

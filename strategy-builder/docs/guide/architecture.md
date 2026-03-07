@@ -142,23 +142,23 @@ The API container **parses** SSE events from the agent container to detect `acti
 | **Agent container** | Multi-agent orchestration (captain + agent-tools for OpenAI, triage + connected agents for Foundry; 3 specialists with resolution tools), manages conversations, calls Azure AI Foundry, streams responses + `activity.resolved` / `tool.called` / `tool.done` events | Yes -- each variant uses a different SDK   |
 | **API container**   | Business operations layer: creates conversations, sends synthetic first messages, **parses SSE stream** to capture resolution outcomes, proxies chat, retry                                                                                                           | No -- only knows the agent API contract    |
 | **Frontend**        | Fastify BFF: serves React SPA with activity picker + chat UI + outcome display, proxies `/api/*` to API, handles `activity.resolved` events                                                                                                                           | No -- only knows the business API contract |
-| **IaC**             | Terraform for Azure Container Apps, composed from CAIRA foundation inputs and reusable infrastructure modules                                                                                                                                                         | No -- deploys any combination              |
+| **IaC**             | Terraform composition of the Foundry foundation plus composable Container Apps app-infra layers, backed by reusable infrastructure modules                                                                                                                            | No -- deploys any combination              |
 
 ## Technology stack
 
-| Layer              | Technology             | Version            | Notes                                                             |
-|--------------------|------------------------|--------------------|-------------------------------------------------------------------|
-| Runtime            | Node.js                | 24+                | Native TypeScript strip-types (no build step)                     |
-| Language           | TypeScript             | 5.8                | Strict mode, `verbatimModuleSyntax`, `exactOptionalPropertyTypes` |
-| Module system      | ESM                    | --                 | `"type": "module"` in all `package.json` files                    |
-| HTTP framework     | Fastify                | 5.x                | Agent, API, and frontend (BFF) containers                         |
-| Frontend framework | React                  | 19                 | With Vite 6 bundler                                               |
-| Frontend build     | Vite                   | 6.x                | Dev server + production build via esbuild                         |
-| Test framework     | Vitest                 | 3.x                | All projects, with jsdom for frontend component tests             |
-| Contracts          | OpenAPI                | 3.1.0              | Validated with Redocly CLI                                        |
-| Auth               | DefaultAzureCredential | @azure/identity v4 | Entra ID tokens, no API keys                                      |
-| Container          | Docker                 | Multi-stage builds | Node 24 alpine for all containers                                 |
-| IaC                | Terraform              | Latest             | References `infra/architectures/` and `infra/modules/` inputs     |
+| Layer              | Technology             | Version            | Notes                                                                                                 |
+|--------------------|------------------------|--------------------|-------------------------------------------------------------------------------------------------------|
+| Runtime            | Node.js                | 24+                | Native TypeScript strip-types (no build step)                                                         |
+| Language           | TypeScript             | 5.8                | Strict mode, `verbatimModuleSyntax`, `exactOptionalPropertyTypes`                                     |
+| Module system      | ESM                    | --                 | `"type": "module"` in all `package.json` files                                                        |
+| HTTP framework     | Fastify                | 5.x                | Agent, API, and frontend (BFF) containers                                                             |
+| Frontend framework | React                  | 19                 | With Vite 6 bundler                                                                                   |
+| Frontend build     | Vite                   | 6.x                | Dev server + production build via esbuild                                                             |
+| Test framework     | Vitest                 | 3.x                | All projects, with jsdom for frontend component tests                                                 |
+| Contracts          | OpenAPI                | 3.1.0              | Validated with Redocly CLI                                                                            |
+| Auth               | DefaultAzureCredential | @azure/identity v4 | Entra ID tokens, no API keys                                                                          |
+| Container          | Docker                 | Multi-stage builds | Node 24 alpine for all containers                                                                     |
+| IaC                | Terraform              | Latest             | References macro reference architecture directories under `infra/` and shared `infra/modules/` inputs |
 
 ## TypeScript configuration
 

@@ -24,7 +24,7 @@ If you want to use CAIRA in your own project, the primary entrypoint is the CAIR
 ## Using CAIRA vs contributing to CAIRA
 
 - **Use CAIRA through the skill** when you want a coding agent to inspect CAIRA and build something tailored to your own scenario.
-- **Use the repository contribution workflow** when you want to change CAIRA's reference assets, docs, automation, or generated outputs upstream.
+- **Use the repository contribution workflow** when you want to change CAIRA's reference assets, docs, automation, or generated outputs in this repository.
 
 ## Issue States
 
