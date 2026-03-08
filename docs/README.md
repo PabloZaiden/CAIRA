@@ -12,7 +12,8 @@ For most users, the primary CAIRA entrypoint is the installed CAIRA skill. Insta
 
 - Use the CAIRA skill defined in `skills/caira/SKILL.md` when you want CAIRA guidance for your own solution.
 - [Environment Setup](environment_setup.md) for contributors validating or extending CAIRA itself.
-- [Developer Guide](developer.md) for contributor workflows.
+- [Developer Guide](developer.md) for scenario-based contributor workflows,
+  task expectations, and GitHub Actions mapping.
 - [Troubleshooting](troubleshooting.md) for skill-guided and repository-based troubleshooting.
 - [Pull Request Guide](contributing/pull_request_guide.md) for contributors opening PRs.
 - [Development Workflow](contributing/development_workflow.md) for contributors changing CAIRA itself.
@@ -43,7 +44,12 @@ task strategy:generate
 task strategy:dev -- deployment-strategies/typescript-openai-agent-sdk
 task strategy:deploy -- deployment-strategies/typescript-openai-agent-sdk
 task strategy:test:deployed -- deployment-strategies/typescript-openai-agent-sdk
+task strategy:test:deployed -- --test-profile public deployment-strategies/typescript-openai-agent-sdk
 ```
+
+Private deployed profiles create the temporary jumpbox, keep the frontend on
+VNet-scope ingress inside the internal Container Apps environment, and add the
+private DNS records needed for VNet-only health checks and E2E access.
 
 Use `task strategy:deploy:reference` only when you are specifically working on the shared baseline deployment or the strategy `.env` generation flow.
 

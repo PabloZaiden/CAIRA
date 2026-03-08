@@ -63,6 +63,16 @@ output "container_app_environment_name" {
   value       = module.container_apps_environment.name
 }
 
+output "container_app_environment_default_domain" {
+  description = "The default DNS domain assigned to the Azure Container Apps environment."
+  value       = module.container_apps_environment.default_domain
+}
+
+output "container_app_environment_static_ip_address" {
+  description = "The static IP address assigned to the Azure Container Apps environment."
+  value       = module.container_apps_environment.static_ip_address
+}
+
 output "agent_internal_fqdn" {
   description = "Internal FQDN for the agent container app."
   value       = module.agent_app.fqdn

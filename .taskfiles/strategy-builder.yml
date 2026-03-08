@@ -82,7 +82,7 @@ tasks:
       - sh: test -n "{{.CLI_ARGS}}"
         msg: "Provide a deployment strategy path, for example: task strategy:test:deployed -- deployment-strategies/typescript-openai-agent-sdk"
     cmds:
-      - node scripts/test-deployed-strategy.ts --strategy {{.CLI_ARGS}}
+      - node scripts/test-deployed-strategy.ts {{.CLI_ARGS}}
     dir: "{{.ROOT_DIR}}/strategy-builder"
 
   deploy:reference:
@@ -103,7 +103,7 @@ tasks:
       - sh: test -n "{{.CLI_ARGS}}"
         msg: "Provide a deployment strategy path, for example: task strategy:deploy -- deployment-strategies/typescript-openai-agent-sdk"
     cmds:
-      - node scripts/deploy-strategy-azure.ts --strategy {{.CLI_ARGS}}
+      - node scripts/deploy-strategy-azure.ts {{.CLI_ARGS}}
     dir: "{{.ROOT_DIR}}/strategy-builder"
 
   destroy:
@@ -114,7 +114,7 @@ tasks:
       - sh: test -n "{{.CLI_ARGS}}"
         msg: "Provide a deployment strategy path, for example: task strategy:destroy -- deployment-strategies/typescript-openai-agent-sdk"
     cmds:
-      - node scripts/deploy-strategy-azure.ts --destroy --strategy {{.CLI_ARGS}}
+      - node scripts/deploy-strategy-azure.ts --destroy {{.CLI_ARGS}}
     dir: "{{.ROOT_DIR}}/strategy-builder"
 
   deploy:strategy:

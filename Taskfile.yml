@@ -182,7 +182,7 @@ tasks:
     cmds:
       - task: validate:pr
       - task: tf:test:acc:all
-      - cmd: task strategy:test:deployed -- {{.CLI_ARGS}}
+      - cmd: task strategy:test:deployed -- --test-profile public,private,private-capability-host {{.CLI_ARGS}}
 
   clean:
     desc: Clean up files

@@ -51,6 +51,12 @@ variable "agents_subnet_id" {
   default     = null
 }
 
+variable "enable_agents_vnet_injection" {
+  description = "When true, use agents_subnet_id for Agents network injection instead of creating a public capability host."
+  type        = bool
+  default     = false
+}
+
 variable "enable_agents_capability_host" {
   description = "When true, create the public Agents capability host required for project-level capability-host connections."
   type        = bool

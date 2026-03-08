@@ -78,7 +78,7 @@ To deploy AI Foundry in private mode and inject the Agents capability into an ex
 - `public_network_access = "Disabled"`
 - `agent_network_injection_subnet_id = "/subscriptions/<subId>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>/subnets/<subnet>"`
 
-When using private endpoints for connected services (Cosmos DB, Storage, AI Search), provide their standard endpoints; private DNS will resolve to private IPs inside your VNet.
+When using private endpoints for connected services (Cosmos DB, Storage, AI Search), provide their standard endpoints; private DNS will resolve to private IPs inside your VNet. Set `enable_agents_vnet_injection = true` together with `agents_subnet_id` when the Agents capability host should stay inside that VNet instead of using the public capability-host resource.
 
 ### Minimal example
 
@@ -241,6 +241,8 @@ When using agent subnet injection (`agents_subnet_id`), Azure creates a Containe
 | agents\_subnet\_id | Optional subnet ID to inject the AI Foundry Agents capability host. | `string` | `null` | no |
 
 | enable\_agents\_capability\_host | When true, create the public Agents capability host required for project-level capability-host connections. | `bool` | `false` | no |
+
+| enable\_agents\_vnet\_injection | When true, use agents\_subnet\_id for Agents network injection instead of creating a public capability host. | `bool` | `false` | no |
 
 | foundry\_subnet\_id | Optional subnet ID to inject the AI Foundry. | `string` | `null` | no |
 

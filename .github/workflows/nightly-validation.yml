@@ -153,4 +153,4 @@ jobs:
         run: task bootstrap
 
       - name: Deploy, validate, and destroy strategy
-        run: task strategy:test:deployed -- ${{ matrix.strategy }}
+        run: task strategy:test:deployed -- --test-profile public,private,private-capability-host ${{ matrix.strategy }}

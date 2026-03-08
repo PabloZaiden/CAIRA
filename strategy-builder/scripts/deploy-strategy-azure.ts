@@ -15,7 +15,7 @@
 
 import { execFile, spawn } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
-import { writeFile } from 'node:fs/promises';
+import { rm, writeFile } from 'node:fs/promises';
 import { basename, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import {
@@ -25,11 +25,22 @@ import {
   writeEnvFiles,
   type TerraformOutputs
 } from './deploy-reference-architecture.ts';
+import {
+  buildTestProfileTerraformVars,
+  derivePrivateTestOverlayNames,
+  deriveProfileProjectName,
+  deriveProfileWorkspace,
+  isDeployedTestProfile,
+  usesCapabilityHost,
+  usesPrivateNetworking,
+  type DeployedTestProfile
+} from './lib/test-profiles.ts';
 import { resolveStrategyPath } from './lib/paths.ts';
 
 const execFileAsync = promisify(execFile);
 const REPO_ROOT = resolve(import.meta.dirname ?? '.', '..');
-const REQUIRED_RESOURCE_PROVIDERS = ['Microsoft.App'] as const;
+const BASE_REQUIRED_RESOURCE_PROVIDERS = ['Microsoft.App'] as const;
+const PRIVATE_REQUIRED_RESOURCE_PROVIDERS = ['Microsoft.Network', 'Microsoft.Compute'] as const;
 const ACA_TARGET_PLATFORM = 'linux/amd64';
 
 interface CliOptions {
@@ -39,6 +50,10 @@ interface CliOptions {
   projectName: string | undefined;
   destroy: boolean;
   tag: string | undefined;
+  testProfile: DeployedTestProfile;
+  testProfileSpecified: boolean;
+  workspace: string | undefined;
+  sshPublicKeyFile: string | undefined;
 }
 
 interface ComponentManifest {
@@ -67,6 +82,20 @@ interface DeployVars {
   tags: Record<string, string>;
 }
 
+type DeployTfVars = DeployVars & Record<string, unknown>;
+
+class StreamCommandError extends Error {
+  readonly output: string;
+  readonly exitCode: number | null;
+
+  constructor(cmd: string, args: string[], exitCode: number | null, output: string) {
+    super(`${cmd} ${args.join(' ')} failed with exit code ${String(exitCode)}`);
+    this.name = 'StreamCommandError';
+    this.output = output;
+    this.exitCode = exitCode;
+  }
+}
+
 function log(message: string): void {
   const timestamp = new Date().toISOString().slice(11, 19);
   process.stdout.write(`[${timestamp}] ${message}\n`);
@@ -75,6 +104,26 @@ function log(message: string): void {
 function logError(message: string): void {
   const timestamp = new Date().toISOString().slice(11, 19);
   process.stderr.write(`[${timestamp}] ERROR: ${message}\n`);
+}
+
+function getExecErrorDetail(error: unknown): string {
+  if (
+    error instanceof Error &&
+    'stderr' in error &&
+    typeof error.stderr === 'string' &&
+    error.stderr.trim().length > 0
+  ) {
+    return error.stderr.trim();
+  }
+  if (
+    error instanceof Error &&
+    'stdout' in error &&
+    typeof error.stdout === 'string' &&
+    error.stdout.trim().length > 0
+  ) {
+    return error.stdout.trim();
+  }
+  return error instanceof Error ? error.message : String(error);
 }
 
 function printUsage(): void {
@@ -93,11 +142,15 @@ Options:
   --name <project-name>   Resource naming prefix (default: strategy directory name)
   --allowed-cidr <cidr>   Ingress allowlist CIDR (default: detected from curl ifconfig.io)
   --tag <tag>             Docker image tag (default: timestamp)
+  --test-profile <name>   Deployment profile: public, private, private-capability-host
+  --workspace <name>      Terraform workspace override (defaults to a profile-specific test workspace)
+  --ssh-public-key-file   SSH public key file for the private-profile jumpbox
   --destroy               Destroy deployed strategy resources from Terraform state
   --help, -h              Show help
 
 Examples:
   task strategy:deploy -- deployment-strategies/typescript-foundry-agent-service
+  task strategy:deploy -- --test-profile private deployment-strategies/typescript-foundry-agent-service
   task strategy:destroy -- deployment-strategies/typescript-foundry-agent-service
 
 Advanced direct script usage:
@@ -114,7 +167,11 @@ function parseArgs(args: string[]): CliOptions | null {
     allowedCidr: undefined,
     projectName: undefined,
     destroy: false,
-    tag: undefined
+    tag: undefined,
+    testProfile: 'public',
+    testProfileSpecified: false,
+    workspace: undefined,
+    sshPublicKeyFile: undefined
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -135,6 +192,23 @@ function parseArgs(args: string[]): CliOptions | null {
       case '--tag':
         options.tag = args[++i];
         break;
+      case '--test-profile': {
+        const value = args[++i]?.trim();
+        if (!value || !isDeployedTestProfile(value)) {
+          logError(`Unknown test profile: ${value ?? ''}`);
+          printUsage();
+          return null;
+        }
+        options.testProfile = value;
+        options.testProfileSpecified = true;
+        break;
+      }
+      case '--workspace':
+        options.workspace = args[++i];
+        break;
+      case '--ssh-public-key-file':
+        options.sshPublicKeyFile = args[++i];
+        break;
       case '--destroy':
         options.destroy = true;
         break;
@@ -144,6 +218,10 @@ function parseArgs(args: string[]): CliOptions | null {
         process.exit(0);
         break;
       default:
+        if (!arg.startsWith('--') && !options.strategy) {
+          options.strategy = arg;
+          break;
+        }
         logError(`Unknown option: ${arg}`);
         printUsage();
         return null;
@@ -257,8 +335,230 @@ async function runStream(cmd: string, args: string[], options?: { cwd?: string; 
   });
 }
 
+async function runStreamWithOutput(
+  cmd: string,
+  args: string[],
+  options?: { cwd?: string; stdin?: string }
+): Promise<string> {
+  return new Promise<string>((resolvePromise, rejectPromise) => {
+    const child = spawn(cmd, args, {
+      cwd: options?.cwd,
+      stdio: options?.stdin !== undefined ? ['pipe', 'pipe', 'pipe'] : ['ignore', 'pipe', 'pipe']
+    });
+
+    let output = '';
+
+    child.stdout?.on('data', (chunk: Buffer | string) => {
+      const text = chunk.toString();
+      output += text;
+      process.stdout.write(text);
+    });
+    child.stderr?.on('data', (chunk: Buffer | string) => {
+      const text = chunk.toString();
+      output += text;
+      process.stderr.write(text);
+    });
+
+    child.on('error', (err) => rejectPromise(err));
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolvePromise(output);
+        return;
+      }
+      rejectPromise(new StreamCommandError(cmd, args, code, output));
+    });
+
+    if (options?.stdin !== undefined) {
+      child.stdin?.end(options.stdin);
+    }
+  });
+}
+
 async function sleep(ms: number): Promise<void> {
   await new Promise((resolvePromise) => setTimeout(resolvePromise, ms));
+}
+
+async function listTerraformStateResources(infraDir: string): Promise<string[]> {
+  try {
+    const raw = await runCapture('terraform', ['state', 'list'], {
+      cwd: infraDir,
+      timeoutMs: 30_000
+    });
+    return raw
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+  } catch (error) {
+    const detail = getExecErrorDetail(error);
+    if (detail.includes('No state file was found')) {
+      return [];
+    }
+    throw error;
+  }
+}
+
+async function subnetExists(
+  resourceGroupName: string,
+  virtualNetworkName: string,
+  subnetName: string
+): Promise<boolean> {
+  const raw = await runCapture(
+    'az',
+    [
+      'network',
+      'vnet',
+      'subnet',
+      'list',
+      '--resource-group',
+      resourceGroupName,
+      '--vnet-name',
+      virtualNetworkName,
+      '--query',
+      `[?name=='${subnetName}'].name`,
+      '-o',
+      'tsv'
+    ],
+    { timeoutMs: 30_000 }
+  );
+
+  return raw
+    .split('\n')
+    .map((line) => line.trim())
+    .includes(subnetName);
+}
+
+async function deleteLingeringSubnet(
+  resourceGroupName: string,
+  virtualNetworkName: string,
+  subnetName: string
+): Promise<void> {
+  if (!(await subnetExists(resourceGroupName, virtualNetworkName, subnetName))) {
+    return;
+  }
+
+  log(`Deleting lingering private test subnet ${subnetName}...`);
+  try {
+    await runCapture(
+      'az',
+      [
+        'network',
+        'vnet',
+        'subnet',
+        'delete',
+        '--resource-group',
+        resourceGroupName,
+        '--vnet-name',
+        virtualNetworkName,
+        '--name',
+        subnetName
+      ],
+      { timeoutMs: 120_000 }
+    );
+  } catch (error) {
+    throw new Error(`Failed to delete lingering private test subnet "${subnetName}": ${getExecErrorDetail(error)}`);
+  }
+
+  for (let attempt = 0; attempt < 60; attempt++) {
+    if (!(await subnetExists(resourceGroupName, virtualNetworkName, subnetName))) {
+      return;
+    }
+    await sleep(5_000);
+  }
+
+  throw new Error(`Timed out waiting for lingering private test subnet "${subnetName}" to be deleted`);
+}
+
+async function cleanupOrphanedPrivateTestSubnets(
+  projectName: string,
+  profile: DeployedTestProfile,
+  profileVars: Record<string, unknown>
+): Promise<void> {
+  const poolResourceGroupName = profileVars['testing_private_pool_resource_group_name'];
+  const virtualNetworkName = profileVars['testing_private_pool_vnet_name'];
+  if (typeof poolResourceGroupName !== 'string' || typeof virtualNetworkName !== 'string') {
+    return;
+  }
+
+  const overlayNames = derivePrivateTestOverlayNames(projectName, profile);
+  const candidateSubnets = [overlayNames.containerAppsSubnetName];
+
+  if (typeof profileVars['testing_private_jumpbox_subnet_cidr'] === 'string') {
+    candidateSubnets.push(overlayNames.jumpboxSubnetName);
+  }
+  if (usesCapabilityHost(profile) && typeof profileVars['testing_private_agents_subnet_cidr'] === 'string') {
+    candidateSubnets.push(overlayNames.agentsSubnetName);
+  }
+
+  let foundLingeringSubnet = false;
+  for (const subnetName of candidateSubnets) {
+    if (await subnetExists(poolResourceGroupName, virtualNetworkName, subnetName)) {
+      foundLingeringSubnet = true;
+      break;
+    }
+  }
+
+  if (!foundLingeringSubnet) {
+    return;
+  }
+
+  log('Found lingering private test subnets without Terraform state; cleaning them up before deploy...');
+  for (const subnetName of candidateSubnets) {
+    await deleteLingeringSubnet(poolResourceGroupName, virtualNetworkName, subnetName);
+  }
+}
+
+function isRetryableTerraformApplyError(error: unknown): error is StreamCommandError {
+  return error instanceof StreamCommandError && error.output.includes('IfMatchPreconditionFailed');
+}
+
+function isRetryableTerraformDestroyError(error: unknown): error is StreamCommandError {
+  return (
+    error instanceof StreamCommandError &&
+    error.output.includes('RequestConflict') &&
+    error.output.includes('provisioning state is not terminal')
+  );
+}
+
+async function runTerraformApplyWithRetry(infraDir: string, tfVarsPath: string): Promise<void> {
+  const baseArgs = ['apply', '-auto-approve', '-input=false', '-var-file', tfVarsPath];
+
+  try {
+    await runStreamWithOutput('terraform', baseArgs, { cwd: infraDir });
+  } catch (error) {
+    if (!isRetryableTerraformApplyError(error)) {
+      throw error;
+    }
+
+    log('Terraform apply hit an Azure If-Match precondition failure. Retrying once with -parallelism=1...');
+    await sleep(15_000);
+    await runStreamWithOutput(
+      'terraform',
+      ['apply', '-parallelism=1', '-auto-approve', '-input=false', '-var-file', tfVarsPath],
+      { cwd: infraDir }
+    );
+  }
+}
+
+async function runTerraformDestroyWithRetry(infraDir: string, tfVarsPath: string): Promise<void> {
+  const baseArgs = ['destroy', '-auto-approve', '-input=false', '-var-file', tfVarsPath];
+  const maxAttempts = 5;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      await runStreamWithOutput('terraform', baseArgs, { cwd: infraDir });
+      return;
+    } catch (error) {
+      if (!isRetryableTerraformDestroyError(error) || attempt === maxAttempts) {
+        throw error;
+      }
+
+      const waitSeconds = attempt * 30;
+      log(
+        `Terraform destroy hit an Azure RequestConflict while waiting for a resource to reach a terminal state. Retrying in ${String(waitSeconds)}s...`
+      );
+      await sleep(waitSeconds * 1_000);
+    }
+  }
 }
 
 function requireOutputString(outputs: TerraformOutputMap, key: string): string {
@@ -314,10 +614,88 @@ async function ensureProviderRegistered(namespace: string): Promise<void> {
   log(`Azure provider ${namespace} registered.`);
 }
 
-async function ensureRequiredProvidersRegistered(): Promise<void> {
-  for (const namespace of REQUIRED_RESOURCE_PROVIDERS) {
+async function ensureRequiredProvidersRegistered(profile: DeployedTestProfile): Promise<void> {
+  const namespaces = usesPrivateNetworking(profile)
+    ? [...BASE_REQUIRED_RESOURCE_PROVIDERS, ...PRIVATE_REQUIRED_RESOURCE_PROVIDERS]
+    : [...BASE_REQUIRED_RESOURCE_PROVIDERS];
+
+  for (const namespace of namespaces) {
     await ensureProviderRegistered(namespace);
   }
+}
+
+async function listTerraformWorkspaces(infraDir: string): Promise<string[]> {
+  const raw = await runCapture('terraform', ['workspace', 'list'], {
+    cwd: infraDir,
+    timeoutMs: 30_000
+  });
+  return raw
+    .split('\n')
+    .map((line) => line.replace(/^\*\s*/, '').trim())
+    .filter((line) => line.length > 0);
+}
+
+async function ensureWorkspaceSelected(
+  infraDir: string,
+  workspace: string,
+  options?: { createIfMissing?: boolean | undefined }
+): Promise<void> {
+  const trimmed = workspace.trim();
+  if (!trimmed || trimmed === 'default') {
+    return;
+  }
+
+  const existing = await listTerraformWorkspaces(infraDir);
+  if (existing.includes(trimmed)) {
+    await runCapture('terraform', ['workspace', 'select', trimmed], { cwd: infraDir, timeoutMs: 30_000 });
+    return;
+  }
+
+  if (options?.createIfMissing) {
+    await runStream('terraform', ['workspace', 'new', trimmed], { cwd: infraDir });
+    return;
+  }
+
+  throw new Error(`Terraform workspace "${trimmed}" does not exist in ${infraDir}`);
+}
+
+async function cleanupWorkspace(infraDir: string, workspace: string): Promise<void> {
+  const trimmed = workspace.trim();
+  if (!trimmed || trimmed === 'default') {
+    return;
+  }
+
+  const existing = await listTerraformWorkspaces(infraDir);
+  if (!existing.includes(trimmed)) {
+    return;
+  }
+
+  await runStream('terraform', ['workspace', 'select', 'default'], { cwd: infraDir });
+  await runStream('terraform', ['workspace', 'delete', trimmed], { cwd: infraDir });
+}
+
+function readJumpboxPublicKey(filePath: string | undefined): string | undefined {
+  const trimmedPath = filePath?.trim();
+  if (!trimmedPath) {
+    return undefined;
+  }
+
+  const resolvedPath = resolve(trimmedPath);
+  if (!existsSync(resolvedPath)) {
+    throw new Error(`SSH public key file not found: ${resolvedPath}`);
+  }
+
+  const value = readFileSync(resolvedPath, 'utf-8').trim();
+  if (!value) {
+    throw new Error(`SSH public key file is empty: ${resolvedPath}`);
+  }
+
+  return value;
+}
+
+function sanitizeLabelForFileName(value: string): string {
+  const sanitized = value.replace(/[^a-zA-Z0-9_.-]/g, '-');
+  return sanitized.length > 0 ? sanitized : 'default';
 }
 
 async function detectCurrentCidr(override: string | undefined): Promise<string> {
@@ -371,29 +749,46 @@ async function main(): Promise<void> {
     throw new Error(`Sample infra directory not found: ${infraDir}. Run task strategy:generate first.`);
   }
 
-  const projectName = parsed.projectName?.trim() || sampleName;
+  const workspace =
+    parsed.workspace?.trim() ||
+    (parsed.testProfileSpecified ? deriveProfileWorkspace(sampleName, parsed.testProfile) : undefined);
+  const projectName =
+    parsed.projectName?.trim() ||
+    (parsed.testProfileSpecified || workspace ? deriveProfileProjectName(sampleName, parsed.testProfile) : sampleName);
   const tag = parsed.tag?.trim() || generateDefaultTag();
-
-  const agentManifest = readComponentManifest(sampleDir, 'agent');
-  const apiManifest = readComponentManifest(sampleDir, 'api');
-  const frontendManifest = readComponentManifest(sampleDir, 'frontend');
-
-  const blockedAgent = new Set(['PORT', 'HOST', 'SKIP_AUTH', 'IDENTITY_ENDPOINT', 'IMDS_ENDPOINT']);
-  const blockedApi = new Set(['PORT', 'HOST', 'SKIP_AUTH', 'IDENTITY_ENDPOINT', 'IMDS_ENDPOINT', 'AGENT_SERVICE_URL']);
-  const blockedFrontend = new Set(['PORT', 'API_BASE_URL']);
+  const jumpboxSshPublicKey = readJumpboxPublicKey(parsed.sshPublicKeyFile);
 
   if (!parsed.destroy) {
     log('Ensuring required Azure resource providers are registered...');
-    await ensureRequiredProvidersRegistered();
+    await ensureRequiredProvidersRegistered(parsed.testProfile);
   }
 
   const allowedCidr = parsed.destroy
     ? (parsed.allowedCidr ?? '127.0.0.1/32')
     : await detectCurrentCidr(parsed.allowedCidr);
   log(`Using ingress CIDR allowlist: ${allowedCidr}`);
+  log(`Using deployment profile: ${parsed.testProfile}`);
+  if (workspace) {
+    log(`Using terraform workspace: ${workspace}`);
+  }
 
-  const tfVarsPath = resolve(infraDir, '.deploy.auto.tfvars.json');
-  const baseVars: DeployVars = {
+  const profileVars = await buildTestProfileTerraformVars({
+    profile: parsed.testProfile,
+    strategyName: sampleName,
+    projectName,
+    location: parsed.location,
+    resolveJumpboxVmSize: !parsed.destroy,
+    includeJumpbox: !parsed.destroy,
+    jumpboxAllowedCidr: allowedCidr,
+    jumpboxSshPublicKey,
+    strategiesRoot: resolve(REPO_ROOT, '..', 'deployment-strategies')
+  });
+
+  const tfVarsPath = resolve(
+    infraDir,
+    workspace ? `.deploy.${sanitizeLabelForFileName(workspace)}.auto.tfvars.json` : '.deploy.auto.tfvars.json'
+  );
+  const baseVars: DeployTfVars = {
     project_name: projectName,
     location: parsed.location,
     allowed_cidr: allowedCidr,
@@ -407,94 +802,128 @@ async function main(): Promise<void> {
     frontend_env: {},
     tags: {
       sample: sampleName,
+      deployment_profile: parsed.testProfile,
       managed_by: 'deploy-strategy-azure.ts'
-    }
+    },
+    ...profileVars
   };
 
   await writeFile(tfVarsPath, JSON.stringify(baseVars, null, 2));
 
-  log('Terraform init...');
-  await runStream('terraform', ['init', '-input=false'], { cwd: infraDir });
+  try {
+    log('Terraform init...');
+    await runStream('terraform', ['init', '-input=false'], { cwd: infraDir });
+    if (workspace) {
+      await ensureWorkspaceSelected(infraDir, workspace, { createIfMissing: !parsed.destroy });
+    }
+    if (!parsed.destroy && usesPrivateNetworking(parsed.testProfile)) {
+      const stateResources = await listTerraformStateResources(infraDir);
+      if (stateResources.length === 0) {
+        await cleanupOrphanedPrivateTestSubnets(projectName, parsed.testProfile, profileVars);
+      }
+    }
 
-  if (parsed.destroy) {
-    log('Terraform destroy...');
-    await runStream('terraform', ['destroy', '-auto-approve', '-input=false', '-var-file', tfVarsPath], {
-      cwd: infraDir
-    });
-    log('Destroy complete.');
-    return;
+    if (parsed.destroy) {
+      log('Terraform destroy...');
+      await runTerraformDestroyWithRetry(infraDir, tfVarsPath);
+      if (workspace) {
+        await cleanupWorkspace(infraDir, workspace);
+      }
+      log('Destroy complete.');
+      return;
+    }
+
+    log('Terraform apply phase 1 (macro reference architecture infra + bootstrap app shells)...');
+    await runTerraformApplyWithRetry(infraDir, tfVarsPath);
+    if (workspace) {
+      await ensureWorkspaceSelected(infraDir, workspace, { createIfMissing: false });
+    }
+
+    const agentManifest = readComponentManifest(sampleDir, 'agent');
+    const apiManifest = readComponentManifest(sampleDir, 'api');
+    const frontendManifest = readComponentManifest(sampleDir, 'frontend');
+
+    const blockedAgent = new Set(['PORT', 'HOST', 'SKIP_AUTH', 'IDENTITY_ENDPOINT', 'IMDS_ENDPOINT']);
+    const blockedApi = new Set([
+      'PORT',
+      'HOST',
+      'SKIP_AUTH',
+      'IDENTITY_ENDPOINT',
+      'IMDS_ENDPOINT',
+      'AGENT_SERVICE_URL'
+    ]);
+    const blockedFrontend = new Set(['PORT', 'API_BASE_URL']);
+
+    const phase1Outputs = await readTerraformOutputs(infraDir);
+    const referenceOutputs = toReferenceOutputs(phase1Outputs);
+    const foundryEndpoint = deriveFoundryEndpoint(referenceOutputs);
+    const openaiEndpoint = deriveOpenAIEndpoint(referenceOutputs);
+    log(`Foundry endpoint: ${foundryEndpoint}`);
+    log(`OpenAI endpoint:  ${openaiEndpoint}`);
+    await writeEnvFiles(referenceOutputs, sampleDir);
+    await ensureRbac(referenceOutputs.ai_foundry_id);
+
+    const envValues = existsSync(envPath) ? parseDotEnv(readFileSync(envPath, 'utf-8')) : {};
+    const agentEnv = pickComponentEnv(envValues, agentManifest, blockedAgent);
+    const apiEnv = pickComponentEnv(envValues, apiManifest, blockedApi);
+    const frontendEnv = pickComponentEnv(envValues, frontendManifest, blockedFrontend);
+
+    ensureRequiredEnv('agent', agentManifest, agentEnv, new Set());
+    ensureRequiredEnv('api', apiManifest, apiEnv, new Set(['AGENT_SERVICE_URL']));
+    ensureRequiredEnv('frontend', frontendManifest, frontendEnv, new Set(['API_BASE_URL']));
+
+    const acrName = requireOutputString(phase1Outputs, 'acr_name');
+    const loginServer = requireOutputString(phase1Outputs, 'acr_login_server');
+
+    const imagePrefix = `${loginServer}/${normalizeSampleName(sampleName)}`;
+    const agentImage = `${imagePrefix}/agent:${tag}`;
+    const apiImage = `${imagePrefix}/api:${tag}`;
+    const frontendImage = `${imagePrefix}/frontend:${tag}`;
+
+    log('Waiting 60s for RBAC propagation before rolling out private images...');
+    await sleep(60_000);
+
+    log(`Logging in to ACR ${acrName} using Azure CLI...`);
+    await runStream('az', ['acr', 'login', '--name', acrName], { cwd: REPO_ROOT });
+
+    const builds: Array<{ name: string; image: string; context: string }> = [
+      { name: 'agent', image: agentImage, context: resolve(sampleDir, 'agent') },
+      { name: 'api', image: apiImage, context: resolve(sampleDir, 'api') },
+      { name: 'frontend', image: frontendImage, context: resolve(sampleDir, 'frontend') }
+    ];
+
+    for (const build of builds) {
+      log(`Building ${build.name} image for ${ACA_TARGET_PLATFORM}...`);
+      await runStream('docker', ['build', '--platform', ACA_TARGET_PLATFORM, '-t', build.image, build.context], {
+        cwd: REPO_ROOT
+      });
+      log(`Pushing ${build.name} image...`);
+      await runStream('docker', ['push', build.image], { cwd: REPO_ROOT });
+    }
+
+    const finalVars: DeployTfVars = {
+      ...baseVars,
+      enable_registry_auth: true,
+      agent_image: agentImage,
+      api_image: apiImage,
+      frontend_image: frontendImage,
+      agent_env: agentEnv,
+      api_env: apiEnv,
+      frontend_env: frontendEnv
+    };
+    await writeFile(tfVarsPath, JSON.stringify(finalVars, null, 2));
+
+    log('Terraform apply phase 2 (container apps with pushed images)...');
+    await runTerraformApplyWithRetry(infraDir, tfVarsPath);
+
+    const finalOutputs = await readTerraformOutputs(infraDir);
+    const frontendUrl = requireOutputString(finalOutputs, 'frontend_url');
+
+    log('Deployment complete.');
+    log(`Frontend URL: ${frontendUrl}`);
+  } finally {
+    await rm(tfVarsPath, { force: true });
   }
-
-  log('Terraform apply phase 1 (macro reference architecture infra + bootstrap app shells)...');
-  await runStream('terraform', ['apply', '-auto-approve', '-input=false', '-var-file', tfVarsPath], { cwd: infraDir });
-
-  const phase1Outputs = await readTerraformOutputs(infraDir);
-  const referenceOutputs = toReferenceOutputs(phase1Outputs);
-  const foundryEndpoint = deriveFoundryEndpoint(referenceOutputs);
-  const openaiEndpoint = deriveOpenAIEndpoint(referenceOutputs);
-  log(`Foundry endpoint: ${foundryEndpoint}`);
-  log(`OpenAI endpoint:  ${openaiEndpoint}`);
-  await writeEnvFiles(referenceOutputs, sampleDir);
-  await ensureRbac(referenceOutputs.ai_foundry_id);
-
-  const envValues = existsSync(envPath) ? parseDotEnv(readFileSync(envPath, 'utf-8')) : {};
-  const agentEnv = pickComponentEnv(envValues, agentManifest, blockedAgent);
-  const apiEnv = pickComponentEnv(envValues, apiManifest, blockedApi);
-  const frontendEnv = pickComponentEnv(envValues, frontendManifest, blockedFrontend);
-
-  ensureRequiredEnv('agent', agentManifest, agentEnv, new Set());
-  ensureRequiredEnv('api', apiManifest, apiEnv, new Set(['AGENT_SERVICE_URL']));
-  ensureRequiredEnv('frontend', frontendManifest, frontendEnv, new Set(['API_BASE_URL']));
-
-  const acrName = requireOutputString(phase1Outputs, 'acr_name');
-  const loginServer = requireOutputString(phase1Outputs, 'acr_login_server');
-
-  const imagePrefix = `${loginServer}/${normalizeSampleName(sampleName)}`;
-  const agentImage = `${imagePrefix}/agent:${tag}`;
-  const apiImage = `${imagePrefix}/api:${tag}`;
-  const frontendImage = `${imagePrefix}/frontend:${tag}`;
-
-  log('Waiting 60s for RBAC propagation before rolling out private images...');
-  await sleep(60_000);
-
-  log(`Logging in to ACR ${acrName} using Azure CLI...`);
-  await runStream('az', ['acr', 'login', '--name', acrName], { cwd: REPO_ROOT });
-
-  const builds: Array<{ name: string; image: string; context: string }> = [
-    { name: 'agent', image: agentImage, context: resolve(sampleDir, 'agent') },
-    { name: 'api', image: apiImage, context: resolve(sampleDir, 'api') },
-    { name: 'frontend', image: frontendImage, context: resolve(sampleDir, 'frontend') }
-  ];
-
-  for (const build of builds) {
-    log(`Building ${build.name} image for ${ACA_TARGET_PLATFORM}...`);
-    await runStream('docker', ['build', '--platform', ACA_TARGET_PLATFORM, '-t', build.image, build.context], {
-      cwd: REPO_ROOT
-    });
-    log(`Pushing ${build.name} image...`);
-    await runStream('docker', ['push', build.image], { cwd: REPO_ROOT });
-  }
-
-  const finalVars: DeployVars = {
-    ...baseVars,
-    enable_registry_auth: true,
-    agent_image: agentImage,
-    api_image: apiImage,
-    frontend_image: frontendImage,
-    agent_env: agentEnv,
-    api_env: apiEnv,
-    frontend_env: frontendEnv
-  };
-  await writeFile(tfVarsPath, JSON.stringify(finalVars, null, 2));
-
-  log('Terraform apply phase 2 (container apps with pushed images)...');
-  await runStream('terraform', ['apply', '-auto-approve', '-input=false', '-var-file', tfVarsPath], { cwd: infraDir });
-
-  const finalOutputs = await readTerraformOutputs(infraDir);
-  const frontendUrl = requireOutputString(finalOutputs, 'frontend_url');
-
-  log('Deployment complete.');
-  log(`Frontend URL: ${frontendUrl}`);
 }
 
 main().catch((err: unknown) => {

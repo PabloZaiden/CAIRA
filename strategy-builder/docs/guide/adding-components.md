@@ -241,13 +241,23 @@ components/iac/<compute-target>/
 ├── main.tf
 ├── variables.tf
 ├── outputs.tf
+├── testing_overlay.tf    # Optional test-only resources; stays top-level for Terraform loading
+├── testing_variables.tf  # Optional test-only inputs
+├── testing_outputs.tf    # Optional test-only outputs
 ├── providers.tf
 ├── versions.tf
+├── testing_overlay/      # Optional test-only assets (cloud-init, scripts, fixtures)
+│   └── testing_jumpbox.cloud-init.yaml.tftpl
 ├── config/             # Deployment strategy tfvars
 │   ├── basic-public.tfvars
 │   └── ...
 └── component.json
 ```
+
+Keep test-only Terraform split into the `testing_*` files. Auxiliary test assets
+can live under `testing_overlay/`, but the `.tf` file itself must stay at the
+module root because Terraform does not load root-module `.tf` files from nested
+directories.
 
 ### 2. Reference CAIRA modules
 

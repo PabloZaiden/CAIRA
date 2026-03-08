@@ -41,8 +41,6 @@ module "container_apps_environment" {
   location                   = var.location
   resource_group_name        = local.resource_group_name
   log_analytics_workspace_id = azurerm_log_analytics_workspace.this.id
+  infrastructure_subnet_id   = local.effective_container_apps_infrastructure_subnet_id
   tags                       = var.tags
-
-  # For private networking, add:
-  # infrastructure_subnet_id = "<container-apps-subnet-id>"
 }

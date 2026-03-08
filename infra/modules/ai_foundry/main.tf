@@ -38,8 +38,8 @@ resource "azapi_resource" "ai_foundry" {
         defaultAction = "Allow"
       } : null
 
-      # VNet injection for Standard Agents when subnet and agent capability host connections are provided
-      networkInjections = var.agents_subnet_id != null ? [
+      # VNet injection for Standard Agents when the caller opts into subnet-based hosting
+      networkInjections = var.enable_agents_vnet_injection ? [
         {
           scenario                   = "agent"
           subnetArmId                = var.agents_subnet_id
@@ -53,7 +53,22 @@ resource "azapi_resource" "ai_foundry" {
 }
 
 locals {
-  resource_group_name = provider::azapi::parse_resource_id("Microsoft.Resources/resourceGroups", var.resource_group_id).resource_group_name
+  resource_group_name           = provider::azapi::parse_resource_id("Microsoft.Resources/resourceGroups", var.resource_group_id).resource_group_name
+  create_agents_capability_host = var.enable_agents_capability_host && !var.enable_agents_vnet_injection
+}
+
+check "agents_vnet_injection_inputs" {
+  assert {
+    condition     = !var.enable_agents_vnet_injection || var.agents_subnet_id != null
+    error_message = "enable_agents_vnet_injection requires agents_subnet_id."
+  }
+}
+
+check "agents_vnet_injection_consistency" {
+  assert {
+    condition     = var.enable_agents_vnet_injection || var.agents_subnet_id == null
+    error_message = "agents_subnet_id can only be set when enable_agents_vnet_injection is true."
+  }
 }
 
 ## Optional timed delay after deletion before purge to avoid 404 (soft-delete not yet visible)
@@ -99,15 +114,16 @@ resource "azurerm_cognitive_deployment" "model_deployments" {
 
 # Wait before deleting capability host to ensure dependent resources are properly cleaned up.
 resource "time_sleep" "wait_before_delete_capability_host" {
-  count            = var.enable_agents_capability_host && var.agents_subnet_id == null ? 1 : 0
+  count            = local.create_agents_capability_host ? 1 : 0
   destroy_duration = "60s"
 
   depends_on = [azapi_resource.ai_foundry_capability_host]
 }
 
 resource "azapi_resource" "ai_foundry_capability_host" {
-  # Only create the public capability host when project-level capability-host connections are needed.
-  count = var.enable_agents_capability_host && var.agents_subnet_id == null ? 1 : 0
+  # Only create the public capability host when project-level capability-host
+  # connections are needed outside the VNet-injected path.
+  count = local.create_agents_capability_host ? 1 : 0
 
   type                      = "Microsoft.CognitiveServices/accounts/capabilityHosts@2025-04-01-preview"
   name                      = "${azapi_resource.ai_foundry.name}-agents-capability-host"
@@ -152,4 +168,3 @@ resource "azapi_resource" "appinsights_connection" {
     azapi_resource.ai_foundry
   ]
 }
-

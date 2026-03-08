@@ -12,8 +12,8 @@ module "frontend_app" {
   image                        = local.resolved_frontend_image
   target_port                  = 8080
   transport                    = "auto"
-  external_enabled             = true
-  allowed_cidrs                = [var.allowed_cidr]
+  external_enabled             = local.effective_frontend_external_enabled
+  allowed_cidrs                = local.effective_frontend_allowed_cidrs
   enable_registry_auth         = var.enable_registry_auth
   registry_server              = module.container_registry.login_server
   environment_variables = merge(
@@ -24,10 +24,6 @@ module "frontend_app" {
     }
   )
   tags = var.tags
-
-  # For private networking, change to:
-  # external_enabled = false
-  # allowed_cidrs    = []
 }
 
 resource "azurerm_role_assignment" "frontend_acr_pull" {

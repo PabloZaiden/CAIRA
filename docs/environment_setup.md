@@ -54,10 +54,23 @@ task strategy:dev -- deployment-strategies/typescript-openai-agent-sdk
 task strategy:deploy -- deployment-strategies/typescript-openai-agent-sdk
 ```
 
+For the full scenario-based decision tree, including infrastructure changes,
+baseline deployments, workflow edits, strategy regeneration, and private
+networking or capability-host validation, continue with the
+[Developer Guide](developer.md).
+
 If you want your local Docker Compose stack to talk to real Azure services instead of mocks, use:
 
 ```bash
 task strategy:dev:azure -- deployment-strategies/typescript-foundry-agent-service
+```
+
+If that Azure-backed validation depends on the durable private-network pools,
+prepare them first:
+
+```bash
+task tf:test:pools:deploy
+eval "$(task tf:test:pools:outputs:env)"
 ```
 
 Use `task strategy:deploy:reference` only when you are specifically validating the shared baseline deployment or regenerating strategy `.env` files from that baseline.

@@ -55,14 +55,21 @@ module "foundry" {
     module.common_models.gpt_4o_mini
   ]
 
-  application_insights = module.application_insights
-  tags                 = var.tags
+  application_insights          = module.application_insights
+  tags                          = var.tags
+  foundry_subnet_id             = local.effective_foundry_subnet_id
+  agents_subnet_id              = local.effective_agents_subnet_id
+  enable_agents_vnet_injection  = local.testing_capability_host_enabled
+  enable_agents_capability_host = local.testing_capability_host_enabled
 }
 
 module "default_project" {
   source = "../../../infra/modules/ai_foundry_project"
 
-  location      = var.location
-  ai_foundry_id = module.foundry.ai_foundry_id
-  tags          = var.tags
+  location                          = var.location
+  ai_foundry_id                     = module.foundry.ai_foundry_id
+  tags                              = var.tags
+  agent_capability_host_connections = local.effective_agent_capability_host_connections
+
+  depends_on = [module.foundry]
 }

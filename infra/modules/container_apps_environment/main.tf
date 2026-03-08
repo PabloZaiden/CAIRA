@@ -10,4 +10,8 @@ resource "azurerm_container_app_environment" "this" {
   infrastructure_subnet_id       = var.infrastructure_subnet_id
   internal_load_balancer_enabled = local.use_private_network ? true : null
   tags                           = var.tags
+
+  lifecycle {
+    ignore_changes = [infrastructure_resource_group_name]
+  }
 }

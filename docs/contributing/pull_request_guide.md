@@ -21,6 +21,8 @@ If your change touches deployed strategy behavior or Terraform acceptance covera
 
 ```bash
 task test
+task tf:test:pools:deploy
+eval "$(task tf:test:pools:outputs:env)"
 task strategy:test:deployed -- deployment-strategies/typescript-openai-agent-sdk
 ```
 
@@ -34,7 +36,7 @@ PR validation is intentionally fast and static. It covers:
 - markdown, spelling, workflow, and security scanners
 - strict documentation site build
 
-Full deploy/destroy lifecycle coverage runs in the nightly workflow instead of on every pull request.
+Full deploy/destroy lifecycle coverage runs in the nightly workflow instead of on every pull request. The deployed lifecycle path now exercises the public, private, and private-capability-host profiles.
 
 ## Pull request checklist
 

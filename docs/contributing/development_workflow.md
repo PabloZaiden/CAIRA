@@ -129,6 +129,11 @@ task tf:test:acc:all
 task strategy:test:local
 ```
 
+Use the [Developer Guide](../developer.md) to choose the right sequence for the
+change you made. Infrastructure changes, shared baseline changes, generator
+changes, workflow edits, docs-only updates, and private networking or
+capability-host validation do not all require the same depth.
+
 ## Commit Guidelines
 
 ### Signing Commits

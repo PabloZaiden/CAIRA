@@ -14,6 +14,7 @@ This sample is the default CAIRA reference architecture. It keeps the default ex
 - `application_platform.tf` adds the composable app-platform foundation (`container_registry`, `container_apps_environment`).
 - `agent_service.tf`, `api_service.tf`, and `frontend_service.tf` keep each application surface as its own layer.
 - `dependant_resources.tf` adds the shared observability resources used by the Foundry account and Container Apps environment.
+- `testing_overlay.tf`, `testing_variables.tf`, and `testing_outputs.tf` isolate deployed-validation-only overlay resources, inputs, and outputs; auxiliary test assets live under `testing_overlay/`.
 - `infra/modules/` keeps the reusable Terraform modules small and composable.
 
 ## Quick start
@@ -61,7 +62,7 @@ The sample Terraform files show the exact fields to change for private networkin
 
 - add `foundry_subnet_id` to the `foundry` module in `main.tf`
 - add `infrastructure_subnet_id` to `container_apps_environment` in `application_platform.tf`
-- change the frontend ingress in `frontend_service.tf` to `external_enabled = false` and `allowed_cidrs = []`
+- keep the frontend ingress VNet-reachable in `frontend_service.tf` with `external_enabled = true` and `allowed_cidrs = []`; when the Container Apps environment itself is internal-only, that still keeps the app private to the VNet
 
 See <https://learn.microsoft.com/azure/foundry/agents/how-to/virtual-networks> for the Azure networking guidance.
 

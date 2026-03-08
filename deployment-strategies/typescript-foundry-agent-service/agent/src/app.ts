@@ -13,6 +13,59 @@ import type { Config } from './config.ts';
 import { registerRoutes } from './routes.ts';
 import type { ErrorResponse } from './types.ts';
 
+const DEFAULT_CLIENT_INITIALISATION_TIMEOUT_MS = 60_000;
+
+function readClientInitialisationTimeoutMs(env: NodeJS.ProcessEnv = process.env): number {
+  const rawValue = env['AGENT_INIT_TIMEOUT_MS']?.trim();
+  if (!rawValue) {
+    return DEFAULT_CLIENT_INITIALISATION_TIMEOUT_MS;
+  }
+
+  const parsed = Number(rawValue);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_CLIENT_INITIALISATION_TIMEOUT_MS;
+}
+
+async function initialiseFoundryClientWithTimeout(
+  app: FastifyInstance,
+  foundryClient: FoundryClient,
+  timeoutMs = readClientInitialisationTimeoutMs()
+): Promise<void> {
+  let settled = false;
+  let timedOut = false;
+
+  const initialisePromise = foundryClient.initialise();
+  void initialisePromise
+    .then(() => {
+      settled = true;
+      if (timedOut) {
+        app.log.info('FoundryClient finished initialising after startup timeout');
+      }
+    })
+    .catch((err: unknown) => {
+      settled = true;
+      if (timedOut) {
+        app.log.warn({ err }, 'FoundryClient initialisation is still failing in the background');
+      }
+    });
+
+  try {
+    await Promise.race([
+      initialisePromise,
+      new Promise<never>((_resolve, reject) => {
+        const timer = setTimeout(() => {
+          reject(new Error(`FoundryClient initialisation timed out after ${String(timeoutMs)}ms`));
+        }, timeoutMs);
+        timer.unref?.();
+      })
+    ]);
+  } catch (err) {
+    if (!settled) {
+      timedOut = true;
+    }
+    app.log.warn({ err }, 'Failed to initialise FoundryClient — starting in degraded mode');
+  }
+}
+
 export async function buildApp(config: Config): Promise<FastifyInstance> {
   const app = Fastify({
     logger: {
@@ -46,11 +99,7 @@ export async function buildApp(config: Config): Promise<FastifyInstance> {
   // ---- Foundry Client ----
   const foundryClient = new FoundryClient({ config, logger: app.log });
 
-  try {
-    await foundryClient.initialise();
-  } catch (err) {
-    app.log.warn({ err }, 'Failed to initialise FoundryClient — starting in degraded mode');
-  }
+  await initialiseFoundryClientWithTimeout(app, foundryClient);
 
   // ---- Routes ----
   registerRoutes(app, foundryClient);

@@ -72,17 +72,17 @@ CAIRA is not Terraform-only and not infrastructure-only. The repository intentio
 
 ## Contributor Taskfile-first workflows
 
-| Command                                                       | Purpose                                                |
-|---------------------------------------------------------------|--------------------------------------------------------|
-| `task setup`                                                  | Prepare a local machine for CAIRA development          |
-| `task validate:pr`                                            | Run the fast pull-request validation suite             |
-| `task test`                                                   | Run the full local validation suite                    |
-| `task strategy:generate`                                      | Regenerate committed deployment strategies             |
-| `task strategy:dev -- deployment-strategies/<name>`           | Run one generated strategy locally with Docker Compose |
-| `task strategy:dev:azure -- deployment-strategies/<name>`     | Run one generated strategy locally against Azure       |
-| `task strategy:deploy -- deployment-strategies/<name>`        | Deploy one generated deployment strategy to Azure      |
-| `task strategy:destroy -- deployment-strategies/<name>`       | Destroy one generated deployment strategy deployment   |
-| `task strategy:test:deployed -- deployment-strategies/<name>` | Deploy, validate, and destroy one deployment strategy  |
+| Command                                                       | Purpose                                                                                                                |
+|---------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------|
+| `task setup`                                                  | Prepare a local machine for CAIRA development                                                                          |
+| `task validate:pr`                                            | Run the fast pull-request validation suite                                                                             |
+| `task test`                                                   | Run the full local validation suite                                                                                    |
+| `task strategy:generate`                                      | Regenerate committed deployment strategies                                                                             |
+| `task strategy:dev -- deployment-strategies/<name>`           | Run one generated strategy locally with Docker Compose                                                                 |
+| `task strategy:dev:azure -- deployment-strategies/<name>`     | Run one generated strategy locally against Azure                                                                       |
+| `task strategy:deploy -- deployment-strategies/<name>`        | Deploy one generated deployment strategy to Azure                                                                      |
+| `task strategy:destroy -- deployment-strategies/<name>`       | Destroy one generated deployment strategy deployment                                                                   |
+| `task strategy:test:deployed -- deployment-strategies/<name>` | Deploy, validate, and destroy one deployment strategy across the public, private, and private-capability-host profiles |
 
 Use `task strategy:deploy:reference` only for specialized maintenance work: deploying the shared baseline infrastructure or regenerating strategy `.env` files from it. Most contributors should ignore this command and use the standard strategy commands above.
 

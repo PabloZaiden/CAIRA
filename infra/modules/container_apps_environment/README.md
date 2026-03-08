@@ -54,8 +54,12 @@ Small Azure Container Apps environment layer for CAIRA application deployments.
 
 |------|-------------|
 
+| default\_domain | Default DNS domain assigned to the Container Apps environment. |
+
 | id | Resource ID of the Container Apps environment. |
 
 | name | Name of the Container Apps environment. |
+
+| static\_ip\_address | Static IP address assigned to the Container Apps environment. |
 
 <!-- END_TF_DOCS -->

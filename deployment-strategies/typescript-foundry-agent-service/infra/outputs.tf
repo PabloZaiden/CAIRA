@@ -8,6 +8,16 @@ output "container_app_environment_name" {
   value       = module.container_apps_environment.name
 }
 
+output "container_app_environment_default_domain" {
+  description = "Default DNS domain assigned to the Container Apps environment."
+  value       = module.container_apps_environment.default_domain
+}
+
+output "container_app_environment_static_ip_address" {
+  description = "Static IP address assigned to the Container Apps environment."
+  value       = module.container_apps_environment.static_ip_address
+}
+
 output "acr_name" {
   description = "Azure Container Registry name."
   value       = module.container_registry.name

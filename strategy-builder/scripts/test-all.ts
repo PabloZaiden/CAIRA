@@ -561,6 +561,122 @@ async function runPlaceholderLayer(layer: LayerName): Promise<LayerResult> {
   };
 }
 
+function listDeploymentStrategyInfraDirs(sampleFilter?: string | undefined): string[] {
+  const strategiesDir = resolve(REPO_ROOT, '..', 'deployment-strategies');
+  return readdirSync(strategiesDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .filter((name) => {
+      if (sampleFilter) return name.includes(sampleFilter);
+      return existsSync(resolve(strategiesDir, name, 'docker-compose.yml'));
+    })
+    .sort()
+    .map((name) => resolve(strategiesDir, name, 'infra'));
+}
+
+async function runL8(sampleFilter?: string | undefined): Promise<LayerResult> {
+  const start = Date.now();
+  const steps: StepResult[] = [];
+
+  const fmtTargets = [
+    { name: 'fmt:reference-architecture', dir: resolve(REPO_ROOT, '..', 'infra', 'foundry_agentic_app') },
+    { name: 'fmt:strategy-source', dir: resolve(REPO_ROOT, 'components', 'iac', 'azure-container-apps') },
+    { name: 'fmt:module-ref-test', dir: resolve(REPO_ROOT, 'testing', 'caira-module-ref-test') },
+    { name: 'fmt:generated-strategies', dir: resolve(REPO_ROOT, '..', 'deployment-strategies') }
+  ];
+
+  for (const target of fmtTargets) {
+    const stepStart = Date.now();
+    logStep(`${target.name}...`);
+    const result = await runCommand('terraform', ['fmt', '-check', '-recursive', target.dir], REPO_ROOT, 180_000);
+    const passed = result.success;
+    steps.push({
+      name: target.name,
+      passed,
+      durationMs: Date.now() - stepStart,
+      output: passed ? undefined : result.stdout.slice(-1000),
+      error: passed ? undefined : result.stderr.slice(-1000)
+    });
+    logStep(`  ${passed ? 'PASS' : 'FAIL'} ${target.name} (${String(Date.now() - stepStart)}ms)`);
+
+    if (!passed) {
+      return {
+        layer: 'L8',
+        description: LAYER_DESCRIPTIONS.L8,
+        passed: false,
+        durationMs: Date.now() - start,
+        details: steps
+      };
+    }
+  }
+
+  const validateTargets = [
+    { name: 'validate:reference-architecture', dir: resolve(REPO_ROOT, '..', 'infra', 'foundry_agentic_app') },
+    { name: 'validate:strategy-source', dir: resolve(REPO_ROOT, 'components', 'iac', 'azure-container-apps') },
+    { name: 'validate:module-ref-test', dir: resolve(REPO_ROOT, 'testing', 'caira-module-ref-test') },
+    ...listDeploymentStrategyInfraDirs(sampleFilter).map((dir) => ({
+      name: `validate:${basename(resolve(dir, '..'))}`,
+      dir
+    }))
+  ];
+
+  for (const target of validateTargets) {
+    const initStart = Date.now();
+    logStep(`${target.name}:init...`);
+    const initResult = await runCommand('terraform', ['init', '-backend=false', '-input=false'], target.dir, 300_000);
+    const initPassed = initResult.success;
+    steps.push({
+      name: `${target.name}:init`,
+      passed: initPassed,
+      durationMs: Date.now() - initStart,
+      output: initPassed ? undefined : initResult.stdout.slice(-1000),
+      error: initPassed ? undefined : initResult.stderr.slice(-1000)
+    });
+    logStep(`  ${initPassed ? 'PASS' : 'FAIL'} ${target.name}:init (${String(Date.now() - initStart)}ms)`);
+
+    if (!initPassed) {
+      return {
+        layer: 'L8',
+        description: LAYER_DESCRIPTIONS.L8,
+        passed: false,
+        durationMs: Date.now() - start,
+        details: steps
+      };
+    }
+
+    const validateStart = Date.now();
+    logStep(`${target.name}:validate...`);
+    const validateResult = await runCommand('terraform', ['validate'], target.dir, 180_000);
+    const validatePassed = validateResult.success;
+    steps.push({
+      name: `${target.name}:validate`,
+      passed: validatePassed,
+      durationMs: Date.now() - validateStart,
+      output: validatePassed ? undefined : validateResult.stdout.slice(-1000),
+      error: validatePassed ? undefined : validateResult.stderr.slice(-1000)
+    });
+    logStep(`  ${validatePassed ? 'PASS' : 'FAIL'} ${target.name}:validate (${String(Date.now() - validateStart)}ms)`);
+
+    if (!validatePassed) {
+      return {
+        layer: 'L8',
+        description: LAYER_DESCRIPTIONS.L8,
+        passed: false,
+        durationMs: Date.now() - start,
+        details: steps
+      };
+    }
+  }
+
+  return {
+    layer: 'L8',
+    description: LAYER_DESCRIPTIONS.L8,
+    passed: true,
+    durationMs: Date.now() - start,
+    details: steps
+  };
+}
+
 // ─── Component Discovery ────────────────────────────────────────────────
 
 interface ComponentInfo {
@@ -1756,7 +1872,7 @@ async function runLayers(options: RunOptions): Promise<LayerResult[]> {
   // ── Pre-flight: regenerate deployment-strategies only when needed ──────
   // L1/L2 no longer test deployment-strategies (root eslint covers lint, L7 validates drift).
   // Only regenerate when running layers that actually need deployment-strategies (L5, L6, L7).
-  const SAMPLE_LAYERS: LayerName[] = ['L5', 'L6', 'L7'];
+  const SAMPLE_LAYERS: LayerName[] = ['L5', 'L6', 'L7', 'L8'];
   const needsSamples = options.layers.some((l) => SAMPLE_LAYERS.includes(l));
 
   if (needsSamples) {
@@ -1834,7 +1950,7 @@ async function runLayers(options: RunOptions): Promise<LayerResult[]> {
         result = await runL7();
         break;
       case 'L8':
-        result = await runPlaceholderLayer(layer);
+        result = await runL8(options.strategy);
         break;
       default:
         result = await runPlaceholderLayer(layer);
