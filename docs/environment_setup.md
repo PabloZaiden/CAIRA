@@ -50,8 +50,8 @@ eval "$(task tf:env:setup)"
 
 ```bash
 task validate:pr
-task strategy:dev -- deployment-strategies/typescript-openai-agent-sdk
-task strategy:deploy -- deployment-strategies/typescript-openai-agent-sdk
+task strategy:dev -- deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca
+task strategy:deploy -- deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca
 ```
 
 For the full scenario-based decision tree, including infrastructure changes,
@@ -62,7 +62,7 @@ networking or capability-host validation, continue with the
 If you want your local Docker Compose stack to talk to real Azure services instead of mocks, use:
 
 ```bash
-task strategy:dev:azure -- deployment-strategies/typescript-foundry-agent-service
+task strategy:dev:azure -- deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
 ```
 
 If that Azure-backed validation depends on the durable private-network pools,

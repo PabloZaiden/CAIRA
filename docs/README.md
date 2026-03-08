@@ -24,15 +24,15 @@ For most users, the primary CAIRA entrypoint is the installed CAIRA skill. Insta
 
 CAIRA is organized around four connected layers:
 
-1. **Reference architectures** as directories directly under `infra/` (for example `infra/foundry_agentic_app/`, which composes a Foundry foundation with composable application-platform and service layers)
-1. **Reusable infrastructure modules** in `infra/modules/`
+1. **Reference architectures** as directories under `strategy-builder/infra/reference-architectures/` (for example `strategy-builder/infra/reference-architectures/foundry_agentic_app/`, which composes a Foundry foundation with composable application-platform and service layers)
+1. **Reusable infrastructure modules** in `strategy-builder/infra/modules/`
 1. **Application and deployment-strategy source code** in `strategy-builder/`
 1. **Committed generated deployments** in `deployment-strategies/`
 
 The repository validation story matches that model, and these docs double as reference material for the CAIRA skill:
 
 - **Pull requests** run fast static checks with `task validate:pr`
-- **Nightly validation** runs Terraform acceptance coverage plus deployed strategy lifecycle tests for every committed deployment strategy
+- **Nightly validation** runs deployed strategy lifecycle tests for every committed deployment strategy
 
 ## Useful contributor root commands
 
@@ -41,10 +41,10 @@ task setup
 task validate:pr
 task test
 task strategy:generate
-task strategy:dev -- deployment-strategies/typescript-openai-agent-sdk
-task strategy:deploy -- deployment-strategies/typescript-openai-agent-sdk
-task strategy:test:deployed -- deployment-strategies/typescript-openai-agent-sdk
-task strategy:test:deployed -- --test-profile public deployment-strategies/typescript-openai-agent-sdk
+task strategy:dev -- deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca
+task strategy:deploy -- deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca
+task strategy:test:deployed -- deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca
+task strategy:test:deployed -- --test-profile public deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca
 ```
 
 Private deployed profiles create the temporary jumpbox, keep the frontend on
@@ -56,5 +56,5 @@ Use `task strategy:deploy:reference` only when you are specifically working on t
 ## Additional areas
 
 - Contributing guidance lives under `docs/contributing/`
-- Infrastructure-specific guidance starts in `infra/README.md`
+- Infrastructure-specific guidance starts in `strategy-builder/infra/README.md`
 - App-layer and generator guidance starts in `strategy-builder/README.md`

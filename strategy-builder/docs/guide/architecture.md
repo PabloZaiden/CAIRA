@@ -146,19 +146,19 @@ The API container **parses** SSE events from the agent container to detect `acti
 
 ## Technology stack
 
-| Layer              | Technology             | Version            | Notes                                                                                                 |
-|--------------------|------------------------|--------------------|-------------------------------------------------------------------------------------------------------|
-| Runtime            | Node.js                | 24+                | Native TypeScript strip-types (no build step)                                                         |
-| Language           | TypeScript             | 5.8                | Strict mode, `verbatimModuleSyntax`, `exactOptionalPropertyTypes`                                     |
-| Module system      | ESM                    | --                 | `"type": "module"` in all `package.json` files                                                        |
-| HTTP framework     | Fastify                | 5.x                | Agent, API, and frontend (BFF) containers                                                             |
-| Frontend framework | React                  | 19                 | With Vite 6 bundler                                                                                   |
-| Frontend build     | Vite                   | 6.x                | Dev server + production build via esbuild                                                             |
-| Test framework     | Vitest                 | 3.x                | All projects, with jsdom for frontend component tests                                                 |
-| Contracts          | OpenAPI                | 3.1.0              | Validated with Redocly CLI                                                                            |
-| Auth               | DefaultAzureCredential | @azure/identity v4 | Entra ID tokens, no API keys                                                                          |
-| Container          | Docker                 | Multi-stage builds | Node 24 alpine for all containers                                                                     |
-| IaC                | Terraform              | Latest             | References macro reference architecture directories under `infra/` and shared `infra/modules/` inputs |
+| Layer              | Technology             | Version            | Notes                                                                                                                                   |
+|--------------------|------------------------|--------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
+| Runtime            | Node.js                | 24+                | Native TypeScript strip-types (no build step)                                                                                           |
+| Language           | TypeScript             | 5.8                | Strict mode, `verbatimModuleSyntax`, `exactOptionalPropertyTypes`                                                                       |
+| Module system      | ESM                    | --                 | `"type": "module"` in all `package.json` files                                                                                          |
+| HTTP framework     | Fastify                | 5.x                | Agent, API, and frontend (BFF) containers                                                                                               |
+| Frontend framework | React                  | 19                 | With Vite 6 bundler                                                                                                                     |
+| Frontend build     | Vite                   | 6.x                | Dev server + production build via esbuild                                                                                               |
+| Test framework     | Vitest                 | 3.x                | All projects, with jsdom for frontend component tests                                                                                   |
+| Contracts          | OpenAPI                | 3.1.0              | Validated with Redocly CLI                                                                                                              |
+| Auth               | DefaultAzureCredential | @azure/identity v4 | Entra ID tokens, no API keys                                                                                                            |
+| Container          | Docker                 | Multi-stage builds | Node 24 alpine for all containers                                                                                                       |
+| IaC                | Terraform              | Latest             | References macro reference architecture directories under `strategy-builder/infra/` and shared `strategy-builder/infra/modules/` inputs |
 
 ## TypeScript configuration
 
@@ -277,13 +277,13 @@ This is the **strategy-builder source tree**. Consumers interact with generated 
 
 The monorepo contains the "machinery" — components, test infrastructure, generator, scripts. The `deployment-strategies/` directory contains the "product" — self-contained projects that end users copy and use.
 
-|                 | Source tree (`components/`, `testing/`, `scripts/`) | Generated deployment strategies (`deployment-strategies/<name>/`) |
-|-----------------|-----------------------------------------------------|-------------------------------------------------------------------|
-| **Audience**    | Developers evolving the strategy builder            | Operators deploying end-to-end strategies                         |
-| **Contains**    | Reusable component source, test infra, mocks        | Full copies of source code, compose, IaC, docs                    |
-| **Standalone?** | No — components reference shared configs            | Yes — copy the folder, have everything                            |
-| **Mocks?**      | Yes — `testing/mocks/` for development              | No — end users connect to real Azure services                     |
-| **Generated?**  | No — hand-authored                                  | Yes — always produced by `scripts/generate-strategies.ts`         |
+|                 | Source tree (`components/`, `testing/`, `scripts/`) | Generated deployment strategies (`deployment-strategies/<reference-architecture>/<name>/`) |
+|-----------------|-----------------------------------------------------|--------------------------------------------------------------------------------------------|
+| **Audience**    | Developers evolving the strategy builder            | Operators deploying end-to-end strategies                                                  |
+| **Contains**    | Reusable component source, test infra, mocks        | Full copies of source code, compose, IaC, docs                                             |
+| **Standalone?** | No — components reference shared configs            | Yes — copy the folder, have everything                                                     |
+| **Mocks?**      | Yes — `testing/mocks/` for development              | No — end users connect to real Azure services                                              |
+| **Generated?**  | No — hand-authored                                  | Yes — always produced by `scripts/generate-strategies.ts`                                  |
 
 ## Agent framework comparison
 

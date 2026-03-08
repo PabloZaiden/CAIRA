@@ -46,9 +46,9 @@ After installation, restart your agent session and ask it to inspect CAIRA for y
 
 ## What CAIRA contains
 
-- `infra/foundry_agentic_app/` — the default deployable reference architecture, composed from a Foundry foundation plus composable application-platform and service layers.
-- `infra/modules/` — reusable Terraform modules consumed by the reference architectures and generated strategies.
-- `infra/testing/` — Terraform test fixtures plus durable infrastructure pools reused by nightly validation.
+- `strategy-builder/infra/reference-architectures/foundry_agentic_app/` — the default deployable reference architecture, composed from a Foundry foundation plus composable application-platform and service layers.
+- `strategy-builder/infra/modules/` — reusable Terraform modules consumed by the reference architectures and generated strategies.
+- `strategy-builder/infra/testing/` — Terraform test fixtures plus durable infrastructure pools reused by nightly validation.
 - `strategy-builder/` — source-of-truth application components, contracts, generators, and validation tooling.
 - `deployment-strategies/` — generated, committed end-to-end deployments built from the strategy builder.
 - `docs/` and `skills/` — contributor guidance, operating docs, and discovery assets.
@@ -72,17 +72,17 @@ CAIRA is not Terraform-only and not infrastructure-only. The repository intentio
 
 ## Contributor Taskfile-first workflows
 
-| Command                                                       | Purpose                                                                                                                |
-|---------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------|
-| `task setup`                                                  | Prepare a local machine for CAIRA development                                                                          |
-| `task validate:pr`                                            | Run the fast pull-request validation suite                                                                             |
-| `task test`                                                   | Run the full local validation suite                                                                                    |
-| `task strategy:generate`                                      | Regenerate committed deployment strategies                                                                             |
-| `task strategy:dev -- deployment-strategies/<name>`           | Run one generated strategy locally with Docker Compose                                                                 |
-| `task strategy:dev:azure -- deployment-strategies/<name>`     | Run one generated strategy locally against Azure                                                                       |
-| `task strategy:deploy -- deployment-strategies/<name>`        | Deploy one generated deployment strategy to Azure                                                                      |
-| `task strategy:destroy -- deployment-strategies/<name>`       | Destroy one generated deployment strategy deployment                                                                   |
-| `task strategy:test:deployed -- deployment-strategies/<name>` | Deploy, validate, and destroy one deployment strategy across the public, private, and private-capability-host profiles |
+| Command                                                                                | Purpose                                                                                                                |
+|----------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------|
+| `task setup`                                                                           | Prepare a local machine for CAIRA development                                                                          |
+| `task validate:pr`                                                                     | Run the fast pull-request validation suite                                                                             |
+| `task test`                                                                            | Run the full local validation suite                                                                                    |
+| `task strategy:generate`                                                               | Regenerate committed deployment strategies                                                                             |
+| `task strategy:dev -- deployment-strategies/<reference-architecture>/<name>`           | Run one generated strategy locally with Docker Compose                                                                 |
+| `task strategy:dev:azure -- deployment-strategies/<reference-architecture>/<name>`     | Run one generated strategy locally against Azure                                                                       |
+| `task strategy:deploy -- deployment-strategies/<reference-architecture>/<name>`        | Deploy one generated deployment strategy to Azure                                                                      |
+| `task strategy:destroy -- deployment-strategies/<reference-architecture>/<name>`       | Destroy one generated deployment strategy deployment                                                                   |
+| `task strategy:test:deployed -- deployment-strategies/<reference-architecture>/<name>` | Deploy, validate, and destroy one deployment strategy across the public, private, and private-capability-host profiles |
 
 Use `task strategy:deploy:reference` only for specialized maintenance work: deploying the shared baseline infrastructure or regenerating strategy `.env` files from it. Most contributors should ignore this command and use the standard strategy commands above.
 
@@ -100,19 +100,19 @@ CAIRA/
 └── skills/
 ```
 
-- The default reference architecture under `infra/foundry_agentic_app/` establishes the layered CAIRA baseline: Foundry foundation first, then composable application-platform and service layers.
+- The default reference architecture under `strategy-builder/infra/reference-architectures/foundry_agentic_app/` establishes the layered CAIRA baseline: Foundry foundation first, then composable application-platform and service layers.
 - The strategy builder turns reusable app-layer components plus infrastructure templates into committed deployment strategies.
 - `deployment-strategies/` is generated output and should stay in sync with `strategy-builder/`.
 
 ## Validation model
 
 - **Pull requests** run fast static validation only: linting, formatting, docs generation, docs build, Terraform validation, generator drift checks, and security scanners.
-- **Nightly validation** runs Terraform acceptance coverage and deploys, validates, and destroys every committed deployment strategy in parallel while reusing durable supporting infrastructure.
+- **Nightly validation** deploys, validates, and destroys every committed deployment strategy in parallel while reusing durable supporting infrastructure.
 
 ## Learn more
 
 - Start with `skills/caira/SKILL.md` if you want to use CAIRA through a coding agent.
 - Start with `docs/README.md` for contributor and operator documentation.
-- Review `infra/README.md` for the infrastructure layout.
+- Review `strategy-builder/infra/README.md` for the infrastructure layout.
 - Review `strategy-builder/README.md` for the app-layer and generator workflow.
 - Review the `deployment-strategies/*/README.md` files for generated strategy expectations.

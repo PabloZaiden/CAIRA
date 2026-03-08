@@ -1,0 +1,6 @@
+{
+  "id": "foundry_agentic_app",
+  "displayName": "Foundry Agentic App",
+  "description": "Default CAIRA reference architecture built around Azure AI Foundry and composable application layers.",
+  "default": true
+}

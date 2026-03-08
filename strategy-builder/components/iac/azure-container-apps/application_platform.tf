@@ -22,7 +22,7 @@ locals {
 }
 
 module "container_registry" {
-  source = "../../../../infra/modules/container_registry"
+  source = "../../../infra/modules/container_registry"
 
   name                = local.acr_name
   location            = var.location
@@ -31,7 +31,7 @@ module "container_registry" {
 }
 
 module "container_apps_environment" {
-  source = "../../../../infra/modules/container_apps_environment"
+  source = "../../../infra/modules/container_apps_environment"
 
   name                       = "${local.app_prefix}-env"
   location                   = var.location

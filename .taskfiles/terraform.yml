@@ -147,9 +147,9 @@ tasks:
   docs:
     desc: Generate Terraform documentation
     cmds:
-      - terraform-docs -c ./.github/configs/.terraform-docs.yml infra/modules
-      - terraform-docs -c ./.github/configs/.terraform-docs.yml infra/foundry_agentic_app
-      - terraform-docs -c ./.github/configs/.terraform-docs.yml infra/testing
+      - terraform-docs -c ./.github/configs/.terraform-docs.yml strategy-builder/infra/modules
+      - terraform-docs -c ./.github/configs/.terraform-docs.yml strategy-builder/infra/reference-architectures/foundry_agentic_app
+      - terraform-docs -c ./.github/configs/.terraform-docs.yml strategy-builder/infra/testing
       - cmd: |
           python3 <<'PY'
           from pathlib import Path
@@ -266,7 +266,7 @@ tasks:
       eval "$export_azure_sub"
 
       echo "Deploying Private Foundry Pool..."
-      pushd infra/testing/infrastructure_pools/private_foundry_pool > /dev/null
+      pushd strategy-builder/infra/testing/infrastructure_pools/private_foundry_pool > /dev/null
 
       # if there is a terraform.tfstate file, skip init/apply
       if [[ -f "terraform.tfstate" ]]; then
@@ -279,7 +279,7 @@ tasks:
       popd > /dev/null
 
       echo "Deploying Private Foundry Capability Hosts Pool..."
-      pushd infra/testing/infrastructure_pools/private_foundry_capability_hosts_pool > /dev/null
+      pushd strategy-builder/infra/testing/infrastructure_pools/private_foundry_capability_hosts_pool > /dev/null
 
       # if there is a terraform.tfstate file, skip init/apply
       if [[ -f "terraform.tfstate" ]]; then
@@ -297,12 +297,12 @@ tasks:
       set -e
 
       echo "Private Foundry Pool outputs:"
-      pushd infra/testing/infrastructure_pools/private_foundry_pool > /dev/null
+      pushd strategy-builder/infra/testing/infrastructure_pools/private_foundry_pool > /dev/null
       terraform output
       popd > /dev/null
 
       echo "Private Foundry Capability Hosts Pool outputs:"
-      pushd infra/testing/infrastructure_pools/private_foundry_capability_hosts_pool > /dev/null
+      pushd strategy-builder/infra/testing/infrastructure_pools/private_foundry_capability_hosts_pool > /dev/null
       terraform output
       popd > /dev/null
 
@@ -313,7 +313,7 @@ tasks:
       set -e
 
       # Durable Infrastructure Pools - Private Foundry Capability Hosts
-      pushd infra/testing/infrastructure_pools/private_foundry_capability_hosts_pool > /dev/null
+      pushd strategy-builder/infra/testing/infrastructure_pools/private_foundry_capability_hosts_pool > /dev/null
       echo "export TF_VAR_private_foundry_capability_hosts_pool_resource_group_name=\"$(terraform output -raw resource_group_name)\""
       echo "export TF_VAR_private_foundry_capability_hosts_pool_vnet_name=\"$(terraform output -json connection | jq -r '.virtual_network_name')\""
       echo "export TF_VAR_private_foundry_capability_hosts_pool_cosmosdb_account_name=\"$(terraform output -raw cosmosdb_account_name)\""
@@ -322,111 +322,15 @@ tasks:
       popd > /dev/null
 
       # Durable Infrastructure Pools - Private Foundry
-      pushd infra/testing/infrastructure_pools/private_foundry_pool > /dev/null
+      pushd strategy-builder/infra/testing/infrastructure_pools/private_foundry_pool > /dev/null
       echo "export TF_VAR_private_foundry_pool_resource_group_name=\"$(terraform output -raw resource_group_name)\""
       echo "export TF_VAR_private_foundry_pool_vnet_name=\"$(terraform output -json connection | jq -r '.virtual_network_name')\""
       popd > /dev/null
 
-  # * Run Acceptance Test
-  test:acc:
-    desc: Run terraform acceptance tests
-    silent: true
-    status:
-      - test ! -d "tests/acceptance"
-    cmds:
-      - terraform init -upgrade -test-directory="tests/acceptance"
-      - terraform test -test-directory="tests/acceptance" -junit-xml="testacc-results.xml" -verbose
-    dir: "{{.USER_WORKING_DIR}}"
-
-  test:acc:all:
-    desc: Run terraform acceptance tests on all modules
-    silent: true
-    vars:
-      ITEMS:
-        sh: "task tf:get:modules -- ."
-    cmds:
-      - for: { var: ITEMS }
-        cmd: |
-          pushd "{{osClean .ITEM}}"
-          task tf:test:acc
-          popd
-    dir: "{{.ROOT_DIR}}"
-
-  # * Run Integration Test
-  test:int:
-    desc: Run terraform integration tests
-    silent: true
-    status:
-      - test ! -d "tests/integration"
-    cmds:
-      - terraform init -upgrade -test-directory="tests/integration"
-      - terraform test -test-directory="tests/integration" -junit-xml="testint-results.xml" -verbose
-    dir: "{{.USER_WORKING_DIR}}"
-
-  test:int:local:
-    desc: Run terraform integration tests in local mode
-    deps:
-      - test:pools:deploy
-    silent: true
-    status:
-      - test ! -d "tests/integration"
-    cmd: |
-      export_azure_sub=$(task tf:env:setup)
-
-      eval "$export_azure_sub"
-
-      export_pool_vars=$(task tf:test:pools:outputs:env)
-
-      eval "$export_pool_vars"
-
-      terraform init -upgrade -test-directory="tests/integration"
-      terraform test -test-directory="tests/integration" -verbose
-
-    dir: "{{.USER_WORKING_DIR}}"
-
-  test:int:all:
-    desc: Run terraform integration on all modules
-    silent: true
-    vars:
-      ITEMS:
-        sh: "task tf:get:modules -- ."
-    cmds:
-      - for: { var: ITEMS }
-        cmd: |
-          pushd "{{osClean .ITEM}}"
-          task tf:test:int
-          popd
-    dir: "{{.ROOT_DIR}}"
-
-  test:int:all:local:
-    desc: Run terraform integration on all modules in local mode
-    silent: true
-    vars:
-      ITEMS:
-        sh: "task tf:get:modules -- ."
-    cmds:
-      - for: { var: ITEMS }
-        cmd: |
-          pushd "{{osClean .ITEM}}"
-          task tf:test:int:local
-          popd
-    dir: "{{.ROOT_DIR}}"
-
-  # * Run All Tests
-  test:
-    desc: Run all terraform tests (integration, acceptance) on all modules
-    cmds:
-      - echo "🔗 Running Integration Tests..."
-      - task: test:int:all
-      - echo "✅ Running Acceptance Tests..."
-      - task: test:acc:all
-      - echo "🎉 All tests completed!"
-    dir: "{{.ROOT_DIR}}"
-
   get:modules:
     desc: Get all TF modules
     vars:
-      PATH: "{{if empty .CLI_ARGS | not}}{{.CLI_ARGS}}{{else}}infra/modules{{end}}"
+      PATH: "{{if empty .CLI_ARGS | not}}{{.CLI_ARGS}}{{else}}strategy-builder/infra/modules{{end}}"
     silent: true
     cmds:
       - cmd: find "{{osClean .PATH}}" -mindepth 2 -not -path "*/.*" -type f -name "*.tf" -exec dirname {} \; | sort -u

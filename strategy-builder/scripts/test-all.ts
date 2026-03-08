@@ -27,6 +27,7 @@ import { validateSamples } from './lib/generator/validator.ts';
 import { generate } from './lib/generator/index.ts';
 import { ensureDeploy } from './deploy-reference-architecture.ts';
 import { ensureAzurecliVolume, fixAzurecliPermissions, MOCK_MAP } from './lib/compose-helpers.ts';
+import { DEPLOYMENT_STRATEGIES_ROOT, REFERENCE_ARCHITECTURES_ROOT, listGeneratedStrategyDirs } from './lib/paths.ts';
 
 const execFileAsync = promisify(execFile);
 
@@ -562,16 +563,13 @@ async function runPlaceholderLayer(layer: LayerName): Promise<LayerResult> {
 }
 
 function listDeploymentStrategyInfraDirs(sampleFilter?: string | undefined): string[] {
-  const strategiesDir = resolve(REPO_ROOT, '..', 'deployment-strategies');
-  return readdirSync(strategiesDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .filter((name) => {
-      if (sampleFilter) return name.includes(sampleFilter);
-      return existsSync(resolve(strategiesDir, name, 'docker-compose.yml'));
+  return listGeneratedStrategyDirs(DEPLOYMENT_STRATEGIES_ROOT)
+    .filter((dir) => {
+      if (!sampleFilter) return true;
+      const strategyPath = relative(DEPLOYMENT_STRATEGIES_ROOT, dir);
+      return strategyPath.includes(sampleFilter) || basename(dir).includes(sampleFilter);
     })
-    .sort()
-    .map((name) => resolve(strategiesDir, name, 'infra'));
+    .map((dir) => resolve(dir, 'infra'));
 }
 
 async function runL8(sampleFilter?: string | undefined): Promise<LayerResult> {
@@ -579,10 +577,10 @@ async function runL8(sampleFilter?: string | undefined): Promise<LayerResult> {
   const steps: StepResult[] = [];
 
   const fmtTargets = [
-    { name: 'fmt:reference-architecture', dir: resolve(REPO_ROOT, '..', 'infra', 'foundry_agentic_app') },
+    { name: 'fmt:reference-architecture', dir: resolve(REFERENCE_ARCHITECTURES_ROOT, 'foundry_agentic_app') },
     { name: 'fmt:strategy-source', dir: resolve(REPO_ROOT, 'components', 'iac', 'azure-container-apps') },
     { name: 'fmt:module-ref-test', dir: resolve(REPO_ROOT, 'testing', 'caira-module-ref-test') },
-    { name: 'fmt:generated-strategies', dir: resolve(REPO_ROOT, '..', 'deployment-strategies') }
+    { name: 'fmt:generated-strategies', dir: DEPLOYMENT_STRATEGIES_ROOT }
   ];
 
   for (const target of fmtTargets) {
@@ -611,7 +609,7 @@ async function runL8(sampleFilter?: string | undefined): Promise<LayerResult> {
   }
 
   const validateTargets = [
-    { name: 'validate:reference-architecture', dir: resolve(REPO_ROOT, '..', 'infra', 'foundry_agentic_app') },
+    { name: 'validate:reference-architecture', dir: resolve(REFERENCE_ARCHITECTURES_ROOT, 'foundry_agentic_app') },
     { name: 'validate:strategy-source', dir: resolve(REPO_ROOT, 'components', 'iac', 'azure-container-apps') },
     { name: 'validate:module-ref-test', dir: resolve(REPO_ROOT, 'testing', 'caira-module-ref-test') },
     ...listDeploymentStrategyInfraDirs(sampleFilter).map((dir) => ({
@@ -1590,17 +1588,11 @@ async function runL5(sampleFilter?: string | undefined): Promise<LayerResult> {
   const start = Date.now();
   const steps: StepResult[] = [];
 
-  const strategiesDir = resolve(REPO_ROOT, '..', 'deployment-strategies');
-  const sampleDirs = readdirSync(strategiesDir, { withFileTypes: true })
-    .filter((d) => d.isDirectory())
-    .map((d) => d.name)
-    .filter((name) => {
-      // If a strategy filter is specified, only run that one
-      if (sampleFilter) return name.includes(sampleFilter);
-      // Only include directories that have docker-compose.yml
-      return existsSync(resolve(strategiesDir, name, 'docker-compose.yml'));
-    })
-    .sort();
+  const sampleDirs = listGeneratedStrategyDirs(DEPLOYMENT_STRATEGIES_ROOT).filter((dir) => {
+    if (!sampleFilter) return true;
+    const strategyPath = relative(DEPLOYMENT_STRATEGIES_ROOT, dir);
+    return strategyPath.includes(sampleFilter) || basename(dir).includes(sampleFilter);
+  });
 
   if (sampleDirs.length === 0) {
     return {
@@ -1630,8 +1622,8 @@ async function runL5(sampleFilter?: string | undefined): Promise<LayerResult> {
     };
   }
 
-  for (const sampleName of sampleDirs) {
-    const sampleDir = resolve(strategiesDir, sampleName);
+  for (const sampleDir of sampleDirs) {
+    const sampleName = relative(DEPLOYMENT_STRATEGIES_ROOT, sampleDir);
     const stepStart = Date.now();
     logStep(`Compose E2E: ${sampleName}...`);
 
@@ -1677,15 +1669,11 @@ async function runL6(sampleFilter?: string | undefined): Promise<LayerResult> {
   const start = Date.now();
   const steps: StepResult[] = [];
 
-  const strategiesDir = resolve(REPO_ROOT, '..', 'deployment-strategies');
-  const sampleDirs = readdirSync(strategiesDir, { withFileTypes: true })
-    .filter((d) => d.isDirectory())
-    .map((d) => d.name)
-    .filter((name) => {
-      if (sampleFilter) return name.includes(sampleFilter);
-      return existsSync(resolve(strategiesDir, name, 'docker-compose.yml'));
-    })
-    .sort();
+  const sampleDirs = listGeneratedStrategyDirs(DEPLOYMENT_STRATEGIES_ROOT).filter((dir) => {
+    if (!sampleFilter) return true;
+    const strategyPath = relative(DEPLOYMENT_STRATEGIES_ROOT, dir);
+    return strategyPath.includes(sampleFilter) || basename(dir).includes(sampleFilter);
+  });
 
   if (sampleDirs.length === 0) {
     return {
@@ -1759,8 +1747,8 @@ async function runL6(sampleFilter?: string | undefined): Promise<LayerResult> {
     await fixAzurecliPermissions();
   }
 
-  for (const sampleName of sampleDirs) {
-    const sampleDir = resolve(strategiesDir, sampleName);
+  for (const sampleDir of sampleDirs) {
+    const sampleName = relative(DEPLOYMENT_STRATEGIES_ROOT, sampleDir);
     const stepStart = Date.now();
     logStep(`E2E (Azure): ${sampleName}...`);
 
@@ -1879,10 +1867,9 @@ async function runLayers(options: RunOptions): Promise<LayerResult[]> {
     log('Pre-flight: Regenerating deployment-strategies...');
     const regenStart = Date.now();
     try {
-      const strategiesDir = resolve(REPO_ROOT, '..', 'deployment-strategies');
       const result = await generate({
         repoRoot: REPO_ROOT,
-        samplesDir: strategiesDir,
+        samplesDir: DEPLOYMENT_STRATEGIES_ROOT,
         clean: true
       });
       const regenMs = Date.now() - regenStart;

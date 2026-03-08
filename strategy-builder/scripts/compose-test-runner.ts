@@ -31,7 +31,7 @@ import {
 } from './lib/compose-helpers.ts';
 import { generate } from './lib/generator/index.ts';
 import { ensureDeploy } from './deploy-reference-architecture.ts';
-import { resolveStrategyPath } from './lib/paths.ts';
+import { DEPLOYMENT_STRATEGIES_ROOT, resolveStrategyPath } from './lib/paths.ts';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -92,7 +92,7 @@ export async function runComposeTests(options: ComposeTestOptions): Promise<Comp
   const repoRoot = resolve(import.meta.dirname ?? '.', '..');
   if (!options.skipRegenerate) {
     log('Regenerating deployment strategies from components...');
-    const samplesDir = resolve(repoRoot, '..', 'deployment-strategies');
+    const samplesDir = DEPLOYMENT_STRATEGIES_ROOT;
     try {
       await generate({ repoRoot, samplesDir, clean: true });
       log('Deployment strategies regenerated successfully.');
@@ -280,7 +280,7 @@ Options:
 
 Example:
   node scripts/compose-test-runner.ts \\
-    --strategy deployment-strategies/typescript-openai-agent-sdk
+    --strategy deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca
 `);
 }
 

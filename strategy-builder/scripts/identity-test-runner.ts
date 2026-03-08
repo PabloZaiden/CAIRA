@@ -11,7 +11,7 @@
  *
  * Usage:
  *   node scripts/identity-test-runner.ts \
- *     --strategy deployment-strategies/typescript-foundry-agent-service
+ *     --strategy deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
  */
 
 import { existsSync } from 'node:fs';
@@ -29,7 +29,7 @@ import {
   captureContainerLogs
 } from './lib/compose-helpers.ts';
 import { generate } from './lib/generator/index.ts';
-import { resolveStrategyPath } from './lib/paths.ts';
+import { DEPLOYMENT_STRATEGIES_ROOT, resolveStrategyPath } from './lib/paths.ts';
 
 const execFileAsync = promisify(execFile);
 
@@ -194,7 +194,7 @@ export async function runIdentityTest(options: IdentityTestOptions): Promise<Ide
   if (!skipRegenerate) {
     log('Step 2: Regenerating deployment strategies from components...');
     try {
-      const samplesDir = resolve(repoRoot, '..', 'deployment-strategies');
+      const samplesDir = DEPLOYMENT_STRATEGIES_ROOT;
       await generate({ repoRoot, samplesDir, clean: true });
       log('  Deployment strategies regenerated.');
     } catch (err) {
@@ -449,7 +449,7 @@ Prerequisites:
 
 Example:
   node scripts/identity-test-runner.ts \\
-    --strategy deployment-strategies/typescript-foundry-agent-service
+    --strategy deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
 `);
 }
 

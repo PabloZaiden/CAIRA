@@ -6,8 +6,8 @@ This template is for coding agents to decide using discovered CAIRA assets, not 
 
 1. Resolve `ref` (user-provided or latest release tag).
 1. List architectures dynamically:
-   - `GET https://api.github.com/repos/microsoft/CAIRA/contents/infra?ref=<ref>`
-1. For each discovered architecture directory directly under `infra/` (excluding `modules/` and `testing/`):
+   - `GET https://api.github.com/repos/microsoft/CAIRA/contents/strategy-builder/infra/reference-architectures?ref=<ref>`
+1. For each discovered architecture directory directly under `strategy-builder/infra/reference-architectures/`:
     - List files in that directory via contents API.
     - Read `README.md` and `*.tf` from returned `download_url` values.
     - Extract capabilities from content (networking posture, dependencies, capability host patterns, required inputs, complexity, observability components).

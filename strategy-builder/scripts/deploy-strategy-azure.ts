@@ -9,8 +9,8 @@
  *   5) Terraform apply phase 2 with the real images and app env
  *
  * Usage:
- *   task strategy:deploy -- deployment-strategies/typescript-foundry-agent-service
- *   task strategy:destroy -- deployment-strategies/typescript-foundry-agent-service
+ *   task strategy:deploy -- deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
+ *   task strategy:destroy -- deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
  */
 
 import { execFile, spawn } from 'node:child_process';
@@ -35,7 +35,7 @@ import {
   usesPrivateNetworking,
   type DeployedTestProfile
 } from './lib/test-profiles.ts';
-import { resolveStrategyPath } from './lib/paths.ts';
+import { DEPLOYMENT_STRATEGIES_ROOT, resolveStrategyPath } from './lib/paths.ts';
 
 const execFileAsync = promisify(execFile);
 const REPO_ROOT = resolve(import.meta.dirname ?? '.', '..');
@@ -149,13 +149,13 @@ Options:
   --help, -h              Show help
 
 Examples:
-  task strategy:deploy -- deployment-strategies/typescript-foundry-agent-service
-  task strategy:deploy -- --test-profile private deployment-strategies/typescript-foundry-agent-service
-  task strategy:destroy -- deployment-strategies/typescript-foundry-agent-service
+  task strategy:deploy -- deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
+  task strategy:deploy -- --test-profile private deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
+  task strategy:destroy -- deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
 
 Advanced direct script usage:
-  node scripts/deploy-strategy-azure.ts --strategy deployment-strategies/typescript-foundry-agent-service
-  node scripts/deploy-strategy-azure.ts --destroy --strategy deployment-strategies/typescript-foundry-agent-service
+  node scripts/deploy-strategy-azure.ts --strategy deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
+  node scripts/deploy-strategy-azure.ts --destroy --strategy deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
 `.trimStart()
   );
 }
@@ -781,7 +781,7 @@ async function main(): Promise<void> {
     includeJumpbox: !parsed.destroy,
     jumpboxAllowedCidr: allowedCidr,
     jumpboxSshPublicKey,
-    strategiesRoot: resolve(REPO_ROOT, '..', 'deployment-strategies')
+    strategiesRoot: DEPLOYMENT_STRATEGIES_ROOT
   });
 
   const tfVarsPath = resolve(

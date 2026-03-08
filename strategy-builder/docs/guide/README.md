@@ -24,7 +24,7 @@ task setup
 task validate:pr
 task strategy:generate
 task strategy:test:local
-task strategy:test:deployed -- deployment-strategies/typescript-openai-agent-sdk
+task strategy:test:deployed -- deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca
 ```
 
 ## Guide contents

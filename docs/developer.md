@@ -28,9 +28,9 @@ then regenerate.
 Use this directory map to decide where to start:
 
 ```text
-infra/foundry_agentic_app  Shared layered baseline reference architecture
-infra/modules              Reusable Terraform modules
-infra/testing              Terraform tests plus durable private-network pools
+strategy-builder/infra/reference-architectures/foundry_agentic_app  Shared layered baseline reference architecture
+strategy-builder/infra/modules              Reusable Terraform modules
+strategy-builder/infra/testing              Terraform tests plus durable private-network pools
 strategy-builder/          App components, variants, generator, deployment tooling
 deployment-strategies/     Generated, committed end-to-end strategy outputs
 ```
@@ -64,68 +64,71 @@ deployment-strategies/     Generated, committed end-to-end strategy outputs
 
 Use this table first, then follow the detailed playbook for the scenario.
 
-| If you changed...                                                       | Start with...                                                              | Go deeper with...                                                                                                    | Commit expectations                                                                       |
-|-------------------------------------------------------------------------|----------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------|
-| Docs, markdown, or contributor guidance                                 | `task validate:pr`                                                         | `task docs` if Terraform docs or Markdown-generated files changed                                                    | Commit the doc edits and any intentional generated doc updates                            |
-| GitHub workflows, Taskfiles, or repo automation scripts                 | `task lint` and `task validate:pr`                                         | Manual workflow dispatch after merge when the workflow supports it                                                   | Explain the trigger, permissions, and rollout impact in the PR                            |
-| `infra/modules/`, `infra/foundry_agentic_app/`, or `infra/testing/`     | `task validate:pr`                                                         | `task tf:test:acc:all`; use the local integration or pool tasks when networking behavior changed                     | Commit Terraform doc updates and any intentional generated files                          |
-| Shared baseline deployment or strategy `.env` synchronization           | `task strategy:deploy:reference`                                           | `task strategy:test:deployed -- deployment-strategies/<name>`                                                        | Commit the source change plus the refreshed strategy env output                           |
-| `strategy-builder/` components, variants, templates, or generator logic | `task strategy:generate`                                                   | `task strategy:test:local`, `task strategy:dev`, `task strategy:dev:azure`, or `task strategy:test:deployed`         | Commit both the source change and the regenerated `deployment-strategies/` diff           |
-| Private networking or capability-host wiring                            | `task tf:test:pools:deploy` and `eval "$(task tf:test:pools:outputs:env)"` | `task strategy:dev:azure`, `task strategy:test:deployed`, or `task validate:nightly -- deployment-strategies/<name>` | Keep the sample code lean; document the wiring instead of cloning near-duplicate variants |
+| If you changed...                                                                                                                              | Start with...                                                              | Go deeper with...                                                                                                                             | Commit expectations                                                                       |
+|------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------|
+| Docs, markdown, or contributor guidance                                                                                                        | `task validate:pr`                                                         | `task docs` if Terraform docs or Markdown-generated files changed                                                                             | Commit the doc edits and any intentional generated doc updates                            |
+| GitHub workflows, Taskfiles, or repo automation scripts                                                                                        | `task lint` and `task validate:pr`                                         | Manual workflow dispatch after merge when the workflow supports it                                                                            | Explain the trigger, permissions, and rollout impact in the PR                            |
+| `strategy-builder/infra/modules/`, `strategy-builder/infra/reference-architectures/foundry_agentic_app/`, or `strategy-builder/infra/testing/` | `task validate:pr`                                                         | `task strategy:test:local`; use the pool tasks plus `task strategy:test:deployed` when Azure or private-network behavior changed              | Commit Terraform doc updates and any intentional generated files                          |
+| Shared baseline deployment or strategy `.env` synchronization                                                                                  | `task strategy:deploy:reference`                                           | `task strategy:test:deployed -- deployment-strategies/<reference-architecture>/<name>`                                                        | Commit the source change plus the refreshed strategy env output                           |
+| `strategy-builder/` components, variants, templates, or generator logic                                                                        | `task strategy:generate`                                                   | `task strategy:test:local`, `task strategy:dev`, `task strategy:dev:azure`, or `task strategy:test:deployed`                                  | Commit both the source change and the regenerated `deployment-strategies/` diff           |
+| Private networking or capability-host wiring                                                                                                   | `task tf:test:pools:deploy` and `eval "$(task tf:test:pools:outputs:env)"` | `task strategy:dev:azure`, `task strategy:test:deployed`, or `task validate:nightly -- deployment-strategies/<reference-architecture>/<name>` | Keep the sample code lean; document the wiring instead of cloning near-duplicate variants |
 
 ## Root task reference
 
 These are the main repository entrypoints. Start here unless you are doing a
 targeted deep dive.
 
-| Command                                                 | Use it when                                           | What it runs                                                                                                                    | What you are expected to do                                                                                     |
-|---------------------------------------------------------|-------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------|
-| `task setup`                                            | Setting up a new local machine                        | OS-specific prerequisite install, then `task tools`, then `task bootstrap`                                                      | Install Task first, satisfy OS prerequisites, and rerun if your workstation toolchain drifts                    |
-| `task tools`                                            | Refreshing repo-wide CLIs and linters                 | Bash, GitHub, JavaScript, Markdown, security, spelling, Terraform, YAML, and site tool installers                               | Use when local tools are missing or outdated; it does not install strategy-builder workspace packages by itself |
-| `task bootstrap`                                        | Preparing app-layer workspace dependencies            | `task strategy:install`                                                                                                         | Rerun after dependency changes or after switching to a branch with updated lockfiles                            |
-| `task lint`                                             | Fast static checks without docs/site generation       | `sh:lint`, `gh:lint`, `js:lint`, `md:lint`, `sec:lint`, `spell:lint`, `tf:lint`, and `yml:lint`                                 | Fix the underlying source issue rather than forcing generated output into compliance                            |
-| `task docs`                                             | Refreshing generated docs before review               | `task tf:docs`, `task spell:lint`, and `task md:lint`                                                                           | Review and commit generated README changes if Terraform inputs, outputs, or examples changed                    |
-| `task validate:pr`                                      | Pre-PR validation for almost every change             | `task tf:docs`, `task lint`, `task strategy:validate:pr`, and `task site:build -- --strict`, then checks the git diff for drift | Run this before opening or updating a PR; if it changes files, regenerate the expected output and commit it     |
-| `task test`                                             | Broad local validation for risky infra or app changes | `task tf:test:acc:all` plus `task strategy:test:local`                                                                          | Expect a longer run; use it when static validation is not enough                                                |
-| `task validate:nightly -- deployment-strategies/<name>` | Reproducing the nightly path for one strategy         | `task validate:pr`, `task tf:test:acc:all`, and `task strategy:test:deployed -- <strategy>`                                     | Use before merging changes that could break deployed validation; pass a real strategy path                      |
-| `task clean`                                            | Removing local build and Terraform residue            | Terraform and docs-site cleanup tasks                                                                                           | Use after local experiments; do not rely on it to remove cloud resources                                        |
+| Command                                                                          | Use it when                                           | What it runs                                                                                                                    | What you are expected to do                                                                                     |
+|----------------------------------------------------------------------------------|-------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------|
+| `task setup`                                                                     | Setting up a new local machine                        | OS-specific prerequisite install, then `task tools`, then `task bootstrap`                                                      | Install Task first, satisfy OS prerequisites, and rerun if your workstation toolchain drifts                    |
+| `task tools`                                                                     | Refreshing repo-wide CLIs and linters                 | Bash, GitHub, JavaScript, Markdown, security, spelling, Terraform, YAML, and site tool installers                               | Use when local tools are missing or outdated; it does not install strategy-builder workspace packages by itself |
+| `task bootstrap`                                                                 | Preparing app-layer workspace dependencies            | `task strategy:install`                                                                                                         | Rerun after dependency changes or after switching to a branch with updated lockfiles                            |
+| `task lint`                                                                      | Fast static checks without docs/site generation       | `sh:lint`, `gh:lint`, `js:lint`, `md:lint`, `sec:lint`, `spell:lint`, `tf:lint`, and `yml:lint`                                 | Fix the underlying source issue rather than forcing generated output into compliance                            |
+| `task docs`                                                                      | Refreshing generated docs before review               | `task tf:docs`, `task spell:lint`, and `task md:lint`                                                                           | Review and commit generated README changes if Terraform inputs, outputs, or examples changed                    |
+| `task validate:pr`                                                               | Pre-PR validation for almost every change             | `task tf:docs`, `task lint`, `task strategy:validate:pr`, and `task site:build -- --strict`, then checks the git diff for drift | Run this before opening or updating a PR; if it changes files, regenerate the expected output and commit it     |
+| `task test`                                                                      | Broad local validation for risky infra or app changes | `task strategy:test:local`                                                                                                      | Expect a longer run; use it when static validation is not enough                                                |
+| `task validate:nightly -- deployment-strategies/<reference-architecture>/<name>` | Reproducing the nightly path for one strategy         | `task validate:pr` and `task strategy:test:deployed -- <strategy>`                                                              | Use before merging changes that could break deployed validation; pass a real strategy path                      |
+| `task clean`                                                                     | Removing local build and Terraform residue            | Terraform and docs-site cleanup tasks                                                                                           | Use after local experiments; do not rely on it to remove cloud resources                                        |
 
 ## Terraform and infrastructure test tasks
 
-Use these when you are working directly in `infra/` or when a strategy change
-depends on infrastructure behavior.
+Use these when you are working directly in `strategy-builder/infra/` or when a
+strategy change depends on infrastructure behavior.
 
-| Command                          | Use it when                                                  | What it does                                                                             | What you are expected to do                                                                              |
-|----------------------------------|--------------------------------------------------------------|------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------|
-| `task tf:env:login`              | You want Task to handle Azure login                          | Runs `az login` if needed                                                                | Use before Azure-backed Terraform tasks when your CLI session is expired                                 |
-| `task tf:env:setup`              | You need Terraform environment variables                     | Emits `export ARM_SUBSCRIPTION_ID=...` when Azure CLI is authenticated                   | Run `eval "$(task tf:env:setup)"` before Azure-backed testing                                            |
-| `task tf:docs`                   | Terraform README blocks may have changed                     | Regenerates Terraform docs across modules, reference architecture, and testing assets    | Review the README diff and commit the intended updates                                                   |
-| `task tf:lint`                   | You changed Terraform or Terraform-adjacent docs             | Runs `terraform fmt`, `tflint`, and `terrafmt` checks                                    | Fix formatting and lint issues in the source files                                                       |
-| `task tf:test:acc:all`           | Terraform modules or reference-architecture behavior changed | Runs acceptance tests for every Terraform module directory                               | Use this for real infra changes, not just docs edits                                                     |
-| `task tf:test:int:all`           | You want integration coverage without local durable pools    | Runs Terraform integration tests for all modules                                         | Use when tests do not depend on the durable private-network pools                                        |
-| `task tf:test:int:all:local`     | Integration coverage needs durable private-network assets    | Deploys or reuses the pools, exports their values, then runs all local integration tests | Authenticate with Azure first and expect this to create or reuse shared supporting infra                 |
-| `task tf:test:pools:deploy`      | You need the private networking pools available locally      | Deploys or reuses `private_foundry_pool/` and `private_foundry_capability_hosts_pool/`   | Treat the pools as durable shared infra; do not destroy them casually                                    |
-| `task tf:test:pools:outputs`     | You need to inspect pool values                              | Prints Terraform outputs for both durable pools                                          | Use it to troubleshoot naming, networking, and DNS details                                               |
-| `task tf:test:pools:outputs:env` | You want pool outputs as shell exports                       | Emits `TF_VAR_private_foundry_*` exports for the durable pools                           | Run `eval "$(task tf:test:pools:outputs:env)"` before local Azure-backed validation that needs the pools |
+The standalone `terraform test` acceptance and integration suites were removed
+because their assertions were redundant with the generated-strategy validation
+path. For meaningful infra changes, use `task validate:pr`, then escalate to
+`task strategy:test:local` and Azure-backed strategy validation when the change
+affects real deployment behavior.
+
+| Command                          | Use it when                                             | What it does                                                                           | What you are expected to do                                                                              |
+|----------------------------------|---------------------------------------------------------|----------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------|
+| `task tf:env:login`              | You want Task to handle Azure login                     | Runs `az login` if needed                                                              | Use before Azure-backed Terraform tasks when your CLI session is expired                                 |
+| `task tf:env:setup`              | You need Terraform environment variables                | Emits `export ARM_SUBSCRIPTION_ID=...` when Azure CLI is authenticated                 | Run `eval "$(task tf:env:setup)"` before Azure-backed testing                                            |
+| `task tf:docs`                   | Terraform README blocks may have changed                | Regenerates Terraform docs across modules, reference architecture, and testing assets  | Review the README diff and commit the intended updates                                                   |
+| `task tf:lint`                   | You changed Terraform or Terraform-adjacent docs        | Runs `terraform fmt`, `tflint`, and `terrafmt` checks                                  | Fix formatting and lint issues in the source files                                                       |
+| `task tf:test:pools:deploy`      | You need the private networking pools available locally | Deploys or reuses `private_foundry_pool/` and `private_foundry_capability_hosts_pool/` | Treat the pools as durable shared infra; do not destroy them casually                                    |
+| `task tf:test:pools:outputs`     | You need to inspect pool values                         | Prints Terraform outputs for both durable pools                                        | Use it to troubleshoot naming, networking, and DNS details                                               |
+| `task tf:test:pools:outputs:env` | You want pool outputs as shell exports                  | Emits `TF_VAR_private_foundry_*` exports for the durable pools                         | Run `eval "$(task tf:test:pools:outputs:env)"` before local Azure-backed validation that needs the pools |
 
 ## Strategy-builder and deployment tasks
 
 Use these when you are changing app components, variants, templates, generated
 strategies, or their Azure deployment path.
 
-| Command                                                       | Use it when                                                                    | What it does                                                                                                                | What you are expected to do                                                                |
-|---------------------------------------------------------------|--------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|
-| `task strategy:generate`                                      | You changed `strategy-builder/` source-of-truth assets                         | Regenerates committed deployment strategies                                                                                 | Review every generated diff under `deployment-strategies/` and never hand-edit those files |
-| `task strategy:validate:drift`                                | You want to confirm generated output matches the source                        | Runs the drift checker without the rest of PR validation                                                                    | Use after generation or when investigating unexpected strategy diffs                       |
-| `task strategy:validate:pr`                                   | You changed app-layer logic and want the fast static subset                    | Runs `node scripts/test-all.ts --layer L1,L7,L8`                                                                            | Use directly only when you are already focused on strategy-builder work                    |
-| `task strategy:test:local`                                    | You need the full local app-layer suite                                        | Runs the full `test-all.ts` suite                                                                                           | Expect broader coverage than PR validation, including local compose-related checks         |
-| `task strategy:test:azure`                                    | You need the app-layer suite with Azure compose coverage                       | Runs `test-all.ts --include-azure`                                                                                          | Authenticate with Azure first and use it when local mocks are not enough                   |
-| `task strategy:dev -- deployment-strategies/<name>`           | You want an interactive local compose loop                                     | Starts the selected generated strategy locally with Docker Compose                                                          | Use for debugging and smoke tests; keep Docker running                                     |
-| `task strategy:dev:azure -- deployment-strategies/<name>`     | You want the local stack to talk to real Azure resources                       | Starts the selected strategy locally against Azure                                                                          | Authenticate with Azure first and export any required pool variables                       |
-| `task strategy:deploy -- deployment-strategies/<name>`        | You want to keep a deployed strategy alive for manual inspection               | Deploys the selected generated strategy to Azure                                                                            | Use `--test-profile <profile>` when you need a specific public/private deployment mode     |
-| `task strategy:destroy -- deployment-strategies/<name>`       | You finished manual Azure validation                                           | Destroys one deployed strategy                                                                                              | Use after `task strategy:deploy` or after interrupted manual tests                         |
-| `task strategy:test:deployed -- deployment-strategies/<name>` | You need a full deploy/validate/destroy lifecycle                              | Deploys, validates, and destroys one strategy across `public`, `private`, and `private-capability-host` profiles by default | Use `--test-profile <profile>` to narrow the matrix during local debugging                 |
-| `task strategy:deploy:reference`                              | You are explicitly working on the shared baseline or strategy `.env` sync path | Deploys or refreshes the baseline reference architecture and rewrites strategy env files                                    | Use sparingly; this is maintainer-style work, not an everyday contributor task             |
+| Command                                                                                | Use it when                                                                    | What it does                                                                                                                | What you are expected to do                                                                |
+|----------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|
+| `task strategy:generate`                                                               | You changed `strategy-builder/` source-of-truth assets                         | Regenerates committed deployment strategies                                                                                 | Review every generated diff under `deployment-strategies/` and never hand-edit those files |
+| `task strategy:validate:drift`                                                         | You want to confirm generated output matches the source                        | Runs the drift checker without the rest of PR validation                                                                    | Use after generation or when investigating unexpected strategy diffs                       |
+| `task strategy:validate:pr`                                                            | You changed app-layer logic and want the fast static subset                    | Runs `node scripts/test-all.ts --layer L1,L7,L8`                                                                            | Use directly only when you are already focused on strategy-builder work                    |
+| `task strategy:test:local`                                                             | You need the full local app-layer suite                                        | Runs the full `test-all.ts` suite                                                                                           | Expect broader coverage than PR validation, including local compose-related checks         |
+| `task strategy:test:azure`                                                             | You need the app-layer suite with Azure compose coverage                       | Runs `test-all.ts --include-azure`                                                                                          | Authenticate with Azure first and use it when local mocks are not enough                   |
+| `task strategy:dev -- deployment-strategies/<reference-architecture>/<name>`           | You want an interactive local compose loop                                     | Starts the selected generated strategy locally with Docker Compose                                                          | Use for debugging and smoke tests; keep Docker running                                     |
+| `task strategy:dev:azure -- deployment-strategies/<reference-architecture>/<name>`     | You want the local stack to talk to real Azure resources                       | Starts the selected strategy locally against Azure                                                                          | Authenticate with Azure first and export any required pool variables                       |
+| `task strategy:deploy -- deployment-strategies/<reference-architecture>/<name>`        | You want to keep a deployed strategy alive for manual inspection               | Deploys the selected generated strategy to Azure                                                                            | Use `--test-profile <profile>` when you need a specific public/private deployment mode     |
+| `task strategy:destroy -- deployment-strategies/<reference-architecture>/<name>`       | You finished manual Azure validation                                           | Destroys one deployed strategy                                                                                              | Use after `task strategy:deploy` or after interrupted manual tests                         |
+| `task strategy:test:deployed -- deployment-strategies/<reference-architecture>/<name>` | You need a full deploy/validate/destroy lifecycle                              | Deploys, validates, and destroys one strategy across `public`, `private`, and `private-capability-host` profiles by default | Use `--test-profile <profile>` to narrow the matrix during local debugging                 |
+| `task strategy:deploy:reference`                                                       | You are explicitly working on the shared baseline or strategy `.env` sync path | Deploys or refreshes the baseline reference architecture and rewrites strategy env files                                    | Use sparingly; this is maintainer-style work, not an everyday contributor task             |
 
 ## Scenario playbooks
 
@@ -154,14 +157,23 @@ strategies, or their Azure deployment path.
 
 ### 3. Terraform module, reference-architecture, or test-fixture changes
 
-1. Make the change in `infra/modules/`, `infra/foundry_agentic_app/`, or
-   `infra/testing/`.
+1. Make the change in `strategy-builder/infra/modules/`, `strategy-builder/infra/reference-architectures/foundry_agentic_app/`, or
+   `strategy-builder/infra/testing/`.
 1. Run `task tf:docs` whenever README inputs, outputs, or examples may have
    changed.
 1. Run `task validate:pr`.
-1. Run `task tf:test:acc:all` for real infrastructure behavior changes.
+1. Run `task strategy:test:local` for broad local coverage when the infra
+   change affects generated strategies or container behavior.
 1. If the change affects private networking, durable DNS, or other pool-backed
-   integration behavior, also run `task tf:test:int:all:local`.
+   integration behavior, deploy the shared pools and then run Azure-backed
+   strategy validation:
+
+   ```bash
+   task tf:test:pools:deploy
+   eval "$(task tf:test:pools:outputs:env)"
+   task strategy:test:deployed -- --test-profile private deployment-strategies/<reference-architecture>/<name>
+   ```
+
 1. If the change affects generated deployments, continue with the shared
    baseline or strategy playbook below.
 
@@ -188,7 +200,7 @@ that rewrites strategy env files from that baseline.
 1. Pick at least one affected generated strategy and run:
 
    ```bash
-   task strategy:test:deployed -- --test-profile public deployment-strategies/<name>
+   task strategy:test:deployed -- --test-profile public deployment-strategies/<reference-architecture>/<name>
    ```
 
 1. Commit the source change and the refreshed generated output together.
@@ -214,15 +226,15 @@ deployment strategies are assembled.
 1. Smoke-test at least one representative strategy locally:
 
    ```bash
-   task strategy:dev -- deployment-strategies/<name>
+   task strategy:dev -- deployment-strategies/<reference-architecture>/<name>
    ```
 
 1. If the change touches Azure integration, also run one of:
 
    ```bash
-    task strategy:dev:azure -- deployment-strategies/<name>
+    task strategy:dev:azure -- deployment-strategies/<reference-architecture>/<name>
     task strategy:test:azure
-    task strategy:test:deployed -- --test-profile public deployment-strategies/<name>
+    task strategy:test:deployed -- --test-profile public deployment-strategies/<reference-architecture>/<name>
     ```
 
 1. Commit the `strategy-builder/` source change and the regenerated
@@ -238,9 +250,9 @@ Use the lightest workflow that proves the change:
   deployed environment to inspect manually.
 - Use `task strategy:test:deployed` when you want CI-like confidence from a
   deploy/validate/destroy lifecycle across the deployed profile matrix.
-- Use `task validate:nightly -- deployment-strategies/<name>` when you want to
-  reproduce the nightly path, including the static repo validation and
-  Terraform acceptance coverage plus the full deployed profile matrix.
+- Use `task validate:nightly -- deployment-strategies/<reference-architecture>/<name>` when you want to
+  reproduce the nightly path, including the static repo validation and the full
+  deployed profile matrix.
 
 ### 7. Private networking and capability-host validation with the current design
 
@@ -265,14 +277,14 @@ Today the supported validation path is:
 1. Run the smallest meaningful Azure-backed validation:
 
    ```bash
-   task strategy:dev:azure -- deployment-strategies/<name>
+   task strategy:dev:azure -- deployment-strategies/<reference-architecture>/<name>
    ```
 
 1. For end-to-end proof, escalate to:
 
    ```bash
-   task strategy:test:deployed -- deployment-strategies/<name>
-   task validate:nightly -- deployment-strategies/<name>
+   task strategy:test:deployed -- deployment-strategies/<reference-architecture>/<name>
+   task validate:nightly -- deployment-strategies/<reference-architecture>/<name>
    ```
 
    `task strategy:test:deployed` now runs `public`, `private`, and
@@ -283,26 +295,26 @@ Today the supported validation path is:
    for example:
 
    ```bash
-   task strategy:test:deployed -- --test-profile private deployment-strategies/<name>
-   task strategy:deploy -- --test-profile private deployment-strategies/<name>
+   task strategy:test:deployed -- --test-profile private deployment-strategies/<reference-architecture>/<name>
+   task strategy:deploy -- --test-profile private deployment-strategies/<reference-architecture>/<name>
    ```
 
 1. Keep the reusable private-network and capability-host assets in
-    `infra/testing/infrastructure_pools/`; keep the feature wiring in the source
+    `strategy-builder/infra/testing/infrastructure_pools/`; keep the feature wiring in the source
     templates and docs rather than cloning almost-identical strategies.
 
 ## GitHub Actions: what runs automatically
 
 These workflows already cover the repository-wide automation model.
 
-| Workflow                                           | Trigger                                               | What it runs                                                                                                                                                   | What developers should expect                                                                      |
-|----------------------------------------------------|-------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------|
-| `.github/workflows/pr.yml`                         | Pull requests targeting `main`                        | Dependency review, semantic PR title check, and the fast repo validation path (`task validate:pr`)                                                             | Every contributor PR should pass this before merge; it is intentionally static and fast            |
-| `.github/workflows/nightly-validation.yml`         | Daily schedule and manual dispatch                    | Terraform acceptance coverage plus deploy/validate/destroy for the selected or discovered strategies across `public`, `private`, and `private-capability-host` | Use it for post-merge confidence and for one-strategy reproduction through `task validate:nightly` |
-| `.github/workflows/codeql.yml`                     | Pull requests, pushes to `main`, and weekly schedule  | CodeQL analysis for Actions, JavaScript/TypeScript, and C#                                                                                                     | Expect security findings here, not runtime deployment validation                                   |
-| `.github/workflows/ghpages.yml`                    | Pushes to `main` that touch `docs/**` or `mkdocs.yml` | Strict MkDocs build and GitHub Pages deployment                                                                                                                | Docs contributors do not need a separate publish step after merge                                  |
-| `.github/workflows/prebuilt-devcontainer-base.yml` | Weekly schedule and manual dispatch                   | Builds and publishes the base prebuilt devcontainer image                                                                                                      | Maintainers use this to keep the devcontainer base current                                         |
-| `.github/workflows/prebuilt-devcontainer.yml`      | Daily schedule and manual dispatch                    | Builds, signs, and publishes the prebuilt contributor devcontainer image                                                                                       | Maintainers use this to keep contributor startup fast                                              |
+| Workflow                                           | Trigger                                               | What it runs                                                                                                                | What developers should expect                                                                      |
+|----------------------------------------------------|-------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------|
+| `.github/workflows/pr.yml`                         | Pull requests targeting `main`                        | Dependency review, semantic PR title check, and the fast repo validation path (`task validate:pr`)                          | Every contributor PR should pass this before merge; it is intentionally static and fast            |
+| `.github/workflows/nightly-validation.yml`         | Daily schedule and manual dispatch                    | Deploy/validate/destroy for the selected or discovered strategies across `public`, `private`, and `private-capability-host` | Use it for post-merge confidence and for one-strategy reproduction through `task validate:nightly` |
+| `.github/workflows/codeql.yml`                     | Pull requests, pushes to `main`, and weekly schedule  | CodeQL analysis for Actions, JavaScript/TypeScript, and C#                                                                  | Expect security findings here, not runtime deployment validation                                   |
+| `.github/workflows/ghpages.yml`                    | Pushes to `main` that touch `docs/**` or `mkdocs.yml` | Strict MkDocs build and GitHub Pages deployment                                                                             | Docs contributors do not need a separate publish step after merge                                  |
+| `.github/workflows/prebuilt-devcontainer-base.yml` | Weekly schedule and manual dispatch                   | Builds and publishes the base prebuilt devcontainer image                                                                   | Maintainers use this to keep the devcontainer base current                                         |
+| `.github/workflows/prebuilt-devcontainer.yml`      | Daily schedule and manual dispatch                    | Builds, signs, and publishes the prebuilt contributor devcontainer image                                                    | Maintainers use this to keep contributor startup fast                                              |
 
 No additional GitHub workflow is required for the current contributor model.
 The existing workflow set already covers PR validation, nightly Azure-backed

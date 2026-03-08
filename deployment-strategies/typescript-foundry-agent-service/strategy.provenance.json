@@ -1,8 +1,0 @@
-{
-  "strategyName": "typescript-foundry-agent-service",
-  "derivedFromReferenceArchitecture": "foundry_agentic_app",
-  "flavor": {
-    "language": "typescript",
-    "agentVariant": "foundry-agent-service"
-  }
-}

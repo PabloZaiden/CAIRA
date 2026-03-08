@@ -281,10 +281,10 @@ The easiest way to run the full stack with mocks is via Docker Compose:
 
 ```bash
 # Start full stack (frontend + API + agent + mock) with hot-reload
-npm run dev -- deployment-strategies/typescript-foundry-agent-service
+npm run dev -- deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
 
 # Or run compose E2E tests against mocks
-npm run test:compose -- deployment-strategies/typescript-foundry-agent-service
+npm run test:compose -- deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
 ```
 
 When running with mocks, the compose overlay automatically sets `SKIP_AUTH=true` and points the agent's endpoint to the mock container. See [Testing](../testing.md) for details on the mock infrastructure and compose test runner.

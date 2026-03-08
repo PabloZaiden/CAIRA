@@ -45,7 +45,7 @@ For detailed troubleshooting of specific issues, see the sections below.
 
 **Solution:**
 
-- If you are contributing to CAIRA itself, ensure that you cloned the repository correctly and are working within the intended folder under `infra/`, `strategy-builder/`, `deployment-strategies/`, or `docs/`.
+- If you are contributing to CAIRA itself, ensure that you cloned the repository correctly and are working within the intended folder under `strategy-builder/infra/`, `strategy-builder/`, `deployment-strategies/`, or `docs/`.
 
 - If you are using the CAIRA skill, confirm that the agent is inspecting the intended repository ref and the correct asset path for your scenario.
 

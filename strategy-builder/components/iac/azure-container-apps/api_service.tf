@@ -1,5 +1,5 @@
 module "api_app" {
-  source = "../../../../infra/modules/container_app"
+  source = "../../../infra/modules/container_app"
 
   name                         = "${local.app_prefix}-api"
   container_name               = "api"

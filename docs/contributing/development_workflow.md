@@ -125,8 +125,8 @@ task validate:pr
 task test
 
 # Targeted deeper checks
-task tf:test:acc:all
 task strategy:test:local
+task validate:nightly -- deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca
 ```
 
 Use the [Developer Guide](../developer.md) to choose the right sequence for the
@@ -321,13 +321,13 @@ git push --force-with-lease origin my-branch-name
 
 ```shell
 # Create module directory
-mkdir -p infra/modules/azure-new-service
+mkdir -p strategy-builder/infra/modules/azure-new-service
 
 # Create required files
-touch infra/modules/azure-new-service/{main.tf,variables.tf,outputs.tf,versions.tf,README.md}
+touch strategy-builder/infra/modules/azure-new-service/{main.tf,variables.tf,outputs.tf,versions.tf,README.md}
 
 # Create examples directory
-mkdir -p infra/modules/azure-new-service/examples/basic
+mkdir -p strategy-builder/infra/modules/azure-new-service/examples/basic
 
 # Follow our module template
 ```

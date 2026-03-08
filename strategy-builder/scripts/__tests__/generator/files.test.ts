@@ -6,13 +6,24 @@ import {
   generateGitignore,
   generateSampleFiles
 } from '../../lib/generator/files.ts';
-import type { DiscoveredComponent, SampleConfig } from '../../lib/generator/types.ts';
+import type { DiscoveredComponent, DiscoveredReferenceArchitecture, SampleConfig } from '../../lib/generator/types.ts';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 function makeFoundryConfig(): SampleConfig {
+  const referenceArchitecture: DiscoveredReferenceArchitecture = {
+    manifest: {
+      id: 'foundry_agentic_app',
+      displayName: 'Foundry Agentic App',
+      description: 'Default CAIRA reference architecture',
+      default: true
+    },
+    dir: '/repo/infra/reference-architectures/foundry_agentic_app',
+    relPath: 'infra/reference-architectures/foundry_agentic_app'
+  };
+
   const agent: DiscoveredComponent = {
     manifest: {
       name: 'agent',
@@ -74,13 +85,36 @@ function makeFoundryConfig(): SampleConfig {
     relPath: 'components/frontend/react-typescript'
   };
 
+  const iac: DiscoveredComponent = {
+    manifest: {
+      name: 'iac',
+      type: 'iac',
+      variant: 'azure-container-apps',
+      language: 'typescript',
+      description: 'Azure Container Apps infrastructure',
+      strategySuffix: 'aca',
+      referenceArchitectures: ['foundry_agentic_app'],
+      port: 1,
+      healthEndpoint: '/health',
+      requiredEnv: [],
+      optionalEnv: [],
+      contractSpec: 'contracts/backend-api.openapi.yaml'
+    },
+    dir: '/repo/components/iac/azure-container-apps',
+    relPath: 'components/iac/azure-container-apps'
+  };
+
   return {
-    name: 'typescript-foundry-agent-service',
+    name: 'typescript-foundry-agent-service-aca',
+    relativeDir: 'foundry_agentic_app/typescript-foundry-agent-service-aca',
+    referenceArchitecture,
     language: 'typescript',
     agentVariant: 'foundry-agent-service',
+    infraVariant: 'aca',
     agent,
     api,
-    frontend
+    frontend,
+    iac
   };
 }
 
@@ -88,7 +122,8 @@ function makeOpenAIConfig(): SampleConfig {
   const config = makeFoundryConfig();
   return {
     ...config,
-    name: 'typescript-openai-agent-sdk',
+    name: 'typescript-openai-agent-sdk-aca',
+    relativeDir: 'foundry_agentic_app/typescript-openai-agent-sdk-aca',
     agentVariant: 'openai-agent-sdk',
     agent: {
       manifest: {
@@ -329,7 +364,9 @@ describe('generateReadme', () => {
 
   it('includes Azure deployment command section', () => {
     const content = generateReadme(makeFoundryConfig());
-    expect(content).toContain('task strategy:deploy -- deployment-strategies/typescript-foundry-agent-service');
+    expect(content).toContain(
+      'task strategy:deploy -- deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca'
+    );
     expect(content).toContain(
       'Deploys the layered CAIRA foundation (Foundry foundation + composable app-infra layers)'
     );

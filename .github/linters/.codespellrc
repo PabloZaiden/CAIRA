@@ -1,4 +1,4 @@
 [codespell]
 skip = */megalinter-reports/*,*/node_modules/*,*/.venv/*,*/dist/*,*/coverage/*,*/site/*,*.svg,*.sum,pnpm-lock.yaml,package-lock.json
-ignore-words = .codespellignore
+ignore-words = .github/linters/.codespellignore
 count = true

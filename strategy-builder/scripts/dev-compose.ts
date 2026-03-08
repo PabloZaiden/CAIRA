@@ -7,10 +7,10 @@
  *
  * Usage:
  *   # With mocks (default):
- *   node scripts/dev-compose.ts --strategy deployment-strategies/typescript-openai-agent-sdk
+ *   node scripts/dev-compose.ts --strategy deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca
  *
  *   # Against real Azure (requires .env with endpoints):
- *   node scripts/dev-compose.ts --strategy deployment-strategies/typescript-foundry-agent-service --no-mock
+ *   node scripts/dev-compose.ts --strategy deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca --no-mock
  *
  * What it does:
  *   1. Optionally generates a mock overlay (skipped with --no-mock)
@@ -98,11 +98,11 @@ Options:
 Examples:
   # With mocks (default):
   node scripts/dev-compose.ts \\
-    --strategy deployment-strategies/typescript-openai-agent-sdk
+    --strategy deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca
 
   # Against real Azure:
   node scripts/dev-compose.ts \\
-    --strategy deployment-strategies/typescript-foundry-agent-service --no-mock
+    --strategy deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca --no-mock
 
 This starts the full stack in the foreground.
 Open the frontend in your browser to interact with it manually.
@@ -178,7 +178,7 @@ async function main(): Promise<void> {
   }
 
   // Detect agent variant for display
-  const variant = detectAgentVariant(sampleName);
+  const variant = detectAgentVariant(sampleDir);
   const mockInfo = variant ? MOCK_MAP[variant] : undefined;
 
   log(`Starting dev stack for: ${sampleName}`);

@@ -32,7 +32,7 @@ provider "azurerm" {
 }
 
 module "ai_foundry" {
-  source = "../../../infra/modules/ai_foundry"
+  source = "../../infra/modules/ai_foundry"
 
   name              = var.name
   location          = var.location

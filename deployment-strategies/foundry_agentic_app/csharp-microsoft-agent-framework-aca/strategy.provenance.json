@@ -1,0 +1,17 @@
+{
+  "strategyName": "csharp-microsoft-agent-framework-aca",
+  "strategyPath": "deployment-strategies/foundry_agentic_app/csharp-microsoft-agent-framework-aca",
+  "derivedFromReferenceArchitecture": "foundry_agentic_app",
+  "referenceArchitecture": {
+    "id": "foundry_agentic_app",
+    "displayName": "Foundry Agentic App"
+  },
+  "infrastructure": {
+    "componentVariant": "azure-container-apps",
+    "strategySuffix": "aca"
+  },
+  "flavor": {
+    "language": "csharp",
+    "agentVariant": "microsoft-agent-framework"
+  }
+}

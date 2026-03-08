@@ -27,29 +27,33 @@ describe('test profile helpers', () => {
   });
 
   it('derives deterministic workspace and project names', () => {
-    expect(deriveProfileProjectName('TypeScript Foundry Agent Service', 'private')).toBe(
-      'typescript-foundry-agent-service-private'
+    expect(deriveProfileProjectName('TypeScript Foundry Agent Service ACA', 'private')).toBe(
+      'typescript-foundry-agent-service-aca-private'
     );
-    expect(deriveProfileWorkspace('TypeScript Foundry Agent Service', 'private-capability-host')).toBe(
-      'test-typescript-foundry-agent-service-private-capability-host'
+    expect(deriveProfileWorkspace('TypeScript Foundry Agent Service ACA', 'private-capability-host')).toBe(
+      'test-typescript-foundry-agent-service-aca-private-capability-host'
     );
-    expect(derivePrivateTestOverlayNames('typescript-foundry-agent-service-private', 'private')).toEqual({
-      testingSuffix: '570a7b52',
-      containerAppsSubnetName: 'aca-typescript-foundry-agent-service-private-570a7b52',
-      jumpboxSubnetName: 'jumpbox-typescript-foundry-agent-service-private-570a7b52',
-      agentsSubnetName: 'agents-typescript-foundry-agent-service-private-570a7b52'
+    expect(derivePrivateTestOverlayNames('typescript-foundry-agent-service-aca-private', 'private')).toEqual({
+      testingSuffix: '46b16d0d',
+      containerAppsSubnetName: 'aca-typescript-foundry-agent-service-aca-private-46b16d0d',
+      jumpboxSubnetName: 'jumpbox-typescript-foundry-agent-service-aca-private-46b16d0d',
+      agentsSubnetName: 'agents-typescript-foundry-agent-service-aca-private-46b16d0d'
     });
   });
 
   it('allocates deterministic private subnet plans per strategy', () => {
     const strategyNames = [
-      'csharp-microsoft-agent-framework',
-      'typescript-foundry-agent-service',
-      'typescript-openai-agent-sdk'
+      'csharp-microsoft-agent-framework-aca',
+      'typescript-foundry-agent-service-aca',
+      'typescript-openai-agent-sdk-aca'
     ];
 
-    const foundryPlan = computePrivateSubnetPlan('172.16.0.0/16', 'typescript-foundry-agent-service', strategyNames);
-    const openaiPlan = computePrivateSubnetPlan('172.16.0.0/16', 'typescript-openai-agent-sdk', strategyNames);
+    const foundryPlan = computePrivateSubnetPlan(
+      '172.16.0.0/16',
+      'typescript-foundry-agent-service-aca',
+      strategyNames
+    );
+    const openaiPlan = computePrivateSubnetPlan('172.16.0.0/16', 'typescript-openai-agent-sdk-aca', strategyNames);
 
     expect(foundryPlan.strategyIndex).toBe(1);
     expect(foundryPlan.slotIndex).toBe(2);
@@ -68,27 +72,27 @@ describe('test profile helpers', () => {
 
   it('probes for the next free private slot when the preferred slot is already occupied', () => {
     const strategyNames = [
-      'csharp-microsoft-agent-framework',
-      'typescript-foundry-agent-service',
-      'typescript-openai-agent-sdk'
+      'csharp-microsoft-agent-framework-aca',
+      'typescript-foundry-agent-service-aca',
+      'typescript-openai-agent-sdk-aca'
     ];
-    const overlayNames = derivePrivateTestOverlayNames('tsfas-cap2', 'private-capability-host');
+    const overlayNames = derivePrivateTestOverlayNames('tsfas-aca-cap2', 'private-capability-host');
 
     const plan = resolvePrivateSubnetPlan(
       '172.16.0.0/16',
-      'typescript-foundry-agent-service',
+      'typescript-foundry-agent-service-aca',
       overlayNames,
       [
         {
-          name: 'aca-typescript-foundry-agent-service-private-capability-host-6166884a',
+          name: 'aca-typescript-foundry-agent-service-aca-private-capability-host-0c9ccb5f',
           cidr: '172.16.8.0/23'
         },
         {
-          name: 'jumpbox-typescript-foundry-agent-service-private-capability-host-6166884a',
+          name: 'jumpbox-typescript-foundry-agent-service-aca-private-capability-host-0c9ccb5f',
           cidr: '172.16.10.0/24'
         },
         {
-          name: 'agents-typescript-foundry-agent-service-private-capability-host-6166884a',
+          name: 'agents-typescript-foundry-agent-service-aca-private-capability-host-0c9ccb5f',
           cidr: '172.16.11.0/24'
         }
       ],
@@ -104,15 +108,15 @@ describe('test profile helpers', () => {
 
   it('reuses the current slot when the expected overlay subnets already exist', () => {
     const strategyNames = [
-      'csharp-microsoft-agent-framework',
-      'typescript-foundry-agent-service',
-      'typescript-openai-agent-sdk'
+      'csharp-microsoft-agent-framework-aca',
+      'typescript-foundry-agent-service-aca',
+      'typescript-openai-agent-sdk-aca'
     ];
-    const overlayNames = derivePrivateTestOverlayNames('tsfas-cap2', 'private-capability-host');
+    const overlayNames = derivePrivateTestOverlayNames('tsfas-aca-cap2', 'private-capability-host');
 
     const plan = resolvePrivateSubnetPlan(
       '172.16.0.0/16',
-      'typescript-foundry-agent-service',
+      'typescript-foundry-agent-service-aca',
       overlayNames,
       [
         {

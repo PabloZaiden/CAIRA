@@ -8,8 +8,8 @@ This document tracks the main follow-up themes for the strategy-builder area now
 
 ### Current state
 
-- `deployment-strategies/*/infra/` is generated from `components/iac/azure-container-apps/`.
-- `task strategy:deploy -- deployment-strategies/<name>` deploys one implementation of the layered CAIRA reference architecture.
+- `deployment-strategies/<reference-architecture>/<name>/infra/` is generated from `components/iac/azure-container-apps/`.
+- `task strategy:deploy -- deployment-strategies/<reference-architecture>/<name>` deploys one implementation of the layered CAIRA reference architecture.
 - ACA images are built, pushed to ACR, and consumed with managed identity.
 - Frontend ingress is exposed while API and agent services stay internal.
 - Local Docker workflows use the `azcred` sidecar so `DefaultAzureCredential` works inside containers.
@@ -17,7 +17,7 @@ This document tracks the main follow-up themes for the strategy-builder area now
 ### Remaining focus
 
 - Expand deployed validation coverage across the full committed strategy set.
-- Keep strategy Terraform aligned with the latest layered reference architecture under `infra/` and the shared `infra/modules/` contracts.
+- Keep strategy Terraform aligned with the latest layered reference architecture under `strategy-builder/infra/reference-architectures/` and the shared `strategy-builder/infra/modules/` contracts.
 - Continue reliability hardening for long-running Azure operations and retry behavior.
 
 ## WS-9: Observability & Telemetry

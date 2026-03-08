@@ -86,8 +86,8 @@ Options:
   --help, -h                Show help
 
 Advanced direct script usage:
-  node scripts/test-deployed-strategy.ts --strategy deployment-strategies/typescript-openai-agent-sdk
-  node scripts/test-deployed-strategy.ts --strategy deployment-strategies/typescript-openai-agent-sdk --test-profile private
+  node scripts/test-deployed-strategy.ts --strategy deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca
+  node scripts/test-deployed-strategy.ts --strategy deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca --test-profile private
 `.trimStart()
   );
 }

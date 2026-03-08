@@ -112,7 +112,7 @@ resource "azurerm_subnet" "testing_agents" {
 module "testing_capability_host_connections" {
   count = local.testing_capability_host_enabled ? 1 : 0
 
-  source = "../../../../infra/modules/existing_resources_agent_capability_host_connections"
+  source = "../../../infra/modules/existing_resources_agent_capability_host_connections"
 
   resource_group_resource_id = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${var.testing_capability_host_resource_group_name}"
   cosmosdb_account_name      = var.testing_capability_host_cosmosdb_account_name

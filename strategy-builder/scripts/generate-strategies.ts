@@ -1,8 +1,9 @@
 /**
  * generate-strategies.ts — CLI entry point for deployment strategy generation.
  *
- * Discovers components, builds the combination matrix, and generates
- * self-contained deployment strategies under deployment-strategies/.
+ * Discovers components and reference architectures, builds the combination
+ * matrix, and generates self-contained deployment strategies grouped under
+ * deployment-strategies/<reference-architecture>/.
  *
  * Usage:
  *   node scripts/generate-strategies.ts
@@ -12,6 +13,7 @@
 
 import { resolve } from 'node:path';
 import { generate, discoverComponents, buildMatrix } from './lib/generator/index.ts';
+import { discoverReferenceArchitectures } from './lib/generator/reference-architectures.ts';
 
 // ---------------------------------------------------------------------------
 // CLI argument parsing
@@ -32,8 +34,8 @@ Options:
   --no-clean   Don't remove existing deployment-strategies/ before generating
   --help, -h   Show this help message
 
-Discovers components from components/, builds the combination matrix,
-and generates self-contained deployment strategies under deployment-strategies/.
+Discovers components and reference architectures, builds the combination matrix,
+and generates self-contained deployment strategies under deployment-strategies/<reference-architecture>/.
 `.trim()
   );
   process.exit(0);
@@ -56,24 +58,35 @@ if (dryRun) {
   console.log();
   // For dry run, we just run discovery + matrix to show what would happen
   const components = await discoverComponents(resolve(repoRoot, 'components'), repoRoot);
+  const referenceArchitectures = await discoverReferenceArchitectures(
+    resolve(repoRoot, 'infra', 'reference-architectures'),
+    repoRoot
+  );
   console.log(`  Discovered ${components.length} components:`);
   for (const c of components) {
     console.log(`    - ${c.manifest.type}/${c.manifest.variant ?? c.manifest.language} (${c.relPath})`);
   }
   console.log();
 
-  const matrix = buildMatrix(components);
+  console.log(`  Discovered ${referenceArchitectures.length} reference architecture(s):`);
+  for (const architecture of referenceArchitectures) {
+    console.log(`    - ${architecture.manifest.id} (${architecture.relPath})`);
+  }
+  console.log();
+
+  const matrix = buildMatrix(components, referenceArchitectures);
   if (matrix.skipped.length > 0) {
     console.log('  Skipped combinations:');
     for (const skip of matrix.skipped) {
-      console.log(`    - ${skip.language}/${skip.agentVariant}: ${skip.reason}`);
+      const context = skip.referenceArchitectureId ? `${skip.referenceArchitectureId}: ` : '';
+      console.log(`    - ${context}${skip.language}/${skip.agentVariant}: ${skip.reason}`);
     }
     console.log();
   }
 
   console.log(`  Would generate ${matrix.samples.length} deployment strategy(ies):`);
   for (const sample of matrix.samples) {
-    console.log(`    - ${sample.name}`);
+    console.log(`    - ${sample.relativeDir}`);
   }
   console.log();
   process.exit(0);

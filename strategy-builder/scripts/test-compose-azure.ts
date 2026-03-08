@@ -8,7 +8,7 @@
  *   4. Runs compose-test-runner in no-mock mode
  *
  * Usage:
- *   node scripts/test-compose-azure.ts --strategy deployment-strategies/typescript-foundry-agent-service
+ *   node scripts/test-compose-azure.ts --strategy deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
  */
 
 import { resolve } from 'node:path';
@@ -38,9 +38,9 @@ Options:
 
 Examples:
   node scripts/test-compose-azure.ts \\
-    --strategy deployment-strategies/typescript-foundry-agent-service
+    --strategy deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
 
-  npm run test:compose:azure -- deployment-strategies/typescript-foundry-agent-service
+  npm run test:compose:azure -- deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
 `);
 }
 

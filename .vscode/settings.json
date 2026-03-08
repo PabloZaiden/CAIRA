@@ -4,8 +4,7 @@
   "files.insertFinalNewline": true,
   "files.associations": {
     "**/.github/workflows/*.y*ml": "yaml",
-    "CODEOWNERS": "ignore",
-    ".lycheeignore": "ignore"
+    "CODEOWNERS": "ignore"
   },
   // editor
   "editor.inlineSuggest.enabled": true,

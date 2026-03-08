@@ -36,7 +36,7 @@ patterns:
       - (?:\|\s*){1}(?:Azure\/avm){1}.*(?:\s*\|){1}
 dictionaryDefinitions:
   - name: cspellignore
-    path: ../../.cspellignore
+    path: ./.cspellignore
     addWords: true
 allowCompoundWords: true
 words:
@@ -46,7 +46,7 @@ words:
 ignorePaths:
   - "**/node_modules/**"
   - "**/.dev/**"
-  - .cspellignore
+  - .github/linters/.cspellignore
   - "**/.venv/**"
   - "**/venv/**"
   - "**/.terraform/**"

@@ -238,18 +238,18 @@ The compose test runner (`scripts/compose-test-runner.ts`) orchestrates full-sta
 
 ```bash
 # Test a specific strategy variant (L5 mock mode)
-npm run test:compose -- deployment-strategies/typescript-foundry-agent-service
+npm run test:compose -- deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
 
 # Test without mocks against real Azure (L6, auto-deploys CAIRA)
-npm run test:compose:azure -- deployment-strategies/typescript-foundry-agent-service
+npm run test:compose:azure -- deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
 
 # Or use the scripts directly:
 node scripts/compose-test-runner.ts \
-  --strategy deployment-strategies/typescript-foundry-agent-service
+  --strategy deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
 
 # Test without mocks (L6, requires azurecli Docker volume populated via scripts/azure-login.ts)
 node scripts/compose-test-runner.ts \
-  --strategy deployment-strategies/typescript-foundry-agent-service --no-mock
+  --strategy deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca --no-mock
 
 # Test all variants via the master test runner (L5 layer)
 node scripts/test-all.ts --layer L5
@@ -273,10 +273,10 @@ For manual frontend testing, prefer the root Taskfile wrapper or call the script
 
 ```bash
 # Preferred from the repo root
-task strategy:dev -- deployment-strategies/typescript-openai-agent-sdk
+task strategy:dev -- deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca
 
 # Advanced direct script usage
-node scripts/dev-compose.ts --strategy deployment-strategies/typescript-openai-agent-sdk
+node scripts/dev-compose.ts --strategy deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca
 ```
 
 This starts the full stack with mocks in foreground mode (all logs stream to your terminal). Open `http://localhost:8080` to interact with the frontend. Press `Ctrl+C` for clean shutdown.
@@ -315,10 +315,10 @@ npm run test:full    # L1-L8 (everything)
 
 ```bash
 # Run E2E with mocks for a specific strategy
-npm run test:compose -- deployment-strategies/typescript-foundry-agent-service
+npm run test:compose -- deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
 
 # Run E2E against real Azure (auto-deploys CAIRA)
-npm run test:compose:azure -- deployment-strategies/typescript-foundry-agent-service
+npm run test:compose:azure -- deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
 
 # Run all L5 tests via the master test runner
 node scripts/test-all.ts --layer L5

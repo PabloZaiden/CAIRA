@@ -133,7 +133,6 @@ tasks:
   test:
     desc: Run the full local validation suite
     cmds:
-      - task: tf:test:acc:all
       - task: strategy:test:local
 
   docs:
@@ -178,10 +177,9 @@ tasks:
     desc: Run nightly validation for one deployment strategy
     preconditions:
       - sh: test -n "{{.CLI_ARGS}}"
-        msg: "Provide a deployment strategy path, for example: task validate:nightly -- deployment-strategies/typescript-openai-agent-sdk"
+        msg: "Provide a deployment strategy path, for example: task validate:nightly -- deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca"
     cmds:
       - task: validate:pr
-      - task: tf:test:acc:all
       - cmd: task strategy:test:deployed -- --test-profile public,private,private-capability-host {{.CLI_ARGS}}
 
   clean:

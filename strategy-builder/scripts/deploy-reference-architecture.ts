@@ -18,16 +18,21 @@
 
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import { resolve, basename } from 'node:path';
-import { DEPLOYMENT_STRATEGIES_ROOT, MONOREPO_ROOT, resolveStrategyPath } from './lib/paths.ts';
+import {
+  DEPLOYMENT_STRATEGIES_ROOT,
+  REFERENCE_ARCHITECTURES_ROOT,
+  listGeneratedStrategyDirs,
+  resolveStrategyPath
+} from './lib/paths.ts';
 
 const execFileAsync = promisify(execFile);
 
 // ─── Constants ──────────────────────────────────────────────────────────
 
-const TF_DIR = resolve(MONOREPO_ROOT, 'infra', 'foundry_agentic_app');
+const TF_DIR = resolve(REFERENCE_ARCHITECTURES_ROOT, 'foundry_agentic_app');
 const STRATEGIES_DIR = DEPLOYMENT_STRATEGIES_ROOT;
 
 /**
@@ -218,11 +223,26 @@ export function deriveOpenAIEndpoint(outputs: TerraformOutputs): string {
 // ─── .env generation ────────────────────────────────────────────────────
 
 /**
- * Detect the agent variant from a deployment strategy directory name.
+ * Detect the agent variant from strategy provenance, with a directory-name fallback.
  */
-function detectVariant(strategyName: string): string | null {
+function detectVariant(strategyDir: string): string | null {
+  const provenancePath = resolve(strategyDir, 'strategy.provenance.json');
+  if (existsSync(provenancePath)) {
+    try {
+      const provenance = JSON.parse(readFileSync(provenancePath, 'utf-8')) as {
+        flavor?: { agentVariant?: string };
+      };
+      if (typeof provenance.flavor?.agentVariant === 'string') {
+        return provenance.flavor.agentVariant;
+      }
+    } catch {
+      // Fall back to directory-name detection below.
+    }
+  }
+
+  const strategyName = basename(strategyDir);
   for (const variant of Object.keys(VARIANT_CONFIG)) {
-    if (strategyName.endsWith(variant)) return variant;
+    if (strategyName.includes(variant)) return variant;
   }
   return null;
 }
@@ -232,7 +252,7 @@ function detectVariant(strategyName: string): string | null {
  */
 async function writeEnvFile(strategyDir: string, outputs: TerraformOutputs): Promise<boolean> {
   const strategyName = basename(strategyDir);
-  const variant = detectVariant(strategyName);
+  const variant = detectVariant(strategyDir);
 
   if (!variant) {
     log(`Skipping ${strategyName} — unknown agent variant`);
@@ -278,11 +298,8 @@ export async function writeEnvFiles(outputs: TerraformOutputs, specificStrategy?
     return;
   }
 
-  const entries = readdirSync(STRATEGIES_DIR, { withFileTypes: true });
   let count = 0;
-  for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
-    const strategyDir = resolve(STRATEGIES_DIR, entry.name);
+  for (const strategyDir of listGeneratedStrategyDirs(STRATEGIES_DIR)) {
     const wrote = await writeEnvFile(strategyDir, outputs);
     if (wrote) count++;
   }
@@ -477,7 +494,7 @@ Examples:
   node scripts/deploy-reference-architecture.ts
 
   # Deploy and generate .env for one strategy
-  node scripts/deploy-reference-architecture.ts --strategy deployment-strategies/typescript-foundry-agent-service
+  node scripts/deploy-reference-architecture.ts --strategy deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
 
   # Just regenerate .env files from existing deployment
   node scripts/deploy-reference-architecture.ts --output-only

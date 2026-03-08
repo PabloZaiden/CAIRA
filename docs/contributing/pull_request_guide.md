@@ -17,13 +17,15 @@ Run the same fast validation suite that GitHub runs for pull requests:
 task validate:pr
 ```
 
-If your change touches deployed strategy behavior or Terraform acceptance coverage, also run the deeper validation that makes sense for your scope, for example:
+If your change touches deployed strategy behavior or infrastructure that needs
+real Azure validation, also run the deeper validation that makes sense for your
+scope, for example:
 
 ```bash
 task test
 task tf:test:pools:deploy
 eval "$(task tf:test:pools:outputs:env)"
-task strategy:test:deployed -- deployment-strategies/typescript-openai-agent-sdk
+task strategy:test:deployed -- deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca
 ```
 
 ## What the PR workflow checks

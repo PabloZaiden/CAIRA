@@ -8,7 +8,7 @@
  *   4. Starts the strategy with dev-compose in no-mock mode
  *
  * Usage:
- *   node scripts/dev-azure.ts --strategy deployment-strategies/typescript-foundry-agent-service
+ *   node scripts/dev-azure.ts --strategy deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
  */
 
 import { resolve } from 'node:path';
@@ -37,9 +37,9 @@ Options:
 
 Examples:
   node scripts/dev-azure.ts \\
-    --strategy deployment-strategies/typescript-foundry-agent-service
+    --strategy deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
 
-  npm run dev:azure -- deployment-strategies/typescript-foundry-agent-service
+  npm run dev:azure -- deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
 `);
 }
 

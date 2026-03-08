@@ -31,12 +31,13 @@ Install this skill when a user wants to build or extend an Azure AI solution wit
 
 1. Resolve the source version (tag, branch, or release).
 1. Discover available assets from repository APIs:
-   - `infra/` (treat directories other than `modules/` and `testing/` as reference architectures)
-   - `infra/modules/`
+   - `strategy-builder/infra/reference-architectures/`
+   - `strategy-builder/infra/modules/`
+   - `strategy-builder/infra/testing/`
    - `strategy-builder/`
    - `deployment-strategies/`
    - `docs/` and `skills/`
-1. Inspect the default reference architecture first (`infra/foundry_agentic_app/`), starting with `README.md`, `main.tf`, `application_platform.tf`, `agent_service.tf`, `api_service.tf`, `frontend_service.tf`, `dependant_resources.tf`, and the referenced modules, unless the user's requirements clearly demand a different discovered option.
+1. Inspect the default reference architecture first (`strategy-builder/infra/reference-architectures/foundry_agentic_app/`), starting with `README.md`, `main.tf`, `application_platform.tf`, `agent_service.tf`, `api_service.tf`, `frontend_service.tf`, `dependant_resources.tf`, and the referenced modules, unless the user's requirements clearly demand a different discovered option.
 1. Treat advanced capability-host, private-networking, and extra-project patterns as opt-in. Do not copy them by default when the basic sample already fits the user's scenario.
 1. Inspect the relevant files for the chosen architecture or strategy.
 1. Translate the discovered CAIRA patterns into a user-specific recommendation, design, or implementation plan.
@@ -46,8 +47,9 @@ Install this skill when a user wants to build or extend an Azure AI solution wit
 
 - Repository root: <https://github.com/microsoft/CAIRA>
 - Latest release tag API: <https://api.github.com/repos/microsoft/CAIRA/releases/latest>
-- Infra listing API for reference-architecture discovery: `GET /repos/microsoft/CAIRA/contents/infra?ref=<tag_or_ref>` (ignore `modules/` and `testing/`)
-- Modules listing API: `GET /repos/microsoft/CAIRA/contents/infra/modules?ref=<tag_or_ref>`
+- Reference architectures listing API: `GET /repos/microsoft/CAIRA/contents/strategy-builder/infra/reference-architectures?ref=<tag_or_ref>`
+- Modules listing API: `GET /repos/microsoft/CAIRA/contents/strategy-builder/infra/modules?ref=<tag_or_ref>`
+- Infra testing listing API: `GET /repos/microsoft/CAIRA/contents/strategy-builder/infra/testing?ref=<tag_or_ref>`
 - Strategy builder listing API: `GET /repos/microsoft/CAIRA/contents/strategy-builder?ref=<tag_or_ref>`
 - Deployment strategies listing API: `GET /repos/microsoft/CAIRA/contents/deployment-strategies?ref=<tag_or_ref>`
 - Docs listing API: `GET /repos/microsoft/CAIRA/contents/docs?ref=<tag_or_ref>`

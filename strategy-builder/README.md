@@ -20,9 +20,9 @@ From the repository root, prefer the Taskfile wrappers:
 task strategy:generate
 task strategy:validate:pr
 task strategy:test:local
-task strategy:dev -- deployment-strategies/typescript-openai-agent-sdk
-task strategy:deploy -- deployment-strategies/typescript-openai-agent-sdk
-task strategy:test:deployed -- deployment-strategies/typescript-openai-agent-sdk
+task strategy:dev -- deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca
+task strategy:deploy -- deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca
+task strategy:test:deployed -- deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca
 ```
 
 Use `task strategy:deploy:reference` only when you are explicitly working on the shared baseline deployment or the generated `.env` synchronization flow.

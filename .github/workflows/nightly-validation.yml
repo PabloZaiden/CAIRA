@@ -53,49 +53,22 @@ jobs:
 
           strategies = []
           root = Path('deployment-strategies')
-          for path in sorted(root.iterdir()):
-            if not path.is_dir():
-              continue
+          for compose_file in sorted(root.rglob('docker-compose.yml')):
+            path = compose_file.parent
             if not (path / 'infra').exists():
               continue
-            if requested and path.name not in requested and str(path) not in requested:
+            rel_path = path.relative_to(root)
+            rel_text = str(rel_path)
+            full_text = f"deployment-strategies/{rel_text}"
+            if requested and path.name not in requested and rel_text not in requested and full_text not in requested:
               continue
             strategies.append({
-              'name': path.name,
-              'strategy': str(path),
+              'name': rel_text,
+              'strategy': full_text,
             })
 
           print(f"matrix={json.dumps(strategies)}")
           PY
-
-  terraform_acceptance:
-    name: Terraform acceptance
-    runs-on: ubuntu-24.04
-    permissions:
-      id-token: write
-      contents: read
-    env:
-      TF_IN_AUTOMATION: true
-      TF_CLI_ARGS: -no-color
-      ARM_USE_AZUREAD: true
-      ARM_USE_OIDC: true
-      ARM_TENANT_ID: ${{ vars.PERSISTENT_SUB_AZURE_TENANT_ID }}
-      ARM_CLIENT_ID: ${{ vars.PERSISTENT_SUB_AZURE_CLIENT_ID }}
-      ARM_SUBSCRIPTION_ID: ${{ vars.PERSISTENT_SUB_AZURE_SUBSCRIPTION_ID }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-
-      - name: Setup Task
-        uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611 # v2.0.0
-        with:
-          repo-token: ${{ github.token }}
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
-
-      - name: Run Terraform acceptance suite
-        run: task tf:test:acc:all
 
   deployment_strategy_lifecycle:
     name: Strategy ${{ matrix.name }}

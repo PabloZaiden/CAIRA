@@ -25,4 +25,4 @@ cd strategy-builder
 
 ## Important note
 
-The repository already contains the CAIRA reference architectures and reusable modules under `infra/`. No extra CAIRA checkout, version pin file, or bootstrap clone step is required.
+The repository already contains the CAIRA reference architectures and reusable modules under `strategy-builder/infra/`. No extra CAIRA checkout, version pin file, or bootstrap clone step is required.

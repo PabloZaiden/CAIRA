@@ -8,7 +8,7 @@
 
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { mkdtemp, rm, readFile, writeFile, unlink } from 'node:fs/promises';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { existsSync, readdirSync, type Dirent } from 'node:fs';
 import { generate } from '../../lib/generator/index.ts';
@@ -19,6 +19,7 @@ import { validateSamples } from '../../lib/generator/validator.ts';
 // ---------------------------------------------------------------------------
 
 const REPO_ROOT = join(import.meta.dirname ?? '.', '..', '..', '..');
+const REFERENCE_ARCHITECTURE_ID = 'foundry_agentic_app';
 
 /** Verify the repo root is correct (has components/ and contracts/). */
 function verifyRepoRoot(): void {
@@ -62,17 +63,14 @@ describe('round-trip: generate → validate', () => {
 
   it('produces self-contained deployment strategy directories', async () => {
     const samplesDir = join(tempDir, 'samples');
-    const sampleNames = readdirSync(samplesDir, { withFileTypes: true })
-      .filter((d) => d.isDirectory())
-      .map((d) => d.name);
+    const strategyDirs = listGeneratedStrategyDirsIn(samplesDir);
+    const sampleNames = strategyDirs.map((dir) => basename(dir));
 
-    expect(sampleNames).toContain('typescript-foundry-agent-service');
-    expect(sampleNames).toContain('typescript-openai-agent-sdk');
+    expect(sampleNames).toContain('typescript-foundry-agent-service-aca');
+    expect(sampleNames).toContain('typescript-openai-agent-sdk-aca');
 
     // Each strategy should have agent/, api/, frontend/, and key files
-    for (const name of sampleNames) {
-      const sampleDir = join(samplesDir, name);
-
+    for (const sampleDir of strategyDirs) {
       expect(existsSync(join(sampleDir, 'agent'))).toBe(true);
       expect(existsSync(join(sampleDir, 'api'))).toBe(true);
       expect(existsSync(join(sampleDir, 'frontend'))).toBe(true);
@@ -90,12 +88,10 @@ describe('round-trip: generate → validate', () => {
 
   it('compose files use local build contexts (not monorepo-relative)', async () => {
     const samplesDir = join(tempDir, 'samples');
-    const sampleNames = readdirSync(samplesDir, { withFileTypes: true })
-      .filter((d) => d.isDirectory())
-      .map((d) => d.name);
+    const strategyDirs = listGeneratedStrategyDirsIn(samplesDir);
 
-    for (const name of sampleNames) {
-      const compose = await readFile(join(samplesDir, name, 'docker-compose.yml'), 'utf-8');
+    for (const sampleDir of strategyDirs) {
+      const compose = await readFile(join(sampleDir, 'docker-compose.yml'), 'utf-8');
 
       expect(compose).toContain('context: ./agent');
       expect(compose).toContain('context: ./api');
@@ -107,13 +103,11 @@ describe('round-trip: generate → validate', () => {
 
   it('tsconfig.json files extend ../tsconfig.base.json (not deep monorepo path)', async () => {
     const samplesDir = join(tempDir, 'samples');
-    const sampleNames = readdirSync(samplesDir, { withFileTypes: true })
-      .filter((d) => d.isDirectory())
-      .map((d) => d.name);
+    const strategyDirs = listGeneratedStrategyDirsIn(samplesDir);
 
-    for (const name of sampleNames) {
+    for (const sampleDir of strategyDirs) {
       for (const component of ['agent', 'api', 'frontend']) {
-        const tsconfigPath = join(samplesDir, name, component, 'tsconfig.json');
+        const tsconfigPath = join(sampleDir, component, 'tsconfig.json');
         if (!existsSync(tsconfigPath)) continue;
 
         const content = await readFile(tsconfigPath, 'utf-8');
@@ -129,16 +123,14 @@ describe('round-trip: generate → validate', () => {
 
   it('deployment strategies have no mock references', async () => {
     const samplesDir = join(tempDir, 'samples');
-    const sampleNames = readdirSync(samplesDir, { withFileTypes: true })
-      .filter((d) => d.isDirectory())
-      .map((d) => d.name);
+    const strategyDirs = listGeneratedStrategyDirsIn(samplesDir);
 
-    for (const name of sampleNames) {
+    for (const sampleDir of strategyDirs) {
       // No docker-compose.test.yml in deployment strategies
-      expect(existsSync(join(samplesDir, name, 'docker-compose.test.yml'))).toBe(false);
+      expect(existsSync(join(sampleDir, 'docker-compose.test.yml'))).toBe(false);
 
       // Compose file should not reference mocks
-      const compose = await readFile(join(samplesDir, name, 'docker-compose.yml'), 'utf-8');
+      const compose = await readFile(join(sampleDir, 'docker-compose.yml'), 'utf-8');
       expect(compose).not.toContain('foundry-mock');
       expect(compose).not.toContain('openai-mock');
       expect(compose).not.toContain('ai-mock');
@@ -228,7 +220,12 @@ describe('drift detection', () => {
 
   it('detects content modification', async () => {
     // Modify a generated file
-    const composePath = join(samplesDir, 'typescript-foundry-agent-service', 'docker-compose.yml');
+    const composePath = join(
+      samplesDir,
+      REFERENCE_ARCHITECTURE_ID,
+      'typescript-foundry-agent-service-aca',
+      'docker-compose.yml'
+    );
     const original = await readFile(composePath, 'utf-8');
     await writeFile(composePath, original + '\n# hand-edited\n');
 
@@ -238,7 +235,7 @@ describe('drift detection', () => {
       await generate({ repoRoot: REPO_ROOT, samplesDir: expectedDir, clean: true });
 
       const expectedContent = await readFile(
-        join(expectedDir, 'typescript-foundry-agent-service', 'docker-compose.yml'),
+        join(expectedDir, REFERENCE_ARCHITECTURE_ID, 'typescript-foundry-agent-service-aca', 'docker-compose.yml'),
         'utf-8'
       );
       const actualContent = await readFile(composePath, 'utf-8');
@@ -254,7 +251,7 @@ describe('drift detection', () => {
   });
 
   it('detects missing files', async () => {
-    const gitignorePath = join(samplesDir, 'typescript-openai-agent-sdk', '.gitignore');
+    const gitignorePath = join(samplesDir, REFERENCE_ARCHITECTURE_ID, 'typescript-openai-agent-sdk-aca', '.gitignore');
     const original = await readFile(gitignorePath, 'utf-8');
 
     await unlink(gitignorePath);
@@ -265,7 +262,9 @@ describe('drift detection', () => {
         await generate({ repoRoot: REPO_ROOT, samplesDir: expectedDir, clean: true });
 
         // The expected dir has the file, our samples dir doesn't
-        expect(existsSync(join(expectedDir, 'typescript-openai-agent-sdk', '.gitignore'))).toBe(true);
+        expect(
+          existsSync(join(expectedDir, REFERENCE_ARCHITECTURE_ID, 'typescript-openai-agent-sdk-aca', '.gitignore'))
+        ).toBe(true);
         expect(existsSync(gitignorePath)).toBe(false);
       } finally {
         await rm(expectedDir, { recursive: true, force: true });
@@ -277,7 +276,12 @@ describe('drift detection', () => {
   });
 
   it('detects extra files', async () => {
-    const extraFilePath = join(samplesDir, 'typescript-foundry-agent-service', 'EXTRA_FILE.txt');
+    const extraFilePath = join(
+      samplesDir,
+      REFERENCE_ARCHITECTURE_ID,
+      'typescript-foundry-agent-service-aca',
+      'EXTRA_FILE.txt'
+    );
 
     await writeFile(extraFilePath, 'this should not be here');
 
@@ -287,7 +291,11 @@ describe('drift detection', () => {
         await generate({ repoRoot: REPO_ROOT, samplesDir: expectedDir, clean: true });
 
         // The expected dir should NOT have this file
-        expect(existsSync(join(expectedDir, 'typescript-foundry-agent-service', 'EXTRA_FILE.txt'))).toBe(false);
+        expect(
+          existsSync(
+            join(expectedDir, REFERENCE_ARCHITECTURE_ID, 'typescript-foundry-agent-service-aca', 'EXTRA_FILE.txt')
+          )
+        ).toBe(false);
         // Our samples dir has it
         expect(existsSync(extraFilePath)).toBe(true);
       } finally {
@@ -326,6 +334,36 @@ async function collectAllFiles(root: string): Promise<Map<string, string>> {
   const files = new Map<string, string>();
   await walkAndCollect(root, root, files);
   return files;
+}
+
+function listGeneratedStrategyDirsIn(root: string): string[] {
+  const results: string[] = [];
+
+  function walk(dir: string): void {
+    let entries: Dirent[];
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) {
+        continue;
+      }
+
+      const full = join(dir, entry.name);
+      if (existsSync(join(full, 'docker-compose.yml')) && existsSync(join(full, 'infra'))) {
+        results.push(full);
+        continue;
+      }
+
+      walk(full);
+    }
+  }
+
+  walk(root);
+  return results.sort((a, b) => a.localeCompare(b));
 }
 
 async function walkAndCollect(dir: string, root: string, files: Map<string, string>): Promise<void> {
