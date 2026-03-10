@@ -2,10 +2,16 @@
 
 This template is for coding agents to decide using discovered CAIRA assets, not hardcoded architecture names.
 
+Start from `deployment-strategies/` and `docs/` first. Use the raw reference-architecture files in `strategy-builder/` when you need to understand the underlying source-of-truth beyond what the generated strategies and docs already show.
+
 ## Discovery steps
 
 1. Resolve `ref` (user-provided or latest release tag).
-1. List architectures dynamically:
+1. List generated deployment strategies and relevant docs first:
+   - `GET https://api.github.com/repos/microsoft/CAIRA/contents/deployment-strategies?ref=<ref>`
+   - `GET https://api.github.com/repos/microsoft/CAIRA/contents/docs?ref=<ref>`
+1. Use the discovered deployment strategies and docs to identify the closest end-to-end fit before drilling into raw infra.
+1. List architectures dynamically when the generated strategies/docs are not enough:
    - `GET https://api.github.com/repos/microsoft/CAIRA/contents/strategy-builder/infra/reference-architectures?ref=<ref>`
 1. For each discovered architecture directory directly under `strategy-builder/infra/reference-architectures/`:
     - List files in that directory via contents API.

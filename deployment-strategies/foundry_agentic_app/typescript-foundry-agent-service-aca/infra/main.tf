@@ -6,7 +6,7 @@
 # frontend_service.tf.
 
 module "common_models" {
-  source = "../../../../strategy-builder/infra/modules/common_models"
+  source = "./modules/common_models"
 }
 
 module "naming" {
@@ -42,7 +42,7 @@ locals {
 }
 
 module "foundry" {
-  source = "../../../../strategy-builder/infra/modules/ai_foundry"
+  source = "./modules/ai_foundry"
 
   resource_group_id = local.resource_group_id
   location          = var.location
@@ -64,7 +64,7 @@ module "foundry" {
 }
 
 module "default_project" {
-  source = "../../../../strategy-builder/infra/modules/ai_foundry_project"
+  source = "./modules/ai_foundry_project"
 
   location                          = var.location
   ai_foundry_id                     = module.foundry.ai_foundry_id

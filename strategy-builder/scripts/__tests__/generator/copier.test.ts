@@ -235,6 +235,33 @@ describe('copyComponent', () => {
     expect(result.dirs).toContain('tests/unit');
   });
 
+  it('rewrites Terraform module sources to vendored local modules', async () => {
+    const source = join(tempDir, 'components', 'iac', 'azure-container-apps');
+    await mkdir(source, { recursive: true });
+    await writeFile(
+      join(source, 'main.tf'),
+      `module "container_app" {
+  source = "../../../infra/modules/container_app"
+}`
+    );
+    await mkdir(join(tempDir, 'infra', 'modules', 'container_app'), { recursive: true });
+    await writeFile(join(tempDir, 'infra', 'modules', 'container_app', 'main.tf'), '# vendored module source');
+
+    const target = join(tempDir, 'target');
+
+    const result = await copyComponent(source, target, {
+      sharedTerraformModulesRoot: join(tempDir, 'infra', 'modules'),
+      vendoredTerraformModulesDir: join(target, 'modules')
+    });
+
+    expect(result.transformed).toContain('main.tf');
+    expect(result.terraformModuleDependencies).toEqual(['container_app']);
+
+    const written = await readFile(join(target, 'main.tf'), 'utf-8');
+    expect(written).toContain('source = "./modules/container_app"');
+    expect(written).not.toContain('strategy-builder');
+  });
+
   it('handles deeply nested files', async () => {
     await writeTestFile('src/lib/utils/helpers/format.ts', 'export {}');
 

@@ -8,7 +8,7 @@
 
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { mkdtemp, rm, readFile, writeFile, unlink } from 'node:fs/promises';
-import { basename, join } from 'node:path';
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { existsSync, readdirSync, type Dirent } from 'node:fs';
 import { generate } from '../../lib/generator/index.ts';
@@ -75,6 +75,7 @@ describe('round-trip: generate → validate', () => {
       expect(existsSync(join(sampleDir, 'api'))).toBe(true);
       expect(existsSync(join(sampleDir, 'frontend'))).toBe(true);
       expect(existsSync(join(sampleDir, 'infra'))).toBe(true);
+      expect(existsSync(join(sampleDir, 'infra', 'modules'))).toBe(true);
       expect(existsSync(join(sampleDir, 'contracts'))).toBe(true);
       expect(existsSync(join(sampleDir, 'docker-compose.yml'))).toBe(true);
       expect(existsSync(join(sampleDir, '.env.example'))).toBe(true);
@@ -83,6 +84,39 @@ describe('round-trip: generate → validate', () => {
       expect(existsSync(join(sampleDir, 'README.md'))).toBe(true);
       expect(existsSync(join(sampleDir, 'tsconfig.base.json'))).toBe(true);
       expect(existsSync(join(sampleDir, '.gitignore'))).toBe(true);
+    }
+  });
+
+  it('vendors Terraform modules and keeps module sources inside the strategy', async () => {
+    const samplesDir = join(tempDir, 'samples');
+    const strategyDirs = listGeneratedStrategyDirsIn(samplesDir);
+
+    for (const sampleDir of strategyDirs) {
+      const infraFiles = await collectAllFiles(join(sampleDir, 'infra'));
+      let sawLocalTerraformModuleSource = false;
+
+      for (const [relFile, content] of infraFiles) {
+        expect(content).not.toContain('strategy-builder/');
+
+        if (!relFile.endsWith('.tf')) {
+          continue;
+        }
+
+        const fullPath = join(sampleDir, 'infra', relFile);
+        for (const match of content.matchAll(/\bsource\s*=\s*"([^"\r\n]+)"/g)) {
+          const sourceValue = match[1];
+          if (!sourceValue || !sourceValue.startsWith('.')) {
+            continue;
+          }
+
+          sawLocalTerraformModuleSource = true;
+          const resolvedSource = resolve(dirname(fullPath), sourceValue);
+          expect(pathIsInside(sampleDir, resolvedSource)).toBe(true);
+          expect(existsSync(resolvedSource)).toBe(true);
+        }
+      }
+
+      expect(sawLocalTerraformModuleSource).toBe(true);
     }
   });
 
@@ -384,4 +418,9 @@ async function walkAndCollect(dir: string, root: string, files: Map<string, stri
       files.set(rel, content);
     }
   }
+}
+
+function pathIsInside(rootDir: string, candidatePath: string): boolean {
+  const rel = relative(rootDir, candidatePath);
+  return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel));
 }

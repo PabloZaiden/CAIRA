@@ -20,6 +20,8 @@ Install this skill when a user wants to build or extend an Azure AI solution wit
 ## Core rules
 
 - Treat the CAIRA repository as the source-of-truth reference library.
+- Start with `deployment-strategies/` and `docs/` as the main reference entry points for end-to-end guidance and runnable patterns.
+- Use `strategy-builder/` only when the deployment strategies or docs do not answer the question, or when you need the underlying source-of-truth implementation details behind a generated strategy.
 - Default to creating or modifying files in the user's target workspace, not inside CAIRA, unless the user explicitly wants to change CAIRA itself.
 - Discover the current reference architectures, modules, and deployment strategies at runtime instead of hardcoding lists.
 - Reason across the whole product surface: layered reference-architecture infra, application components, and generated deployment strategies.
@@ -41,13 +43,14 @@ Install this skill when a user wants to build or extend an Azure AI solution wit
 1. Resolve the source version (tag, branch, or release).
 1. Inspect the user's project and requirements first to determine which architecture slices are missing versus already present.
 1. Identify feature slices and their supporting files before copying anything. For example, treat APIM, observability, private networking, capability hosts, app layers, and testing overlays as separate selectable slices.
-1. Discover available assets from repository APIs:
+1. Discover available assets from repository APIs in this order:
+   - `deployment-strategies/`
+   - `docs/` and `skills/`
    - `strategy-builder/infra/reference-architectures/`
    - `strategy-builder/infra/modules/`
    - `strategy-builder/infra/testing/`
    - `strategy-builder/`
-   - `deployment-strategies/`
-   - `docs/` and `skills/`
+1. Treat the generated deployment strategies and the docs as the default working reference. Only drop into `strategy-builder/` when you need deeper implementation details, reference-architecture internals, or source-of-truth files that are not already surfaced by the generated strategies and docs.
 1. Inspect the default reference architecture first (`strategy-builder/infra/reference-architectures/foundry_agentic_app/`), starting with `README.md`, `main.tf`, `application_platform.tf`, `agent_service.tf`, `api_service.tf`, `frontend_service.tf`, `dependant_resources.tf`, and the referenced modules, unless the user's requirements clearly demand a different discovered option.
 1. Treat advanced capability-host, private-networking, and extra-project patterns as opt-in. Do not copy them by default when the basic sample already fits the user's scenario.
 1. Treat selective adoption as a first-class path. Decide whether the user needs only infra, only app code, only observability hookup, only endpoint wiring, or a full end-to-end sample.
@@ -78,9 +81,9 @@ Install this skill when a user wants to build or extend an Azure AI solution wit
 
 - Repository root: <https://github.com/microsoft/CAIRA>
 - Latest release tag API: <https://api.github.com/repos/microsoft/CAIRA/releases/latest>
+- Deployment strategies listing API: `GET /repos/microsoft/CAIRA/contents/deployment-strategies?ref=<tag_or_ref>`
+- Docs listing API: `GET /repos/microsoft/CAIRA/contents/docs?ref=<tag_or_ref>`
 - Reference architectures listing API: `GET /repos/microsoft/CAIRA/contents/strategy-builder/infra/reference-architectures?ref=<tag_or_ref>`
 - Modules listing API: `GET /repos/microsoft/CAIRA/contents/strategy-builder/infra/modules?ref=<tag_or_ref>`
 - Infra testing listing API: `GET /repos/microsoft/CAIRA/contents/strategy-builder/infra/testing?ref=<tag_or_ref>`
 - Strategy builder listing API: `GET /repos/microsoft/CAIRA/contents/strategy-builder?ref=<tag_or_ref>`
-- Deployment strategies listing API: `GET /repos/microsoft/CAIRA/contents/deployment-strategies?ref=<tag_or_ref>`
-- Docs listing API: `GET /repos/microsoft/CAIRA/contents/docs?ref=<tag_or_ref>`

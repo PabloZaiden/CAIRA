@@ -1,5 +1,5 @@
 module "api_app" {
-  source = "../../../../strategy-builder/infra/modules/container_app"
+  source = "./modules/container_app"
 
   name                         = "${local.app_prefix}-api"
   container_name               = "api"

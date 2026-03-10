@@ -1,5 +1,5 @@
 module "agent_app" {
-  source = "../../../../strategy-builder/infra/modules/container_app"
+  source = "./modules/container_app"
 
   name                         = "${local.app_prefix}-agent"
   container_name               = "agent"

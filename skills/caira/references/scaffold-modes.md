@@ -1,5 +1,7 @@
 # Strategy Consumption Modes
 
+Use generated `deployment-strategies/` plus `docs/` as the primary CAIRA reference entry points. Only inspect `strategy-builder/` directly when you need deeper source-of-truth details that are not clear from the generated strategies or the docs.
+
 ## Default
 
 Default to `reference` mode unless the user explicitly asks for a copied, self-contained layout.
