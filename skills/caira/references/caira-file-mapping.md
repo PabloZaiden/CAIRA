@@ -4,7 +4,7 @@ Discover the current repository structure at execution time instead of maintaini
 
 Default to `deployment-strategies/` and `docs/` as the main reference entry points. Use `strategy-builder/` only when you need the deeper source-of-truth assets behind those generated strategies or docs.
 
-Use `main` as the default repository ref. Only switch to a specific release tag or other ref when the user explicitly asks for it.
+Use `main` as the default discovery ref when browsing CAIRA. If the user chooses `reference` mode for generated dependencies, pin those generated references to a concrete release tag or commit instead of `main`.
 
 ## Canonical discovery endpoints
 
@@ -29,6 +29,8 @@ For each selected reference architecture or deployment strategy:
 
 - Prefer the smallest architecture slice that satisfies the user's scenario.
 - If the user already has some of the platform pieces, map only the missing CAIRA assets into the target solution.
+- Before copying files or converting module sources, ask whether the user wants `copy` mode or `reference` mode.
+- For `reference` mode, ask for the preferred CAIRA release, tag, or commit. If none is provided, pin to a concrete ref yourself, preferring a release tag and falling back to a commit SHA.
 - Group files by feature slice before copying. Examples: APIM slice, observability slice, private-networking slice, capability-host slice, agent slice, API slice, frontend slice.
 - If a slice is not needed, exclude all of its related files, variables, outputs, env wiring, deploy wiring, and docs from the recommended scope.
 - If APIM is needed, include the complete APIM slice rather than only isolated outputs or variables.

@@ -4,7 +4,7 @@ description: Primary entrypoint for coding agents using CAIRA as reference mater
 compatibility: Requires network access to github.com, api.github.com, and raw.githubusercontent.com.
 metadata:
   author: pablozaiden
-  version: "0.5.1"
+  version: "0.5.2"
 ---
 
 # CAIRA
@@ -23,6 +23,9 @@ Install this skill when a user wants to build or extend an Azure AI solution wit
 - Start with `deployment-strategies/` and `docs/` as the main reference entry points for end-to-end guidance and runnable patterns.
 - Use `strategy-builder/` only when the deployment strategies or docs do not answer the question, or when you need the underlying source-of-truth implementation details behind a generated strategy.
 - Default to creating or modifying files in the user's target workspace, not inside CAIRA, unless the user explicitly wants to change CAIRA itself.
+- Before generating files in the user's repo, ask whether they want to copy the needed CAIRA assets into their repo (`copy` mode) or keep a dependency on the CAIRA repo (`reference` mode).
+- Use `main` as the default discovery ref when browsing CAIRA.
+- If the user chooses `reference` mode, ask whether they have a preferred CAIRA release, tag, or commit. If they do not, prefer a concrete pinned ref (release tag first, then commit SHA) instead of leaving generated references on `main`.
 - Discover the current reference architectures, modules, and deployment strategies at runtime instead of hardcoding lists.
 - Reason across the whole product surface: layered reference-architecture infra, application components, and generated deployment strategies.
 - Map discovered CAIRA assets to the user's scenario before generating code, infrastructure, or recommendations.
@@ -40,8 +43,10 @@ Install this skill when a user wants to build or extend an Azure AI solution wit
 
 ## Dynamic discovery workflow
 
-1. Resolve the source ref: use `main` by default, and only switch to a specific release tag or other ref when the user explicitly asks for it.
+1. Resolve the discovery ref: use `main` by default when browsing CAIRA. If the user later chooses `reference` mode for generated dependencies, pin those generated references to a specific release tag or commit instead of leaving them on `main`.
 1. Inspect the user's project and requirements first to determine which architecture slices are missing versus already present.
+1. Ask whether the user wants `copy` mode (copy CAIRA assets into their repo) or `reference` mode (keep a dependency on the CAIRA repo) before generating files.
+1. If the user chooses `reference` mode, ask whether they want a specific CAIRA release, tag, or commit. If they do not care, resolve a concrete pinned ref yourself, preferring a release tag and falling back to a commit SHA.
 1. Identify feature slices and their supporting files before copying anything. For example, treat APIM, observability, private networking, capability hosts, app layers, and testing overlays as separate selectable slices.
 1. Discover available assets from repository APIs in this order:
    - `deployment-strategies/`
@@ -67,6 +72,8 @@ Install this skill when a user wants to build or extend an Azure AI solution wit
 - Check whether the user already has observability resources and only needs OTEL/App Insights hookup.
 - Check whether the user already has API Management and only needs AI gateway exposure or policies.
 - Check whether the user only needs resource IDs, endpoints, or environment settings from the architecture.
+- Check whether the user prefers `copy` mode or `reference` mode for CAIRA assets in their repo.
+- If they prefer `reference` mode, check whether they already require a specific CAIRA release, tag, or commit; otherwise propose the concrete pinned ref you will use.
 - Check whether each optional slice is explicitly in scope or out of scope:
   - APIM / AI gateway
   - observability
@@ -80,7 +87,9 @@ Install this skill when a user wants to build or extend an Azure AI solution wit
 ## Source-of-truth URLs
 
 - Repository root: <https://github.com/pablozaiden/CAIRA>
-- Default source ref: `main` unless the user explicitly asks for another ref.
+- Default discovery ref: `main` unless the user explicitly asks to browse another ref.
+- Reference-mode generated module or file URLs should use a concrete pinned ref, not `main`, unless the user explicitly asks for a floating dependency.
+- Latest release tag API (for pinned `reference` mode dependencies): <https://api.github.com/repos/pablozaiden/CAIRA/releases/latest>
 - Deployment strategies listing API: `GET /repos/pablozaiden/CAIRA/contents/deployment-strategies?ref=main`
 - Docs listing API: `GET /repos/pablozaiden/CAIRA/contents/docs?ref=main`
 - Reference architectures listing API: `GET /repos/pablozaiden/CAIRA/contents/strategy-builder/infra/reference-architectures?ref=main`

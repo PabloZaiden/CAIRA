@@ -6,7 +6,7 @@ Start from `deployment-strategies/` and `docs/` first. Use the raw reference-arc
 
 ## Discovery steps
 
-1. Resolve `ref`: default to `main`, and only switch to a specific release tag or other ref when the user explicitly asks for it.
+1. Resolve the discovery `ref`: default to `main` for browsing CAIRA. If the user later chooses `reference` mode for generated dependencies, pin those generated references to a specific release tag or commit instead of `main`.
 1. List generated deployment strategies and relevant docs first:
    - `GET https://api.github.com/repos/pablozaiden/CAIRA/contents/deployment-strategies?ref=main`
    - `GET https://api.github.com/repos/pablozaiden/CAIRA/contents/docs?ref=main`
@@ -19,12 +19,14 @@ Start from `deployment-strategies/` and `docs/` first. Use the raw reference-arc
     - Extract capabilities from content (networking posture, dependencies, capability host patterns, required inputs, complexity, observability components).
 1. Default to reviewing `foundry_agentic_app` first because it is the baseline layered reference architecture sample.
 1. Before selecting an architecture, determine whether the user needs the full stack or only one of these slices:
-   - Foundry infra only
-   - Foundry infra + application layer
-   - application layer only
-   - observability hookup only
-   - APIM / AI gateway only
-   - existing resource reuse by IDs, endpoints, or connection strings
+    - Foundry infra only
+    - Foundry infra + application layer
+    - application layer only
+    - observability hookup only
+    - APIM / AI gateway only
+    - existing resource reuse by IDs, endpoints, or connection strings
+1. Before generating files, ask whether the user wants `copy` mode or `reference` mode for the selected CAIRA assets.
+1. If the user chooses `reference` mode, ask whether they need a specific CAIRA release, tag, or commit. If they have no preference, prefer a release tag and otherwise fall back to a concrete commit SHA.
 1. Treat each slice as an include/exclude decision. If a slice is out of scope, do not recommend copying it just to leave it disabled.
 1. For APIM specifically, recommend the entire APIM slice only when the user needs gateway behavior, policies, or governance. Otherwise keep APIM out of scope completely.
 
@@ -66,4 +68,4 @@ Evidence URLs:
 
 ## Confirmation gate
 
-Always require explicit user confirmation before generating or modifying files.
+Always require explicit user confirmation before generating or modifying files, including the chosen `copy` vs `reference` mode and any pinned CAIRA ref for `reference` mode.

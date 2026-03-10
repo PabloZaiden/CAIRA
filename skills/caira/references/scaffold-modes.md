@@ -4,18 +4,22 @@ Use generated `deployment-strategies/` plus `docs/` as the primary CAIRA referen
 
 ## Default
 
-Default to `reference` mode unless the user explicitly asks for a copied, self-contained layout.
+Do not assume a mode. Ask the user whether they want `copy` mode (copy the needed CAIRA files/modules into their repo) or `reference` mode (keep a dependency on the CAIRA repo) before generating files.
+
+If the user has no preference, explain the trade-offs and recommend one, but still record the chosen mode explicitly before scaffolding.
 
 ## `reference` mode
 
 - Keep selected reference architecture files close to the published CAIRA source.
-- Convert local module paths to git module references that default to `main`.
-- Only pin to an explicit tag, release, commit, or other ref when the user explicitly asks for it.
+- Ask whether the user has a preferred CAIRA release, tag, or commit.
+- Convert local module paths to git module references pinned to a concrete ref.
+- If the user has no preference, prefer a release tag. Fall back to a commit SHA from the desired branch when a release tag is not appropriate.
+- Do not leave generated references on `main` unless the user explicitly asks for a floating dependency.
 
 Template:
 
 ```hcl
-source = "git::https://github.com/pablozaiden/CAIRA.git//strategy-builder/infra/modules/<module_name>?ref=main"
+source = "git::https://github.com/pablozaiden/CAIRA.git//strategy-builder/infra/modules/<module_name>?ref=<pinned_ref>"
 ```
 
 ## `copy` mode
@@ -30,6 +34,10 @@ source = "git::https://github.com/pablozaiden/CAIRA.git//strategy-builder/infra/
 ## Ref resolution template
 
 ```bash
-REF=main
-# Replace `main` only if the user explicitly asked for a specific CAIRA release, tag, commit, or other ref.
+# Ask first whether the user already wants a specific CAIRA release, tag, or commit.
+# If not, prefer the latest release tag for a stable dependency:
+curl -s https://api.github.com/repos/pablozaiden/CAIRA/releases/latest
+
+# If a release tag is not appropriate, pin to a specific commit SHA instead:
+git ls-remote https://github.com/pablozaiden/CAIRA.git refs/heads/main
 ```
