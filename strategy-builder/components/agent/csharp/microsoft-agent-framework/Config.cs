@@ -38,7 +38,7 @@ public sealed record AgentConfig
         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT")
             ?? throw new InvalidOperationException(
                 "AZURE_OPENAI_ENDPOINT environment variable is required. " +
-                "Set it to your Azure OpenAI endpoint URL.");
+                "Set it to your Azure OpenAI endpoint or APIM gateway URL.");
 
         return new AgentConfig
         {

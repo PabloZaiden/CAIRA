@@ -54,6 +54,8 @@ interface CliOptions {
   testProfileSpecified: boolean;
   workspace: string | undefined;
   sshPublicKeyFile: string | undefined;
+  enableApimAiGateway: boolean;
+  apimSkuName: string | undefined;
 }
 
 interface ComponentManifest {
@@ -73,6 +75,8 @@ interface DeployVars {
   allowed_cidr: string;
   enable_telemetry: boolean;
   enable_registry_auth: boolean;
+  enable_apim_ai_gateway: boolean;
+  apim_sku_name: string;
   agent_image: string;
   api_image: string;
   frontend_image: string;
@@ -145,6 +149,9 @@ Options:
   --test-profile <name>   Deployment profile: public, private, private-capability-host
   --workspace <name>      Terraform workspace override (defaults to a profile-specific test workspace)
   --ssh-public-key-file   SSH public key file for the private-profile jumpbox
+  --enable-apim-ai-gateway
+                          Deploy the optional APIM AI gateway and route OpenAI-compatible agents through it
+  --apim-sku-name <sku>   APIM SKU when the AI gateway is enabled (default: Developer_1)
   --destroy               Destroy deployed strategy resources from Terraform state
   --help, -h              Show help
 
@@ -171,7 +178,9 @@ function parseArgs(args: string[]): CliOptions | null {
     testProfile: 'public',
     testProfileSpecified: false,
     workspace: undefined,
-    sshPublicKeyFile: undefined
+    sshPublicKeyFile: undefined,
+    enableApimAiGateway: false,
+    apimSkuName: undefined
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -208,6 +217,12 @@ function parseArgs(args: string[]): CliOptions | null {
         break;
       case '--ssh-public-key-file':
         options.sshPublicKeyFile = args[++i];
+        break;
+      case '--enable-apim-ai-gateway':
+        options.enableApimAiGateway = true;
+        break;
+      case '--apim-sku-name':
+        options.apimSkuName = args[++i];
         break;
       case '--destroy':
         options.destroy = true;
@@ -569,6 +584,11 @@ function requireOutputString(outputs: TerraformOutputMap, key: string): string {
   return value;
 }
 
+function readOptionalOutputString(outputs: TerraformOutputMap, key: string): string | undefined {
+  const value = outputs[key]?.value;
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
 function normalizeSampleName(sampleName: string): string {
   return sampleName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
 }
@@ -721,7 +741,8 @@ function toReferenceOutputs(outputs: TerraformOutputMap): TerraformOutputs {
   return {
     ai_foundry_name: requireOutputString(outputs, 'ai_foundry_name'),
     ai_foundry_default_project_name: requireOutputString(outputs, 'ai_foundry_default_project_name'),
-    ai_foundry_id: requireOutputString(outputs, 'ai_foundry_id')
+    ai_foundry_id: requireOutputString(outputs, 'ai_foundry_id'),
+    apim_gateway_url: readOptionalOutputString(outputs, 'apim_gateway_url')
   };
 }
 
@@ -771,6 +792,9 @@ async function main(): Promise<void> {
   if (workspace) {
     log(`Using terraform workspace: ${workspace}`);
   }
+  if (parsed.enableApimAiGateway) {
+    log(`APIM AI gateway enabled (SKU: ${parsed.apimSkuName ?? 'Developer_1'})`);
+  }
 
   const profileVars = await buildTestProfileTerraformVars({
     profile: parsed.testProfile,
@@ -794,6 +818,8 @@ async function main(): Promise<void> {
     allowed_cidr: allowedCidr,
     enable_telemetry: true,
     enable_registry_auth: false,
+    enable_apim_ai_gateway: parsed.enableApimAiGateway,
+    apim_sku_name: parsed.apimSkuName ?? 'Developer_1',
     agent_image: '',
     api_image: '',
     frontend_image: '',
@@ -859,7 +885,7 @@ async function main(): Promise<void> {
     const foundryEndpoint = deriveFoundryEndpoint(referenceOutputs);
     const openaiEndpoint = deriveOpenAIEndpoint(referenceOutputs);
     log(`Foundry endpoint: ${foundryEndpoint}`);
-    log(`OpenAI endpoint:  ${openaiEndpoint}`);
+    log(`OpenAI endpoint:  ${openaiEndpoint}${referenceOutputs.apim_gateway_url ? ' (via APIM gateway)' : ''}`);
     await writeEnvFiles(referenceOutputs, sampleDir);
     await ensureRbac(referenceOutputs.ai_foundry_id);
 

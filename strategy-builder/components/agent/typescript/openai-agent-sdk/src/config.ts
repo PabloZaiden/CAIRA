@@ -16,7 +16,7 @@
 export interface Config {
   readonly port: number;
   readonly host: string;
-  /** Azure OpenAI endpoint URL */
+  /** Azure OpenAI endpoint URL or APIM gateway URL */
   readonly azureEndpoint: string;
   /** Azure OpenAI API version */
   readonly apiVersion: string;
@@ -115,7 +115,8 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
   const azureEndpoint = env['AZURE_OPENAI_ENDPOINT'];
   if (!azureEndpoint) {
     throw new Error(
-      'AZURE_OPENAI_ENDPOINT environment variable is required. ' + 'Set it to your Azure OpenAI endpoint URL.'
+      'AZURE_OPENAI_ENDPOINT environment variable is required. ' +
+        'Set it to your Azure OpenAI endpoint or APIM gateway URL.'
     );
   }
 

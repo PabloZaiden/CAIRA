@@ -35,8 +35,8 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json ./
 
-# Copy BFF server source (runs with native TypeScript support, no build step)
-COPY src/server.ts ./src/server.ts
+# Copy the BFF server source tree (runs with native TypeScript support, no build step)
+COPY src ./src
 
 # Copy built React SPA from stage 1
 COPY --from=build /app/dist ./dist

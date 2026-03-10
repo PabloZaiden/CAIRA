@@ -244,7 +244,7 @@ public static class AgentSetup
     // ---- Helpers ----
 
     /// <summary>
-    /// Create a ResponsesClient pointing at Azure OpenAI.
+    /// Create a ResponsesClient pointing at Azure OpenAI or an APIM gateway.
     ///
     /// Always uses AzureOpenAIClient with a TokenCredential:
     ///   - HTTPS endpoint (production): DefaultAzureCredential for real

@@ -108,10 +108,10 @@ When enabled, Terraform outputs expose:
 - `apim_openai_api_base_url`
 - `apim_chat_completions_url_template`
 
-The sample containers keep their default direct-to-Foundry wiring unless you
-explicitly point a caller at the APIM-fronted URL. Treat the gateway as an
-optional preview-shaped integration layer and validate the policies you need
-before using it in a real environment.
+The Foundry Agent Service variant keeps using `AZURE_AI_PROJECT_ENDPOINT` directly. When the gateway is enabled, the APIM outputs are available for external OpenAI-style callers or custom integrations.
+
+Treat the gateway as an optional preview-shaped integration layer and validate
+the policies you need before using it in a real environment.
 
 ## Services
 

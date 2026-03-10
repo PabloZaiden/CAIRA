@@ -175,20 +175,20 @@ The OpenAI variant uses **client-side state** with the Responses API:
 
 ### Configuration
 
-| Variable                   | Required | Default              | Description                            |
-|----------------------------|----------|----------------------|----------------------------------------|
-| `AZURE_OPENAI_ENDPOINT`    | Yes      | --                   | Azure OpenAI endpoint URL              |
-| `PORT`                     | No       | `3000`               | Server port                            |
-| `HOST`                     | No       | `0.0.0.0`            | Server host                            |
-| `AZURE_OPENAI_API_VERSION` | No       | `2025-03-01-preview` | API version                            |
-| `AGENT_MODEL`              | No       | `gpt-5.2-chat`       | Model deployment name                  |
-| `AGENT_NAME`               | No       | `CAIRA Pirate Agent` | Agent display name                     |
-| `CAPTAIN_INSTRUCTIONS`     | No       | (built-in)           | System prompt for captain agent        |
-| `SHANTY_INSTRUCTIONS`      | No       | (built-in)           | System prompt for shanty battle agent  |
-| `TREASURE_INSTRUCTIONS`    | No       | (built-in)           | System prompt for treasure hunt agent  |
-| `CREW_INSTRUCTIONS`        | No       | (built-in)           | System prompt for crew interview agent |
-| `LOG_LEVEL`                | No       | `info`               | Pino log level                         |
-| `SKIP_AUTH`                | No       | `false`              | Skip bearer token validation           |
+| Variable                   | Required | Default              | Description                                        |
+|----------------------------|----------|----------------------|----------------------------------------------------|
+| `AZURE_OPENAI_ENDPOINT`    | Yes      | --                   | Azure OpenAI endpoint URL or APIM gateway root URL |
+| `PORT`                     | No       | `3000`               | Server port                                        |
+| `HOST`                     | No       | `0.0.0.0`            | Server host                                        |
+| `AZURE_OPENAI_API_VERSION` | No       | `2025-03-01-preview` | API version                                        |
+| `AGENT_MODEL`              | No       | `gpt-5.2-chat`       | Model deployment name                              |
+| `AGENT_NAME`               | No       | `CAIRA Pirate Agent` | Agent display name                                 |
+| `CAPTAIN_INSTRUCTIONS`     | No       | (built-in)           | System prompt for captain agent                    |
+| `SHANTY_INSTRUCTIONS`      | No       | (built-in)           | System prompt for shanty battle agent              |
+| `TREASURE_INSTRUCTIONS`    | No       | (built-in)           | System prompt for treasure hunt agent              |
+| `CREW_INSTRUCTIONS`        | No       | (built-in)           | System prompt for crew interview agent             |
+| `LOG_LEVEL`                | No       | `info`               | Pino log level                                     |
+| `SKIP_AUTH`                | No       | `false`              | Skip bearer token validation                       |
 
 ### Dependencies
 
@@ -227,20 +227,20 @@ The C# variant uses the **Microsoft Agent Framework** (`Microsoft.Agents.AI.Open
 
 ### Configuration
 
-| Variable                   | Required | Default              | Description                      |
-|----------------------------|----------|----------------------|----------------------------------|
-| `AZURE_OPENAI_ENDPOINT`    | Yes      | --                   | Azure OpenAI endpoint URL        |
-| `PORT`                     | No       | `3000`               | Server port                      |
-| `HOST`                     | No       | `0.0.0.0`            | Server host                      |
-| `AZURE_OPENAI_API_VERSION` | No       | `2025-03-01-preview` | API version                      |
-| `AGENT_MODEL`              | No       | `gpt-5.2-chat`       | Model deployment name            |
-| `AGENT_NAME`               | No       | `CAIRA Pirate Agent` | Agent display name               |
-| `CAPTAIN_INSTRUCTIONS`     | No       | (built-in)           | System prompt for captain agent  |
-| `SHANTY_INSTRUCTIONS`      | No       | (built-in)           | Shanty battle specialist prompt  |
-| `TREASURE_INSTRUCTIONS`    | No       | (built-in)           | Treasure hunt specialist prompt  |
-| `CREW_INSTRUCTIONS`        | No       | (built-in)           | Crew interview specialist prompt |
-| `LOG_LEVEL`                | No       | `Debug`              | ASP.NET log level                |
-| `SKIP_AUTH`                | No       | `false`              | Skip bearer token validation     |
+| Variable                   | Required | Default              | Description                                        |
+|----------------------------|----------|----------------------|----------------------------------------------------|
+| `AZURE_OPENAI_ENDPOINT`    | Yes      | --                   | Azure OpenAI endpoint URL or APIM gateway root URL |
+| `PORT`                     | No       | `3000`               | Server port                                        |
+| `HOST`                     | No       | `0.0.0.0`            | Server host                                        |
+| `AZURE_OPENAI_API_VERSION` | No       | `2025-03-01-preview` | API version                                        |
+| `AGENT_MODEL`              | No       | `gpt-5.2-chat`       | Model deployment name                              |
+| `AGENT_NAME`               | No       | `CAIRA Pirate Agent` | Agent display name                                 |
+| `CAPTAIN_INSTRUCTIONS`     | No       | (built-in)           | System prompt for captain agent                    |
+| `SHANTY_INSTRUCTIONS`      | No       | (built-in)           | Shanty battle specialist prompt                    |
+| `TREASURE_INSTRUCTIONS`    | No       | (built-in)           | Treasure hunt specialist prompt                    |
+| `CREW_INSTRUCTIONS`        | No       | (built-in)           | Crew interview specialist prompt                   |
+| `LOG_LEVEL`                | No       | `Debug`              | ASP.NET log level                                  |
+| `SKIP_AUTH`                | No       | `false`              | Skip bearer token validation                       |
 
 ### Dependencies
 

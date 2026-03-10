@@ -19,6 +19,8 @@ This template is for coding agents to decide using discovered CAIRA assets, not 
    - observability hookup only
    - APIM / AI gateway only
    - existing resource reuse by IDs, endpoints, or connection strings
+1. Treat each slice as an include/exclude decision. If a slice is out of scope, do not recommend copying it just to leave it disabled.
+1. For APIM specifically, recommend the entire APIM slice only when the user needs gateway behavior, policies, or governance. Otherwise keep APIM out of scope completely.
 
 ## Decision rubric (content-driven)
 
@@ -35,6 +37,8 @@ Treat capability-host connectivity, private networking, and extra projects as ad
 Do not include `testing_overlay.tf`, `testing_variables.tf`, `testing_outputs.tf`, or related internal validation assets in the recommended architecture scope unless the user explicitly asks for testing or validation infrastructure.
 
 Do not treat pirate-domain sample content as reusable business logic. Only reuse the architecture, composition, deployment, and observability patterns.
+
+When recommending a subset of CAIRA, explain which slices are included and which are intentionally excluded so the user does not import extra components they do not need.
 
 Pick highest fit score and provide alternatives.
 

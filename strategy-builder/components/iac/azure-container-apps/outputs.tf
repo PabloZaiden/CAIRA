@@ -70,12 +70,12 @@ output "apim_gateway_name" {
 }
 
 output "apim_gateway_url" {
-  description = "Optional API Management gateway URL when AI gateway is enabled."
+  description = "Optional API Management gateway root URL when AI gateway is enabled. SDK-based OpenAI callers can use this as their endpoint."
   value       = var.enable_apim_ai_gateway ? azurerm_api_management.ai_gateway[0].gateway_url : null
 }
 
 output "apim_openai_api_base_url" {
-  description = "Optional API Management OpenAI-style API base URL when AI gateway is enabled."
+  description = "Optional API Management OpenAI-style API base URL when AI gateway is enabled. Useful for manual REST callers."
   value       = var.enable_apim_ai_gateway ? "${azurerm_api_management.ai_gateway[0].gateway_url}/openai" : null
 }
 

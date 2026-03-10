@@ -7,6 +7,7 @@
  * Usage:
  *   node src/server.ts
  *   AZURE_OPENAI_ENDPOINT=https://... node src/server.ts
+ *   # Or set AZURE_OPENAI_ENDPOINT to an APIM gateway URL when routing through APIM
  */
 
 import { loadConfig } from './config.ts';

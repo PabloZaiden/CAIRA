@@ -180,7 +180,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
-COPY src/server.ts ./src/server.ts
+COPY src ./src
 EXPOSE 8080
 CMD ["node", "src/server.ts"]
 ```

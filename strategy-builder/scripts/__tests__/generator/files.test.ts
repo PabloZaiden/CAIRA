@@ -387,6 +387,17 @@ describe('generateReadme', () => {
     expect(content).toContain('Port conflicts');
   });
 
+  it('documents APIM auto-routing for OpenAI-compatible agents', () => {
+    const content = generateReadme(makeOpenAIConfig());
+    expect(content).toContain('automatically points `AZURE_OPENAI_ENDPOINT` at `apim_gateway_url`');
+    expect(content).toContain('manual REST callers');
+  });
+
+  it('documents direct Foundry routing for the Foundry Agent Service variant', () => {
+    const content = generateReadme(makeFoundryConfig());
+    expect(content).toContain('keeps using `AZURE_AI_PROJECT_ENDPOINT` directly');
+  });
+
   it('mentions self-contained', () => {
     const content = generateReadme(makeFoundryConfig());
     expect(content).toContain('self-contained');

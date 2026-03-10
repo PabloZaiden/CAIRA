@@ -75,6 +75,12 @@ export interface TerraformOutputs {
   ai_foundry_name: string;
   ai_foundry_default_project_name: string;
   ai_foundry_id: string;
+  apim_gateway_url: string | undefined;
+}
+
+function readOptionalStringOutput(outputs: Record<string, { value?: unknown }>, key: string): string | undefined {
+  const value = outputs[key]?.value;
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
 /**
@@ -164,7 +170,8 @@ async function getExistingOutputs(): Promise<TerraformOutputs | null> {
     return {
       ai_foundry_name: outputs.ai_foundry_name.value,
       ai_foundry_default_project_name: outputs.ai_foundry_default_project_name.value,
-      ai_foundry_id: outputs.ai_foundry_id.value
+      ai_foundry_id: outputs.ai_foundry_id.value,
+      apim_gateway_url: readOptionalStringOutput(outputs, 'apim_gateway_url')
     };
   } catch {
     return null;
@@ -213,10 +220,14 @@ export function deriveFoundryEndpoint(outputs: TerraformOutputs): string {
 }
 
 /**
- * Derive the Azure OpenAI-compatible endpoint from Terraform outputs.
- * This is the endpoint the OpenAI Agent SDK expects.
+ * Derive the preferred Azure OpenAI-compatible endpoint from Terraform outputs.
+ * When APIM is enabled, SDK-based callers should target the gateway root URL;
+ * otherwise they call the Foundry-provided Azure OpenAI endpoint directly.
  */
 export function deriveOpenAIEndpoint(outputs: TerraformOutputs): string {
+  if (outputs.apim_gateway_url) {
+    return outputs.apim_gateway_url.replace(/\/+$/, '');
+  }
   return `https://${outputs.ai_foundry_name}.openai.azure.com/`;
 }
 

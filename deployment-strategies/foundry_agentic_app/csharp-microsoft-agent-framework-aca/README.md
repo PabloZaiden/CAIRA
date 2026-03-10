@@ -108,10 +108,10 @@ When enabled, Terraform outputs expose:
 - `apim_openai_api_base_url`
 - `apim_chat_completions_url_template`
 
-The sample containers keep their default direct-to-Foundry wiring unless you
-explicitly point a caller at the APIM-fronted URL. Treat the gateway as an
-optional preview-shaped integration layer and validate the policies you need
-before using it in a real environment.
+When the gateway is enabled in Azure deployments, the OpenAI-compatible agent container automatically points `AZURE_OPENAI_ENDPOINT` at `apim_gateway_url`, so model traffic flows through APIM without runtime branching in the app. Use `apim_openai_api_base_url` or `apim_chat_completions_url_template` for manual REST callers.
+
+Treat the gateway as an optional preview-shaped integration layer and validate
+the policies you need before using it in a real environment.
 
 ## Services
 
@@ -142,9 +142,9 @@ deployment-strategies/foundry_agentic_app/csharp-microsoft-agent-framework-aca/
 
 ### Required
 
-| Variable                | Description                                                       |
-|-------------------------|-------------------------------------------------------------------|
-| `AZURE_OPENAI_ENDPOINT` | Azure OpenAI endpoint (e.g., https://<resource>.openai.azure.com) |
+| Variable                | Description                                                                                                 |
+|-------------------------|-------------------------------------------------------------------------------------------------------------|
+| `AZURE_OPENAI_ENDPOINT` | Azure OpenAI endpoint or APIM gateway URL for SDK-based callers (e.g., https://<resource>.openai.azure.com) |
 
 ### Optional
 

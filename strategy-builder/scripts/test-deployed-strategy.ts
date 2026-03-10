@@ -1,8 +1,13 @@
 import { execFile, spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { log, logError, waitForHealthy } from './lib/compose-helpers.ts';
+import {
+  deriveFoundryEndpoint,
+  deriveOpenAIEndpoint,
+  type TerraformOutputs as ReferenceTerraformOutputs
+} from './deploy-reference-architecture.ts';
 import { resolveStrategyPath } from './lib/paths.ts';
 import {
   buildPrivateE2ECommand,
@@ -40,6 +45,8 @@ interface CliOptions {
   projectName: string | undefined;
   tag: string | undefined;
   testProfiles: DeployedTestProfile[];
+  enableApimAiGateway: boolean;
+  apimSkuName: string | undefined;
 }
 
 interface TerraformOutputEntry {
@@ -47,6 +54,11 @@ interface TerraformOutputEntry {
 }
 
 type TerraformOutputMap = Record<string, TerraformOutputEntry>;
+
+interface ComponentManifest {
+  requiredEnv?: string[];
+  optionalEnv?: string[];
+}
 
 interface CapabilityHostResponse {
   name?: string;
@@ -83,6 +95,8 @@ Options:
   --allowed-cidr <cidr>     Ingress/jumpbox CIDR override
   --name <project-name>     Resource naming prefix override (single-profile runs only)
   --tag <tag>               Image tag override
+  --enable-apim-ai-gateway  Deploy the optional APIM AI gateway and verify OpenAI-compatible agents route through it
+  --apim-sku-name <sku>     APIM SKU when the AI gateway is enabled (default: Developer_1)
   --help, -h                Show help
 
 Advanced direct script usage:
@@ -101,7 +115,9 @@ function parseArgs(args: string[]): CliOptions | null {
     allowedCidr: undefined,
     projectName: undefined,
     tag: undefined,
-    testProfiles: [...DEPLOYED_TEST_PROFILES]
+    testProfiles: [...DEPLOYED_TEST_PROFILES],
+    enableApimAiGateway: false,
+    apimSkuName: undefined
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -127,6 +143,12 @@ function parseArgs(args: string[]): CliOptions | null {
         break;
       case '--tag':
         options.tag = args[++i];
+        break;
+      case '--enable-apim-ai-gateway':
+        options.enableApimAiGateway = true;
+        break;
+      case '--apim-sku-name':
+        options.apimSkuName = args[++i];
         break;
       case '--help':
       case '-h':
@@ -220,6 +242,135 @@ function requireOutputString(outputs: TerraformOutputMap, key: string): string {
   return value;
 }
 
+function readOptionalOutputString(outputs: TerraformOutputMap, key: string): string | undefined {
+  const value = outputs[key]?.value;
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function toReferenceOutputs(outputs: TerraformOutputMap): ReferenceTerraformOutputs {
+  return {
+    ai_foundry_name: requireOutputString(outputs, 'ai_foundry_name'),
+    ai_foundry_default_project_name: requireOutputString(outputs, 'ai_foundry_default_project_name'),
+    ai_foundry_id: requireOutputString(outputs, 'ai_foundry_id'),
+    apim_gateway_url: readOptionalOutputString(outputs, 'apim_gateway_url')
+  };
+}
+
+function readAgentEndpointEnvName(strategyDir: string): 'AZURE_OPENAI_ENDPOINT' | 'AZURE_AI_PROJECT_ENDPOINT' {
+  const manifestPath = resolve(strategyDir, 'agent', 'component.json');
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8')) as ComponentManifest;
+  const envVars = [...(manifest.requiredEnv ?? []), ...(manifest.optionalEnv ?? [])];
+
+  if (envVars.includes('AZURE_OPENAI_ENDPOINT')) {
+    return 'AZURE_OPENAI_ENDPOINT';
+  }
+  if (envVars.includes('AZURE_AI_PROJECT_ENDPOINT')) {
+    return 'AZURE_AI_PROJECT_ENDPOINT';
+  }
+
+  throw new Error(`Could not determine the agent endpoint env var from ${manifestPath}`);
+}
+
+function inferContainerAppNameFromFqdn(fqdn: string): string {
+  const appName = fqdn.split('.')[0]?.trim();
+  if (!appName) {
+    throw new Error(`Could not infer a Container App name from FQDN: ${fqdn}`);
+  }
+  return appName;
+}
+
+function normalizeUrl(value: string): string {
+  return value.replace(/\/+$/, '');
+}
+
+async function readContainerAppEnvValue(
+  resourceGroupName: string,
+  containerAppName: string,
+  envName: string
+): Promise<string | undefined> {
+  const value = (
+    await runCapture(
+      'az',
+      [
+        'containerapp',
+        'show',
+        '--resource-group',
+        resourceGroupName,
+        '--name',
+        containerAppName,
+        '--query',
+        `properties.template.containers[0].env[?name=='${envName}'].value | [0]`,
+        '-o',
+        'tsv'
+      ],
+      REPO_ROOT,
+      60_000
+    )
+  ).trim();
+
+  return value && value !== 'null' ? value : undefined;
+}
+
+async function verifyAgentEndpointRouting(
+  strategyDir: string,
+  outputs: TerraformOutputMap,
+  options: CliOptions
+): Promise<void> {
+  const endpointEnvName = readAgentEndpointEnvName(strategyDir);
+  const referenceOutputs = toReferenceOutputs(outputs);
+  const resourceGroupName = requireOutputString(outputs, 'resource_group_name');
+  const agentFqdn = requireOutputString(outputs, 'agent_internal_fqdn');
+  const agentAppName = inferContainerAppNameFromFqdn(agentFqdn);
+  const deployedEndpoint = await readContainerAppEnvValue(resourceGroupName, agentAppName, endpointEnvName);
+
+  if (!deployedEndpoint) {
+    throw new Error(`Could not read ${endpointEnvName} from deployed Container App ${agentAppName}`);
+  }
+
+  const expectedEndpoint =
+    endpointEnvName === 'AZURE_OPENAI_ENDPOINT'
+      ? deriveOpenAIEndpoint(referenceOutputs)
+      : deriveFoundryEndpoint(referenceOutputs);
+
+  if (normalizeUrl(deployedEndpoint) !== normalizeUrl(expectedEndpoint)) {
+    throw new Error(
+      `Endpoint verification failed for ${agentAppName}: expected ${endpointEnvName}=${expectedEndpoint}, found ${deployedEndpoint}`
+    );
+  }
+
+  const apimGatewayUrl = readOptionalOutputString(outputs, 'apim_gateway_url');
+  const apimBaseUrl = readOptionalOutputString(outputs, 'apim_openai_api_base_url');
+  const apimChatTemplate = readOptionalOutputString(outputs, 'apim_chat_completions_url_template');
+
+  if (options.enableApimAiGateway) {
+    if (!apimGatewayUrl || !apimBaseUrl || !apimChatTemplate) {
+      throw new Error('APIM verification failed: expected APIM outputs are missing from Terraform outputs');
+    }
+
+    if (
+      endpointEnvName === 'AZURE_OPENAI_ENDPOINT' &&
+      normalizeUrl(deployedEndpoint) !== normalizeUrl(apimGatewayUrl)
+    ) {
+      throw new Error(
+        `APIM verification failed: expected OpenAI-compatible agent to use ${apimGatewayUrl}, found ${deployedEndpoint}`
+      );
+    }
+
+    if (endpointEnvName === 'AZURE_AI_PROJECT_ENDPOINT') {
+      log('APIM enabled: Foundry Agent Service correctly kept the direct project endpoint.');
+    } else {
+      log(`APIM enabled: verified ${endpointEnvName} routes through ${apimGatewayUrl}.`);
+    }
+    return;
+  }
+
+  if (apimGatewayUrl || apimBaseUrl || apimChatTemplate) {
+    throw new Error('Direct-mode verification failed: APIM outputs were present even though APIM was not requested');
+  }
+
+  log(`Direct mode: verified ${endpointEnvName} routes directly to ${expectedEndpoint}.`);
+}
+
 function requireEnvVar(name: string): string {
   const value = process.env[name]?.trim();
   if (!value) {
@@ -255,6 +406,8 @@ function buildDeployArgs(
   if (options.location) args.push('--location', options.location);
   if (options.allowedCidr) args.push('--allowed-cidr', options.allowedCidr);
   if (options.tag) args.push('--tag', options.tag);
+  if (options.enableApimAiGateway) args.push('--enable-apim-ai-gateway');
+  if (options.apimSkuName) args.push('--apim-sku-name', options.apimSkuName);
   if (sshPublicKeyFile && requiresJumpbox(profile)) {
     args.push('--ssh-public-key-file', sshPublicKeyFile);
   }
@@ -398,6 +551,7 @@ async function main(): Promise<void> {
         );
 
         const outputs = await readTerraformOutputs(infraDir);
+        await verifyAgentEndpointRouting(strategyDir, outputs, options);
         const frontendUrl = requireOutputString(outputs, 'frontend_url');
 
         if (usesPrivateNetworking(profile)) {

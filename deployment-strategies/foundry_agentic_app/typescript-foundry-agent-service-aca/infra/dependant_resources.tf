@@ -24,6 +24,13 @@ locals {
   app_common_env = {
     APPLICATIONINSIGHTS_CONNECTION_STRING = module.application_insights.connection_string
   }
+
+  apim_sdk_openai_endpoint = var.enable_apim_ai_gateway ? trimsuffix(azurerm_api_management.ai_gateway[0].gateway_url, "/") : null
+  apim_openai_backend_url  = "https://${module.foundry.ai_foundry_name}.openai.azure.com/openai"
+
+  agent_openai_endpoint_env = var.enable_apim_ai_gateway && contains(keys(var.agent_env), "AZURE_OPENAI_ENDPOINT") ? {
+    AZURE_OPENAI_ENDPOINT = local.apim_sdk_openai_endpoint
+  } : {}
 }
 
 resource "azurerm_api_management" "ai_gateway" {
@@ -58,7 +65,7 @@ resource "azurerm_api_management_backend" "foundry_openai" {
   resource_group_name = local.resource_group_name
   api_management_name = azurerm_api_management.ai_gateway[0].name
   protocol            = "http"
-  url                 = trim(module.foundry.ai_foundry_endpoint, "/")
+  url                 = local.apim_openai_backend_url
   title               = "Foundry OpenAI backend"
   description         = "Optional AI gateway backend for Foundry OpenAI-style endpoints."
 }
@@ -66,35 +73,59 @@ resource "azurerm_api_management_backend" "foundry_openai" {
 resource "azurerm_api_management_api" "foundry_openai" {
   count = var.enable_apim_ai_gateway ? 1 : 0
 
-  name                = "foundry-openai"
-  resource_group_name = local.resource_group_name
-  api_management_name = azurerm_api_management.ai_gateway[0].name
-  revision            = "1"
-  display_name        = "Foundry OpenAI Gateway"
-  path                = "openai"
-  protocols           = ["https"]
-  service_url         = trim(module.foundry.ai_foundry_endpoint, "/")
+  name                  = "foundry-openai"
+  resource_group_name   = local.resource_group_name
+  api_management_name   = azurerm_api_management.ai_gateway[0].name
+  revision              = "1"
+  display_name          = "Foundry OpenAI Gateway"
+  path                  = "openai"
+  protocols             = ["https"]
+  service_url           = local.apim_openai_backend_url
+  subscription_required = false
 }
 
-resource "azurerm_api_management_api_operation" "foundry_chat_completions" {
+resource "azurerm_api_management_api_operation" "foundry_proxy_post" {
   count = var.enable_apim_ai_gateway ? 1 : 0
 
-  operation_id        = "chat-completions"
+  operation_id        = "proxy-post"
   api_name            = azurerm_api_management_api.foundry_openai[0].name
   api_management_name = azurerm_api_management.ai_gateway[0].name
   resource_group_name = local.resource_group_name
-  display_name        = "Chat Completions"
+  display_name        = "OpenAI POST Proxy"
   method              = "POST"
-  url_template        = "/deployments/{deploymentId}/chat/completions"
+  url_template        = "/*"
 }
 
-resource "azurerm_api_management_api_operation_policy" "foundry_chat_completions" {
+resource "azurerm_api_management_api_operation" "foundry_proxy_get" {
+  count = var.enable_apim_ai_gateway ? 1 : 0
+
+  operation_id        = "proxy-get"
+  api_name            = azurerm_api_management_api.foundry_openai[0].name
+  api_management_name = azurerm_api_management.ai_gateway[0].name
+  resource_group_name = local.resource_group_name
+  display_name        = "OpenAI GET Proxy"
+  method              = "GET"
+  url_template        = "/*"
+}
+
+resource "azurerm_api_management_api_operation" "foundry_proxy_delete" {
+  count = var.enable_apim_ai_gateway ? 1 : 0
+
+  operation_id        = "proxy-delete"
+  api_name            = azurerm_api_management_api.foundry_openai[0].name
+  api_management_name = azurerm_api_management.ai_gateway[0].name
+  resource_group_name = local.resource_group_name
+  display_name        = "OpenAI DELETE Proxy"
+  method              = "DELETE"
+  url_template        = "/*"
+}
+
+resource "azurerm_api_management_api_policy" "foundry_openai" {
   count = var.enable_apim_ai_gateway ? 1 : 0
 
   api_name            = azurerm_api_management_api.foundry_openai[0].name
   api_management_name = azurerm_api_management.ai_gateway[0].name
   resource_group_name = local.resource_group_name
-  operation_id        = azurerm_api_management_api_operation.foundry_chat_completions[0].operation_id
 
   xml_content = <<XML
 <policies>
@@ -121,4 +152,11 @@ resource "azurerm_api_management_api_operation_policy" "foundry_chat_completions
   </on-error>
 </policies>
 XML
+
+  depends_on = [
+    azurerm_api_management_backend.foundry_openai,
+    azurerm_api_management_api_operation.foundry_proxy_post,
+    azurerm_api_management_api_operation.foundry_proxy_get,
+    azurerm_api_management_api_operation.foundry_proxy_delete
+  ]
 }

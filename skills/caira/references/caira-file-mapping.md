@@ -24,6 +24,9 @@ For each selected reference architecture or deployment strategy:
 
 - Prefer the smallest architecture slice that satisfies the user's scenario.
 - If the user already has some of the platform pieces, map only the missing CAIRA assets into the target solution.
+- Group files by feature slice before copying. Examples: APIM slice, observability slice, private-networking slice, capability-host slice, agent slice, API slice, frontend slice.
+- If a slice is not needed, exclude all of its related files, variables, outputs, env wiring, deploy wiring, and docs from the recommended scope.
+- If APIM is needed, include the complete APIM slice rather than only isolated outputs or variables.
 - Exclude internal testing overlay files from normal reuse:
   - `testing_overlay.tf`
   - `testing_variables.tf`
