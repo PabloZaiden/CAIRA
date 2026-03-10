@@ -25,6 +25,11 @@ Start from `deployment-strategies/` and `docs/` first. Use the raw reference-arc
     - observability hookup only
     - APIM / AI gateway only
     - existing resource reuse by IDs, endpoints, or connection strings
+1. Build a per-component intake matrix for app-layer pieces in scope, such as frontend, API, agent service/container, capability host, and other app-facing services.
+1. For each needed app component, ask how it should run right now: local process/container only, existing hosting the user already has, or new Azure-hosted deployment.
+1. For each needed app component, ask whether supporting assets are already provided or need to be created, such as registry, hosting, identity/auth wiring, ingress/endpoints, secrets/config, storage, and observability.
+1. If a component should stay local for now, do not recommend Azure hosting, registry creation, or deployment automation for that component by default.
+1. If a component is containerized, ask whether it should stay local, use an existing registry, or require a new registry plus push flow.
 1. Before generating files, ask whether the user wants `copy` mode or `reference` mode for the selected CAIRA assets.
 1. If the user chooses `reference` mode, ask whether they need a specific CAIRA release, tag, or commit. If they have no preference, prefer a release tag and otherwise fall back to a concrete commit SHA.
 1. Treat each slice as an include/exclude decision. If a slice is out of scope, do not recommend copying it just to leave it disabled.
@@ -37,6 +42,7 @@ For each discovered architecture, score fit by user requirements:
 - Networking/security fit
 - Agent-capability/data-service fit
 - Application integration fit
+- Component run/deployment fit (local-only, existing hosting, or new hosted deployment)
 - Operational model fit (monitoring/compliance/enterprise controls)
 - Complexity and maintainability fit
 
@@ -57,6 +63,9 @@ Recommendation:
 - selected: <architecture_name_from_discovery>
 - reason: <short, evidence-based summary>
 
+Component decisions:
+- <component_name>: needed=<yes/no>, run=<local|existing_hosting|new_hosting>, assets=<provided|create>
+
 Alternatives:
 - <architecture_name_from_discovery>: <tradeoff>
 - <architecture_name_from_discovery>: <tradeoff>
@@ -68,4 +77,4 @@ Evidence URLs:
 
 ## Confirmation gate
 
-Always require explicit user confirmation before generating or modifying files, including the chosen `copy` vs `reference` mode and any pinned CAIRA ref for `reference` mode.
+Always require explicit user confirmation before generating or modifying files, including the chosen `copy` vs `reference` mode, the per-component run and create-vs-provided decisions, and any pinned CAIRA ref for `reference` mode.

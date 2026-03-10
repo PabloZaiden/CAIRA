@@ -8,6 +8,10 @@ Do not assume a mode. Ask the user whether they want `copy` mode (copy the neede
 
 If the user has no preference, explain the trade-offs and recommend one, but still record the chosen mode explicitly before scaffolding.
 
+Mode selection is separate from runtime selection. Also ask how each in-scope app component should run right now: local-only, existing hosting, or new Azure hosting.
+
+For each needed app component, ask whether the runtime dependencies are already provided or need creation. For containerized components, ask whether to reuse an existing registry or create one.
+
 ## `reference` mode
 
 - Keep selected reference architecture files close to the published CAIRA source.
@@ -30,6 +34,7 @@ source = "git::https://github.com/pablozaiden/CAIRA.git//strategy-builder/infra/
 - Copy complete working slices only. If APIM is selected, include its infra, outputs, env wiring, and deployment/test wiring together.
 - If APIM is not selected, omit APIM-specific files and references entirely instead of copying them and disabling them later.
 - Apply the same rule to observability, private networking, capability hosts, frontend, API, and agent layers.
+- Do not assume the copied app components will be deployed to Azure immediately. Local-only execution and reuse of existing hosting/registry assets are valid outcomes.
 
 ## Ref resolution template
 

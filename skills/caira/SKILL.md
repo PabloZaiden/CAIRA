@@ -4,7 +4,7 @@ description: Primary entrypoint for coding agents using CAIRA as reference mater
 compatibility: Requires network access to github.com, api.github.com, and raw.githubusercontent.com.
 metadata:
   author: pablozaiden
-  version: "0.5.2"
+  version: "0.5.3"
 ---
 
 # CAIRA
@@ -33,6 +33,11 @@ Install this skill when a user wants to build or extend an Azure AI solution wit
 - Prefer passwordless Azure authentication unless the user explicitly requests another approach.
 - Determine what the user already has before proposing or generating a full end-to-end implementation.
 - Reuse existing user assets when possible, such as Foundry resources, projects, endpoints, Application Insights instances, API Management instances, and app layers.
+- Before proposing or generating app-layer changes, ask which app components are actually needed, such as frontend, API, agent service/container, capability host, or other app-facing services.
+- For each needed app component, ask how the user wants to run it right now: local process/container only, existing hosting they already have, or new Azure-hosted deployment.
+- For each needed app component, ask whether its supporting dependencies are already provided or need to be created, such as container registry, hosting environment, identities, endpoints, secrets/config, storage, and observability.
+- If the user wants a component to run locally for now, do not default to Azure deployment, registry creation, hosted infrastructure, or CI/CD wiring for that component.
+- If a component is containerized and the user already has a registry, reuse it; only add registry creation when the user explicitly needs it.
 - Treat pirate, captain, specialist, shanty, treasure, and crew content as sample-only. Never copy that sample domain as real business logic unless the user explicitly asks for sample content.
 - Exclude CAIRA internal testing and deployed-validation overlay assets from the default reference set unless the user explicitly asks for testing infrastructure.
 - Treat deployment strategies as composable slices, not all-or-nothing bundles. Copy or adapt only the slices the user actually needs.
@@ -45,6 +50,9 @@ Install this skill when a user wants to build or extend an Azure AI solution wit
 
 1. Resolve the discovery ref: use `main` by default when browsing CAIRA. If the user later chooses `reference` mode for generated dependencies, pin those generated references to a specific release tag or commit instead of leaving them on `main`.
 1. Inspect the user's project and requirements first to determine which architecture slices are missing versus already present.
+1. Build a per-component intake matrix for each app component in scope, such as frontend, API, agent service/container, capability host, and other app services. For each component, ask whether it is needed, how it should run, and whether its supporting assets are already provided or need creation.
+1. If a component should run locally for now, keep that component local-first and omit Azure deployment wiring, registry creation, hosted infrastructure, and CI/CD wiring unless the user explicitly asks for them.
+1. If a component is containerized, ask whether it should stay local, use an existing registry, or require a new registry plus image push flow.
 1. Ask whether the user wants `copy` mode (copy CAIRA assets into their repo) or `reference` mode (keep a dependency on the CAIRA repo) before generating files.
 1. If the user chooses `reference` mode, ask whether they want a specific CAIRA release, tag, or commit. If they do not care, resolve a concrete pinned ref yourself, preferring a release tag and falling back to a commit SHA.
 1. Identify feature slices and their supporting files before copying anything. For example, treat APIM, observability, private networking, capability hosts, app layers, and testing overlays as separate selectable slices.
@@ -72,6 +80,27 @@ Install this skill when a user wants to build or extend an Azure AI solution wit
 - Check whether the user already has observability resources and only needs OTEL/App Insights hookup.
 - Check whether the user already has API Management and only needs AI gateway exposure or policies.
 - Check whether the user only needs resource IDs, endpoints, or environment settings from the architecture.
+- For each app component in scope, check whether the user wants or needs it at all:
+  - frontend
+  - API
+  - agent service / container
+  - capability host
+  - other app-facing services
+- For each needed app component, check how it should run right now:
+  - local process
+  - local container
+  - existing hosting the user already has
+  - new Azure-hosted deployment
+- For each needed app component, check whether its required dependencies are provided or should be created:
+  - container registry
+  - hosting environment
+  - identities / auth wiring
+  - endpoints / ingress
+  - secrets / configuration
+  - storage / data dependencies
+  - observability wiring
+- If a component is containerized, check whether the user already has a Docker/container registry and whether images should stay local or be pushed there.
+- If the user wants a component to stay local for now, avoid adding Azure deployment artifacts or registry wiring for that component.
 - Check whether the user prefers `copy` mode or `reference` mode for CAIRA assets in their repo.
 - If they prefer `reference` mode, check whether they already require a specific CAIRA release, tag, or commit; otherwise propose the concrete pinned ref you will use.
 - Check whether each optional slice is explicitly in scope or out of scope:

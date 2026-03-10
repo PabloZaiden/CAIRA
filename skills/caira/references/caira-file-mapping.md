@@ -29,6 +29,10 @@ For each selected reference architecture or deployment strategy:
 
 - Prefer the smallest architecture slice that satisfies the user's scenario.
 - If the user already has some of the platform pieces, map only the missing CAIRA assets into the target solution.
+- Build a per-component decision matrix for app-layer pieces in scope: is the component needed, should it run locally or on hosting, and are its supporting assets already provided or do they need creation?
+- For each in-scope app component, clarify whether it should run as a local process, local container, existing hosted service, or newly-created Azure-hosted service.
+- If a component should stay local for now, prioritize app code, local configuration, and local run guidance over Azure deployment assets for that component.
+- For containerized components, ask whether the user already has a registry to reuse or needs a new registry created.
 - Before copying files or converting module sources, ask whether the user wants `copy` mode or `reference` mode.
 - For `reference` mode, ask for the preferred CAIRA release, tag, or commit. If none is provided, pin to a concrete ref yourself, preferring a release tag and falling back to a commit SHA.
 - Group files by feature slice before copying. Examples: APIM slice, observability slice, private-networking slice, capability-host slice, agent slice, API slice, frontend slice.
