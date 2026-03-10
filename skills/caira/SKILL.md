@@ -26,10 +26,15 @@ Install this skill when a user wants to build or extend an Azure AI solution wit
 - Map discovered CAIRA assets to the user's scenario before generating code, infrastructure, or recommendations.
 - Explain which CAIRA assets influenced the recommendation or generated output.
 - Prefer passwordless Azure authentication unless the user explicitly requests another approach.
+- Determine what the user already has before proposing or generating a full end-to-end implementation.
+- Reuse existing user assets when possible, such as Foundry resources, projects, endpoints, Application Insights instances, API Management instances, and app layers.
+- Treat pirate, captain, specialist, shanty, treasure, and crew content as sample-only. Never copy that sample domain as real business logic unless the user explicitly asks for sample content.
+- Exclude CAIRA internal testing and deployed-validation overlay assets from the default reference set unless the user explicitly asks for testing infrastructure.
 
 ## Dynamic discovery workflow
 
 1. Resolve the source version (tag, branch, or release).
+1. Inspect the user's project and requirements first to determine which architecture slices are missing versus already present.
 1. Discover available assets from repository APIs:
    - `strategy-builder/infra/reference-architectures/`
    - `strategy-builder/infra/modules/`
@@ -39,9 +44,19 @@ Install this skill when a user wants to build or extend an Azure AI solution wit
    - `docs/` and `skills/`
 1. Inspect the default reference architecture first (`strategy-builder/infra/reference-architectures/foundry_agentic_app/`), starting with `README.md`, `main.tf`, `application_platform.tf`, `agent_service.tf`, `api_service.tf`, `frontend_service.tf`, `dependant_resources.tf`, and the referenced modules, unless the user's requirements clearly demand a different discovered option.
 1. Treat advanced capability-host, private-networking, and extra-project patterns as opt-in. Do not copy them by default when the basic sample already fits the user's scenario.
+1. Treat selective adoption as a first-class path. Decide whether the user needs only infra, only app code, only observability hookup, only endpoint wiring, or a full end-to-end sample.
+1. Exclude `testing_overlay.tf`, `testing_variables.tf`, `testing_outputs.tf`, and related internal testing assets unless the user explicitly asks for testing or validation resources.
 1. Inspect the relevant files for the chosen architecture or strategy.
 1. Translate the discovered CAIRA patterns into a user-specific recommendation, design, or implementation plan.
 1. Present the recommendation plus trade-offs before generating changes.
+
+## Partial adoption checklist
+
+- Check whether the user already has a Foundry account or project.
+- Check whether the user already has application hosting and only needs agent/app code.
+- Check whether the user already has observability resources and only needs OTEL/App Insights hookup.
+- Check whether the user already has API Management and only needs AI gateway exposure or policies.
+- Check whether the user only needs resource IDs, endpoints, or environment settings from the architecture.
 
 ## Source-of-truth URLs
 

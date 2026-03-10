@@ -87,6 +87,12 @@ public sealed record SseResolvedEvent(
     [property: JsonPropertyName("tool")] string Tool,
     [property: JsonPropertyName("result")] Dictionary<string, object> Result);
 
+public sealed record SseToolCalledEvent(
+    [property: JsonPropertyName("toolName")] string ToolName);
+
+public sealed record SseToolDoneEvent(
+    [property: JsonPropertyName("toolName")] string ToolName);
+
 // ---------- Request body types ----------
 
 public sealed record CreateConversationRequest(

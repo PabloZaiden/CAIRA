@@ -17,6 +17,7 @@ import type {
   AgentHealthResponse,
   AgentMessage
 } from './types.ts';
+import { injectTraceContext } from './telemetry.ts';
 
 // ---------- Logger interface (subset of Pino used by this module) ----------
 
@@ -341,7 +342,7 @@ export class AgentClient {
   // ---------- Internal ----------
 
   private async buildHeaders(): Promise<Record<string, string>> {
-    const headers: Record<string, string> = {};
+    const headers: Record<string, string> = injectTraceContext({});
 
     if (!this.skipAuth) {
       let token = FALLBACK_INTER_SERVICE_TOKEN;

@@ -1,5 +1,5 @@
 module "api_app" {
-  source = "../../../infra/modules/container_app"
+  source = "../../../../strategy-builder/infra/modules/container_app"
 
   name                         = "${local.app_prefix}-api"
   container_name               = "api"
@@ -11,6 +11,7 @@ module "api_app" {
   enable_registry_auth         = var.enable_registry_auth
   registry_server              = module.container_registry.login_server
   environment_variables = merge(
+    local.app_common_env,
     var.api_env,
     {
       PORT              = "4000"

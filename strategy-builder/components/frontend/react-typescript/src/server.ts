@@ -16,6 +16,7 @@ import Fastify, { type FastifyRequest, type FastifyReply } from 'fastify';
 import fastifyStatic from '@fastify/static';
 import fastifyHttpProxy from '@fastify/http-proxy';
 import type { DependencyHealth, HealthResponse } from './types.ts';
+import { injectTraceContext, setupTelemetry, shutdownTelemetry } from './telemetry.ts';
 
 // ---- Configuration ----
 
@@ -28,6 +29,8 @@ export interface BffConfig {
   readonly apiBaseUrl: string;
   /** Pino log level (default info) */
   readonly logLevel: string;
+  /** Application Insights connection string for Azure Monitor OTEL export */
+  readonly applicationInsightsConnectionString?: string | undefined;
   /** Bearer token used for internal BFF -> API requests */
   readonly interServiceToken: string;
 }
@@ -38,6 +41,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     host: env['HOST'] ?? '0.0.0.0',
     apiBaseUrl: (env['API_BASE_URL'] ?? 'http://api:4000').replace(/\/+$/, ''),
     logLevel: env['LOG_LEVEL'] ?? 'debug',
+    applicationInsightsConnectionString: env['APPLICATIONINSIGHTS_CONNECTION_STRING'],
     interServiceToken: env['INTER_SERVICE_TOKEN'] ?? 'caira-internal-token'
   };
 }
@@ -57,6 +61,8 @@ export async function buildApp(options: BuildBffOptions) {
   const staticDir = options.staticDir ?? join(__dirname, '..', 'dist');
   const interServiceAuthHeader = `Bearer ${config.interServiceToken}`;
 
+  setupTelemetry('caira-frontend-bff', config.applicationInsightsConnectionString);
+
   const app = Fastify({
     logger: {
       level: config.logLevel
@@ -73,10 +79,10 @@ export async function buildApp(options: BuildBffOptions) {
     try {
       const response = await fetch(`${config.apiBaseUrl}/health/deep`, {
         method: 'GET',
-        headers: {
+        headers: injectTraceContext({
           Accept: 'application/json',
           Authorization: interServiceAuthHeader
-        },
+        }),
         signal: AbortSignal.timeout(5_000)
       });
 
@@ -113,6 +119,7 @@ export async function buildApp(options: BuildBffOptions) {
     const path = request.url.split('?', 1)[0] ?? request.url;
     if (path === '/api' || path.startsWith('/api/')) {
       (request.headers as Record<string, string>)['authorization'] = interServiceAuthHeader;
+      injectTraceContext(request.headers as Record<string, string>);
     }
   });
 
@@ -163,6 +170,7 @@ async function main(): Promise<void> {
   const shutdown = async (signal: string): Promise<void> => {
     app.log.info(`Received ${signal}, shutting down gracefully...`);
     await app.close();
+    await shutdownTelemetry();
     process.exit(0);
   };
 

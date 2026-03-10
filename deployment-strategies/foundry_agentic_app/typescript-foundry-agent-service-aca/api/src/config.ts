@@ -14,6 +14,8 @@ export interface Config {
   readonly agentServiceUrl: string;
   /** Azure AD token scope for agent auth (e.g., api://<client-id>/.default) */
   readonly agentTokenScope: string | undefined;
+  /** Application Insights connection string for Azure Monitor OTEL export */
+  readonly applicationInsightsConnectionString: string | undefined;
   /** Pino log level */
   readonly logLevel: string;
   /** Skip token acquisition (for local dev with mocks) */
@@ -41,6 +43,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     host: env['HOST'] ?? '0.0.0.0',
     agentServiceUrl: normalizedUrl,
     agentTokenScope: env['AGENT_TOKEN_SCOPE'],
+    applicationInsightsConnectionString: env['APPLICATIONINSIGHTS_CONNECTION_STRING'],
     logLevel: env['LOG_LEVEL'] ?? 'debug',
     skipAuth: env['SKIP_AUTH'] === 'true'
   };

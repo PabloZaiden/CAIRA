@@ -43,6 +43,7 @@
 
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.AI;
+using System.Diagnostics;
 
 namespace CairaAgent;
 
@@ -51,12 +52,14 @@ public class WorkflowRunner
     private readonly AgentSetupResult _setup;
     private readonly ConversationStore _store;
     private readonly ILogger _logger;
+    private readonly ActivitySource _activitySource;
 
-    public WorkflowRunner(AgentSetupResult setup, ConversationStore store, ILogger<WorkflowRunner> logger)
+    public WorkflowRunner(AgentSetupResult setup, ConversationStore store, ILogger<WorkflowRunner> logger, ActivitySource activitySource)
     {
         _setup = setup;
         _store = store;
         _logger = logger;
+        _activitySource = activitySource;
     }
 
     // ---------------------------------------------------------------------------
@@ -79,6 +82,9 @@ public class WorkflowRunner
     public virtual async Task SendMessageStreamAsync(
         string conversationId, string content, Func<string, Task> onChunk)
     {
+        using var activity = _activitySource.StartActivity("agent.send_message_stream");
+        activity?.SetTag("conversation.id", conversationId);
+
         var record = _store.GetRecord(conversationId);
         if (record == null)
         {
@@ -100,6 +106,8 @@ public class WorkflowRunner
         var fullContent = "";
         TokenUsage? usage = null;
         CapturedResolution? resolution = null;
+        var specialistTool = ResolveSpecialistTool(record.Metadata);
+        record.ActiveSpecialistTool = specialistTool;
 
         try
         {
@@ -107,23 +115,26 @@ public class WorkflowRunner
             var execution = InProcessExecution.OffThread
                 .WithCheckpointing(_setup.CheckpointManager);
 
+            var workflow = ResolveWorkflow(record.Metadata);
+
             StreamingRun run;
             if (record.LastCheckpoint != null)
             {
                 // Subsequent turn — resume from the last checkpoint.
                 // This restores the full conversation history.
                 run = await execution.ResumeStreamingAsync(
-                    _setup.Workflow, record.LastCheckpoint, CancellationToken.None);
+                    workflow, record.LastCheckpoint, CancellationToken.None);
             }
             else
             {
                 // First turn — open a fresh workflow execution.
                 run = await execution.OpenStreamingAsync(
-                    _setup.Workflow, cancellationToken: CancellationToken.None);
+                    workflow, cancellationToken: CancellationToken.None);
             }
 
             await using (run)
             {
+                await onChunk(SseFormatter.Format("tool.called", new SseToolCalledEvent(specialistTool)));
                 // Send the user message to the workflow
                 await run.TrySendMessageAsync(content);
 
@@ -203,6 +214,8 @@ public class WorkflowRunner
             return;
         }
 
+        await onChunk(SseFormatter.Format("tool.done", new SseToolDoneEvent(specialistTool)));
+
         // Emit message.complete SSE event
         var messageId = ConversationStore.NewMessageId("asst");
         await onChunk(SseFormatter.Format("message.complete",
@@ -242,6 +255,9 @@ public class WorkflowRunner
     public virtual async Task<Message?> SendMessageAsync(
         string conversationId, string content)
     {
+        using var activity = _activitySource.StartActivity("agent.send_message");
+        activity?.SetTag("conversation.id", conversationId);
+
         var record = _store.GetRecord(conversationId);
         if (record == null) return null;
 
@@ -258,6 +274,7 @@ public class WorkflowRunner
         var fullContent = "";
         TokenUsage? usage = null;
         CapturedResolution? resolution = null;
+        var workflow = ResolveWorkflow(record.Metadata);
 
         try
         {
@@ -268,12 +285,12 @@ public class WorkflowRunner
             if (record.LastCheckpoint != null)
             {
                 run = await execution.ResumeStreamingAsync(
-                    _setup.Workflow, record.LastCheckpoint, CancellationToken.None);
+                    workflow, record.LastCheckpoint, CancellationToken.None);
             }
             else
             {
                 run = await execution.OpenStreamingAsync(
-                    _setup.Workflow, cancellationToken: CancellationToken.None);
+                    workflow, cancellationToken: CancellationToken.None);
             }
 
             await using (run)
@@ -360,11 +377,39 @@ public class WorkflowRunner
     public virtual HealthResponse CheckHealth()
     {
         // The workflow is created at startup — if it exists, we're healthy.
-        return _setup.Workflow != null
+        return _setup.WorkflowsByMode.Count > 0
             ? new HealthResponse("healthy",
                 [new HealthCheck("azure-openai", "healthy", 0)])
             : new HealthResponse("degraded",
                 [new HealthCheck("azure-openai", "unhealthy")]);
+    }
+
+    private Workflow ResolveWorkflow(Dictionary<string, object>? metadata)
+    {
+        var mode = metadata != null && metadata.TryGetValue("mode", out var modeValue)
+            ? modeValue?.ToString()
+            : null;
+
+        if (mode != null && _setup.WorkflowsByMode.TryGetValue(mode, out var workflow))
+        {
+            return workflow;
+        }
+
+        return _setup.WorkflowsByMode["shanty"];
+    }
+
+    private static string ResolveSpecialistTool(Dictionary<string, object>? metadata)
+    {
+        var mode = metadata != null && metadata.TryGetValue("mode", out var modeValue)
+            ? modeValue?.ToString()
+            : null;
+
+        return mode switch
+        {
+            "treasure" => "treasure_specialist",
+            "crew" => "crew_specialist",
+            _ => "shanty_specialist"
+        };
     }
 
     // ---------------------------------------------------------------------------

@@ -203,6 +203,7 @@ beforeAll(async () => {
       host: '127.0.0.1',
       agentServiceUrl: agentBaseUrl,
       agentTokenScope: undefined,
+      applicationInsightsConnectionString: undefined,
       logLevel: 'silent',
       skipAuth: true
     }
@@ -216,6 +217,7 @@ beforeAll(async () => {
       host: '127.0.0.1',
       agentServiceUrl: agentBaseUrl,
       agentTokenScope: undefined,
+      applicationInsightsConnectionString: undefined,
       logLevel: 'silent',
       skipAuth: false
     },

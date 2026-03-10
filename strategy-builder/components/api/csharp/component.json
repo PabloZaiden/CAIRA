@@ -6,6 +6,6 @@
   "port": 4000,
   "healthEndpoint": "/health",
   "requiredEnv": ["AGENT_SERVICE_URL"],
-  "optionalEnv": ["PORT", "HOST", "AGENT_TOKEN_SCOPE", "LOG_LEVEL", "SKIP_AUTH"],
+  "optionalEnv": ["PORT", "HOST", "AGENT_TOKEN_SCOPE", "APPLICATIONINSIGHTS_CONNECTION_STRING", "LOG_LEVEL", "SKIP_AUTH"],
   "contractSpec": "contracts/backend-api.openapi.yaml"
 }

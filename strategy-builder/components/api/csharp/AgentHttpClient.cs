@@ -14,6 +14,7 @@ using System.Net.Http.Json;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Diagnostics;
 
 namespace CairaApi;
 
@@ -52,6 +53,7 @@ public sealed class AgentHttpClient
     private readonly Func<CancellationToken, Task<string>>? _getTokenOverride;
     private readonly string? _tokenScope;
     private readonly DefaultAzureCredential? _credential;
+    private readonly ActivitySource _activitySource;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -59,7 +61,7 @@ public sealed class AgentHttpClient
     };
 
     public AgentHttpClient(HttpClient http, ApiConfig config, ILogger<AgentHttpClient> logger)
-        : this(http, config, logger, null)
+        : this(http, config, logger, null, new ActivitySource("caira-api-csharp"))
     {
     }
 
@@ -67,7 +69,8 @@ public sealed class AgentHttpClient
         HttpClient http,
         ApiConfig config,
         ILogger<AgentHttpClient> logger,
-        Func<CancellationToken, Task<string>>? getTokenOverride)
+        Func<CancellationToken, Task<string>>? getTokenOverride,
+        ActivitySource activitySource)
     {
         _http = http;
         _http.BaseAddress = new Uri(config.AgentServiceUrl);
@@ -76,6 +79,7 @@ public sealed class AgentHttpClient
         _logger = logger;
         _getTokenOverride = getTokenOverride;
         _tokenScope = config.AgentTokenScope;
+        _activitySource = activitySource;
 
         if (!_config.SkipAuth && _getTokenOverride == null && !string.IsNullOrWhiteSpace(_tokenScope))
         {
@@ -177,6 +181,8 @@ public sealed class AgentHttpClient
         {
             Content = new StringContent(JsonSerializer.Serialize(new { content }), Encoding.UTF8, "application/json"),
         };
+        using var activity = _activitySource.StartActivity("api.agent.stream");
+        activity?.SetTag("conversation.id", conversationId);
         await ApplyAuthHeaderAsync(request, ct);
         request.Headers.Accept.ParseAdd("text/event-stream");
         if (traceId != null)
@@ -348,6 +354,9 @@ public sealed class AgentHttpClient
         {
             try
             {
+                using var activity = _activitySource.StartActivity("api.agent.request");
+                activity?.SetTag("http.method", method.Method);
+                activity?.SetTag("http.route", path);
                 var request = new HttpRequestMessage(method, path);
                 if (body != null)
                 {

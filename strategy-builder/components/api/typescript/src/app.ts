@@ -15,6 +15,7 @@ import { AgentClient } from './agent-client.ts';
 import type { AgentClientOptions } from './agent-client.ts';
 import type { Config } from './config.ts';
 import { registerRoutes } from './routes.ts';
+import { extractTraceContext, setupTelemetry } from './telemetry.ts';
 
 export interface BuildAppOptions {
   /** Application config */
@@ -26,6 +27,8 @@ export interface BuildAppOptions {
 export async function buildApp(options: BuildAppOptions): Promise<FastifyInstance> {
   const { config } = options;
 
+  setupTelemetry('caira-api-typescript', config.applicationInsightsConnectionString);
+
   const app = Fastify({
     logger: {
       level: config.logLevel
@@ -34,6 +37,8 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
 
   if (!config.skipAuth) {
     app.addHook('onRequest', async (request, reply) => {
+      const extracted = extractTraceContext(request.headers as Record<string, string | string[] | undefined>);
+      void extracted;
       const path = request.url.split('?', 1)[0];
       if (path === '/health' || path === '/identity' || path === '/metrics') {
         return;

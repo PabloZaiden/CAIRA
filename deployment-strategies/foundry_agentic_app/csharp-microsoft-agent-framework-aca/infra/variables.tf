@@ -68,3 +68,15 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "enable_apim_ai_gateway" {
+  description = "When true, deploy an optional API Management AI gateway for Foundry endpoints."
+  type        = bool
+  default     = false
+}
+
+variable "apim_sku_name" {
+  description = "API Management SKU name to use when the optional AI gateway is enabled."
+  type        = string
+  default     = "Developer_1"
+}

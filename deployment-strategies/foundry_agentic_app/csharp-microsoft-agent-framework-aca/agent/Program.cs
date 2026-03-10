@@ -2,13 +2,12 @@
 /// Agent container entry point — ASP.NET Core Minimal API.
 ///
 /// Starts the CAIRA pirate agent using the Microsoft Agent Framework (MAF)
-/// Workflow engine for agent orchestration. The captain agent is bound as
-/// a workflow executor and manages specialist sub-agents as tools via the
-/// Responses API.
+/// Workflow engine for agent orchestration. The selected specialist workflow
+/// handles the user-facing exchange for the current activity mode.
 ///
 /// Startup flow:
 ///   1. Load config from environment variables
-///   2. Create the agent hierarchy and MAF Workflow via AgentSetup.Create()
+///   2. Create the per-mode workflows via AgentSetup.Create()
 ///   3. Wire ConversationStore (state) and WorkflowRunner (execution)
 ///   4. Register HTTP routes
 ///   5. Start listening
@@ -16,10 +15,12 @@
 
 using CairaAgent;
 using Microsoft.Agents.AI.Workflows;
+using System.Diagnostics;
 
 var config = AgentConfig.Load();
 
 var builder = WebApplication.CreateBuilder(args);
+builder.AddCairaTelemetry("caira-agent-csharp", config.ApplicationInsightsConnectionString);
 
 // Configure logging
 builder.Logging.SetMinimumLevel(config.LogLevel.ToLowerInvariant() switch
@@ -36,6 +37,7 @@ builder.Logging.SetMinimumLevel(config.LogLevel.ToLowerInvariant() switch
 // Register services
 builder.Services.AddSingleton(config);
 builder.Services.AddSingleton<ConversationStore>();
+builder.Services.AddSingleton(new ActivitySource("caira-agent-csharp"));
 
 var app = builder.Build();
 
@@ -59,18 +61,21 @@ if (setup != null)
     runner = new WorkflowRunner(
         setup,
         store,
-        app.Services.GetRequiredService<ILoggerFactory>().CreateLogger<WorkflowRunner>());
+        app.Services.GetRequiredService<ILoggerFactory>().CreateLogger<WorkflowRunner>(),
+        app.Services.GetRequiredService<ActivitySource>());
 }
 
 // Fallback runner for degraded mode — returns unhealthy status
 runner ??= new WorkflowRunner(
     new AgentSetupResult
     {
-        Workflow = null!,
+        Workflow = null,
         CheckpointManager = CheckpointManager.CreateInMemory(),
+        WorkflowsByMode = new Dictionary<string, Workflow>(),
     },
     app.Services.GetRequiredService<ConversationStore>(),
-    app.Services.GetRequiredService<ILoggerFactory>().CreateLogger<WorkflowRunner>());
+    app.Services.GetRequiredService<ILoggerFactory>().CreateLogger<WorkflowRunner>(),
+    app.Services.GetRequiredService<ActivitySource>());
 
 // Register routes
 Routes.MapRoutes(app, app.Services.GetRequiredService<ConversationStore>(), runner, config);

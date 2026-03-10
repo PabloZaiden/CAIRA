@@ -7,6 +7,6 @@
   "port": 8080,
   "healthEndpoint": "/health",
   "requiredEnv": ["API_BASE_URL"],
-  "optionalEnv": [],
+  "optionalEnv": ["APPLICATIONINSIGHTS_CONNECTION_STRING"],
   "contractSpec": "contracts/backend-api.openapi.yaml"
 }

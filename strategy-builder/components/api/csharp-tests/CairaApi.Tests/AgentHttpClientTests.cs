@@ -15,6 +15,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -74,7 +75,7 @@ public class AgentHttpClientTests
         var http = new HttpClient(handler);
         var effectiveConfig = config ?? CreateConfig();
         var logger = Mock.Of<ILogger<AgentHttpClient>>();
-        var client = new AgentHttpClient(http, effectiveConfig, logger, getTokenOverride);
+        var client = new AgentHttpClient(http, effectiveConfig, logger, getTokenOverride, new ActivitySource("CairaApi.Tests"));
         return (client, handler);
     }
 
@@ -125,7 +126,7 @@ public class AgentHttpClientTests
         // Actually, let's use a handler that throws
         var throwHandler = new ThrowingHttpHandler();
         var http = new HttpClient(throwHandler);
-        var errClient = new AgentHttpClient(http, CreateConfig(), Mock.Of<ILogger<AgentHttpClient>>());
+        var errClient = new AgentHttpClient(http, CreateConfig(), Mock.Of<ILogger<AgentHttpClient>>(), null, new ActivitySource("CairaApi.Tests"));
 
         var result = await errClient.CheckHealthAsync();
 
@@ -342,7 +343,7 @@ public class AgentHttpClientTests
             updatedAt = "2026-01-01T00:00:00Z",
         });
         var http = new HttpClient(failOnceHandler);
-        var client = new AgentHttpClient(http, CreateConfig(), Mock.Of<ILogger<AgentHttpClient>>());
+        var client = new AgentHttpClient(http, CreateConfig(), Mock.Of<ILogger<AgentHttpClient>>(), null, new ActivitySource("CairaApi.Tests"));
 
         var result = await client.CreateConversationAsync();
 
@@ -367,7 +368,7 @@ public class AgentHttpClientTests
         // Actually, use a handler that always throws for the first 5, then returns 503 for the circuit test
         var alwaysFailHandler = new AlwaysFailHandler();
         var http = new HttpClient(alwaysFailHandler);
-        var errClient = new AgentHttpClient(http, CreateConfig(), Mock.Of<ILogger<AgentHttpClient>>());
+        var errClient = new AgentHttpClient(http, CreateConfig(), Mock.Of<ILogger<AgentHttpClient>>(), null, new ActivitySource("CairaApi.Tests"));
 
         // Make 5 requests that fail with network errors (each exhausts 4 attempts = 1+3 retries)
         // After 4 attempts * RecordFailure() each = failures accumulate quickly

@@ -67,6 +67,7 @@ beforeAll(async () => {
       host: '127.0.0.1',
       apiBaseUrl,
       logLevel: 'silent',
+      applicationInsightsConnectionString: undefined,
       interServiceToken: 'caira-internal-token'
     },
     staticDir

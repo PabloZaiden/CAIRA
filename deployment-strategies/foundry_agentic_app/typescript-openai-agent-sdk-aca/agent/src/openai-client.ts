@@ -21,6 +21,7 @@
 
 import type { Agent } from '@openai/agents';
 import { run } from '@openai/agents';
+import { context, trace } from '@opentelemetry/api';
 import type {
   RunRawModelStreamEvent,
   RunItemStreamEvent,
@@ -31,7 +32,14 @@ import type {
 import type { Config } from './config.ts';
 import { ConversationStore } from './conversation-store.ts';
 import type { ConversationRecord } from './conversation-store.ts';
-import { setupAzureClient, createAgentHierarchy, RESOLUTION_TOOLS, SPECIALIST_TOOLS } from './agent-setup.ts';
+import {
+  setupAzureClient,
+  createSpecialistAgents,
+  RESOLUTION_TOOLS,
+  SPECIALIST_TOOLS,
+  type SpecialistAgents,
+  type SpecialistMode
+} from './agent-setup.ts';
 import {
   formatSSE,
   extractTextFromResult,
@@ -80,6 +88,10 @@ const noopLogger: Logger = {
   }
 };
 
+// The SDK's run() generic constraint is Agent<any, any>; keep the cast centralized.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RunnableAgent = Agent<any, any>;
+
 // ---------------------------------------------------------------------------
 // Stream state — mutable accumulator for a single streaming run
 // ---------------------------------------------------------------------------
@@ -113,6 +125,25 @@ interface StreamState {
    * the corresponding `tool_output` arrives (or post-completion as a fallback).
    */
   localResolution: CapturedResolution | null;
+  activeSpecialistTool: string;
+  emitLifecycleEvents: boolean;
+}
+
+function specialistToolName(mode: SpecialistMode | undefined): string {
+  switch (mode) {
+    case 'treasure':
+      return 'treasure_specialist';
+    case 'crew':
+      return 'crew_specialist';
+    case 'shanty':
+    default:
+      return 'shanty_specialist';
+  }
+}
+
+function shouldEmitLifecycleEvents(record: ConversationRecord): boolean {
+  const mode = record.metadata?.['mode'];
+  return mode === 'shanty' || mode === 'treasure' || mode === 'crew';
 }
 
 // ---------------------------------------------------------------------------
@@ -133,7 +164,7 @@ export interface OpenAIClientOptions {
 }
 
 export class OpenAIClient {
-  private captainAgent: Agent | undefined;
+  private specialistAgents: SpecialistAgents | undefined;
   readonly store: ConversationStore;
   private readonly config: Config;
   private readonly runFn: typeof run;
@@ -163,15 +194,30 @@ export class OpenAIClient {
       await setupAzureClient(this.config);
     }
 
-    this.captainAgent = createAgentHierarchy(this.config, this.log);
+    this.specialistAgents = createSpecialistAgents(this.config, this.log);
     this.initialised = true;
   }
 
-  private ensureReady(): Agent {
-    if (!this.initialised || !this.captainAgent) {
+  private ensureReady(): SpecialistAgents {
+    if (!this.initialised || !this.specialistAgents) {
       throw new Error('OpenAIClient not initialised — call initialise() first');
     }
-    return this.captainAgent;
+    return this.specialistAgents;
+  }
+
+  private selectSpecialist(record: ConversationRecord): { agent: Agent; mode?: SpecialistMode } {
+    const specialists = this.ensureReady();
+    const mode = record.metadata?.['mode'];
+    if (mode === 'treasure') {
+      return { agent: specialists.treasure, mode };
+    }
+    if (mode === 'crew') {
+      return { agent: specialists.crew, mode };
+    }
+    if (mode === 'shanty') {
+      return { agent: specialists.shanty, mode };
+    }
+    return { agent: specialists.shanty };
   }
 
   // ---- Conversations (delegated to ConversationStore) ----
@@ -210,11 +256,16 @@ export class OpenAIClient {
    * We don't send message arrays — the API reconstructs context from the
    * response chain.
    */ async sendMessage(conversationId: string, content: string): Promise<Message | undefined> {
-    const captainAgent = this.ensureReady();
+    this.ensureReady();
     const record = this.store.getRecord(conversationId);
     if (!record) return undefined;
+    const selected = this.selectSpecialist(record);
+    const tracer = trace.getTracer('caira.agent.openai');
 
-    this.log.info({ conversationId, contentLength: content.length, agent: captainAgent.name }, 'sendMessage started');
+    this.log.info(
+      { conversationId, contentLength: content.length, agent: selected.agent.name, mode: selected.mode },
+      'sendMessage started'
+    );
     this.log.debug({ conversationId, content }, 'sendMessage user content');
     const startTime = Date.now();
 
@@ -235,12 +286,22 @@ export class OpenAIClient {
     //
     // `previousResponseId` chains this run to the prior one so the model
     // sees the full conversation history without us sending message arrays.
-    // Cast: Agent<UnknownContext, TextOutput> → Agent<any, any> because the
-    // SDK's run() constrains TAgent extends Agent<any, any> and
-    // exactOptionalPropertyTypes prevents direct assignability.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await this.runFn(captainAgent as Agent<any, any>, content, {
-      ...(record.lastResponseId ? { previousResponseId: record.lastResponseId } : {})
+    const result = await tracer.startActiveSpan('agent.send_message', async (span) => {
+      span.setAttribute('conversation.id', conversationId);
+      span.setAttribute('agent.name', selected.agent.name ?? 'unknown');
+      if (selected.mode) {
+        span.setAttribute('adventure.mode', selected.mode);
+      }
+
+      try {
+        return await context.with(trace.setSpan(context.active(), span), async () =>
+          this.runFn(selected.agent as RunnableAgent, content, {
+            ...(record.lastResponseId ? { previousResponseId: record.lastResponseId } : {})
+          })
+        );
+      } finally {
+        span.end();
+      }
     });
 
     const durationMs = Date.now() - startTime;
@@ -346,7 +407,7 @@ export class OpenAIClient {
    * event doesn't fire (edge case with some SDK versions).
    */
   async sendMessageStream(conversationId: string, content: string, onChunk: (chunk: string) => void): Promise<void> {
-    const captainAgent = this.ensureReady();
+    this.ensureReady();
     const record = this.store.getRecord(conversationId);
     if (!record) {
       this.log.warn({ conversationId }, 'sendMessageStream: conversation not found');
@@ -354,8 +415,11 @@ export class OpenAIClient {
       return;
     }
 
+    const selected = this.selectSpecialist(record);
+    const tracer = trace.getTracer('caira.agent.openai');
+
     this.log.info(
-      { conversationId, contentLength: content.length, agent: captainAgent.name },
+      { conversationId, contentLength: content.length, agent: selected.agent.name, mode: selected.mode },
       'sendMessageStream started'
     );
     this.log.debug({ conversationId, content }, 'sendMessageStream user content');
@@ -376,16 +440,36 @@ export class OpenAIClient {
       fullContent: '',
       usage: undefined,
       resolvedEmitted: false,
-      localResolution: null
+      localResolution: null,
+      activeSpecialistTool: specialistToolName(selected.mode),
+      emitLifecycleEvents: shouldEmitLifecycleEvents(record)
     };
+
+    if (state.emitLifecycleEvents) {
+      const specialistStartedEvent: SSEToolCalledEvent = { toolName: state.activeSpecialistTool };
+      onChunk(formatSSE('tool.called', specialistStartedEvent));
+    }
 
     try {
       // Start the streaming run.  Same agent + chaining as sendMessage,
       // but with `stream: true` to get the async event iterable.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const streamResult = await this.runFn(captainAgent as Agent<any, any>, content, {
-        stream: true,
-        ...(record.lastResponseId ? { previousResponseId: record.lastResponseId } : {})
+      const streamResult = await tracer.startActiveSpan('agent.send_message_stream', async (span) => {
+        span.setAttribute('conversation.id', conversationId);
+        span.setAttribute('agent.name', selected.agent.name ?? 'unknown');
+        if (selected.mode) {
+          span.setAttribute('adventure.mode', selected.mode);
+        }
+
+        try {
+          return await context.with(trace.setSpan(context.active(), span), async () =>
+            this.runFn(selected.agent as RunnableAgent, content, {
+              stream: true,
+              ...(record.lastResponseId ? { previousResponseId: record.lastResponseId } : {})
+            })
+          );
+        } finally {
+          span.end();
+        }
       });
 
       // Process each event from the SDK's stream.  The two event types
@@ -630,7 +714,7 @@ export class OpenAIClient {
 
     // Specialist tool → emit `tool.called` SSE so the frontend can show
     // a progress indicator (e.g. "Consulting shanty expert...").
-    if (name && SPECIALIST_TOOLS.has(name)) {
+    if (name && SPECIALIST_TOOLS.has(name) && !state.activeSpecialistTool && state.emitLifecycleEvents) {
       const toolCalledEvent: SSEToolCalledEvent = { toolName: name };
       onChunk(formatSSE('tool.called', toolCalledEvent));
       this.log.debug(
@@ -680,7 +764,7 @@ export class OpenAIClient {
       | Record<string, unknown>
       | undefined;
     const name = toolRaw?.['name'] as string | undefined;
-    if (name && SPECIALIST_TOOLS.has(name)) {
+    if (name && SPECIALIST_TOOLS.has(name) && !state.activeSpecialistTool && state.emitLifecycleEvents) {
       const toolDoneEvent: SSEToolDoneEvent = { toolName: name };
       onChunk(formatSSE('tool.done', toolDoneEvent));
       this.log.debug(
@@ -808,6 +892,11 @@ export class OpenAIClient {
       ? { tool: state.localResolution.tool, result: state.localResolution.result }
       : undefined;
 
+    if (state.activeSpecialistTool && state.emitLifecycleEvents) {
+      const toolDoneEvent: SSEToolDoneEvent = { toolName: state.activeSpecialistTool };
+      onChunk(formatSSE('tool.done', toolDoneEvent));
+    }
+
     const completeEvent: SSECompleteEvent = {
       messageId: ConversationStore.messageId(),
       content: state.fullContent,
@@ -851,8 +940,8 @@ export class OpenAIClient {
       // without incurring token costs, so we just verify setup.
       const start = Date.now();
       // Verify captain agent exists and is configured
-      const agent = this.captainAgent;
-      if (!agent) throw new Error('Agent not configured');
+      const specialists = this.specialistAgents;
+      if (!specialists) throw new Error('Agent not configured');
       const latencyMs = Date.now() - start;
 
       return {

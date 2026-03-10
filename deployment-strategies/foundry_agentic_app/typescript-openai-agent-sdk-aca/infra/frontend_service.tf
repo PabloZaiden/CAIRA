@@ -13,6 +13,7 @@ module "frontend_app" {
   enable_registry_auth         = var.enable_registry_auth
   registry_server              = module.container_registry.login_server
   environment_variables = merge(
+    local.app_common_env,
     var.frontend_env,
     {
       PORT         = "8080"

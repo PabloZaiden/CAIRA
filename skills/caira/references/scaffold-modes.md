@@ -20,6 +20,7 @@ source = "git::https://github.com/microsoft/CAIRA.git//strategy-builder/infra/mo
 
 - Copy the selected architecture files and only the required modules.
 - Determine required modules dynamically from Terraform `source` declarations.
+- Do not copy internal testing overlay files or sample pirate-domain business content unless the user explicitly asks for them.
 
 ## Ref resolution template
 

@@ -57,3 +57,29 @@ output "frontend_url" {
   description = "Frontend URL."
   value       = module.frontend_app.url
 }
+
+output "application_insights_connection_string" {
+  description = "Application Insights connection string used by the sample services."
+  sensitive   = true
+  value       = module.application_insights.connection_string
+}
+
+output "apim_gateway_name" {
+  description = "Optional API Management gateway name when AI gateway is enabled."
+  value       = var.enable_apim_ai_gateway ? azurerm_api_management.ai_gateway[0].name : null
+}
+
+output "apim_gateway_url" {
+  description = "Optional API Management gateway URL when AI gateway is enabled."
+  value       = var.enable_apim_ai_gateway ? azurerm_api_management.ai_gateway[0].gateway_url : null
+}
+
+output "apim_openai_api_base_url" {
+  description = "Optional API Management OpenAI-style API base URL when AI gateway is enabled."
+  value       = var.enable_apim_ai_gateway ? "${azurerm_api_management.ai_gateway[0].gateway_url}/openai" : null
+}
+
+output "apim_chat_completions_url_template" {
+  description = "Optional API Management chat completions URL template with deploymentId and api-version placeholders."
+  value       = var.enable_apim_ai_gateway ? "${azurerm_api_management.ai_gateway[0].gateway_url}/openai/deployments/{deploymentId}/chat/completions?api-version={api-version}" : null
+}

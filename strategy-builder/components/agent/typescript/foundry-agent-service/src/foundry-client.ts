@@ -2,8 +2,8 @@
  * Azure AI Foundry client — server-side agents + conversations.
  *
  * Uses @azure/ai-projects v2 SDK for:
- *   - Agent registration: project.agents.createVersion() registers the captain
- *     and three specialist agents server-side with their tools and instructions
+ *   - Agent registration: project.agents.createVersion() registers three
+ *     specialist agents server-side with their tools and instructions
  *   - OpenAI client: project.getOpenAIClient() provides an authenticated client
  *
  * Uses the OpenAI Conversations API for:
@@ -11,19 +11,15 @@
  *     client-side Map + previousResponseId chaining
  *   - Responses with conversation context: responses.create({ conversation })
  *
- * Agent-as-tool setup:
- *   - Captain agent: the sole conversational agent, talks to the user directly
- *   - Three specialist function tools: shanty_specialist, treasure_specialist,
- *     crew_specialist — each invokes responses.create() with the specialist's
- *     registered instructions for content generation
- *   - Three resolution function tools: resolve_shanty, resolve_treasure,
- *     resolve_crew — capture structured results for activity resolution
+ * Discrete specialist setup:
+ *   - Each activity mode maps to a single registered specialist agent
+ *   - Each specialist exposes one local knowledge tool plus one resolution tool
+ *   - The selected specialist is the user-facing conversational backend
  *
- * The captain has all six tools. When a specialist tool is called, we call
- * responses.create() with the specialist agent's instructions to generate
- * content, then return that content as the tool output. When a resolution
- * tool is called, the handler captures the structured result and the
- * streaming layer emits an `activity.resolved` SSE event.
+ * When a knowledge tool is called, the handler returns deterministic local
+ * sample data. When a resolution tool is called, the handler captures the
+ * structured result and the streaming layer emits an `activity.resolved`
+ * SSE event.
  *
  * Authentication branching:
  *   - http:// endpoint + SKIP_AUTH: uses a plain OpenAI client with API key
@@ -33,6 +29,7 @@
 
 import type { AzureMonitorOpenTelemetryOptions } from '@azure/monitor-opentelemetry';
 import { useAzureMonitor } from '@azure/monitor-opentelemetry';
+import { context, trace } from '@opentelemetry/api';
 
 import OpenAIClient from 'openai';
 import type OpenAI from 'openai';
@@ -48,6 +45,7 @@ import { AIProjectClient } from '@azure/ai-projects';
 import type { Agent } from '@azure/ai-projects';
 import { DefaultAzureCredential } from '@azure/identity';
 import type { Config } from './config.ts';
+import { lookupCrewKnowledge, lookupShantyKnowledge, lookupTreasureKnowledge } from './knowledge-base.ts';
 import type {
   Conversation,
   ConversationDetail,
@@ -62,6 +60,7 @@ import type {
   SSEToolCalledEvent,
   SSEToolDoneEvent
 } from './types.ts';
+import { setupTelemetry } from './telemetry.ts';
 
 // ---------------------------------------------------------------------------
 // Logger interface (subset of Pino used by this module)
@@ -158,25 +157,24 @@ const SPECIALIST_INPUT_SCHEMA = {
 // ---------------------------------------------------------------------------
 
 const TOOL_DEFINITIONS: readonly FunctionTool[] = [
-  // Specialist agent-tools
   {
     type: 'function',
-    name: 'shanty_specialist',
-    description: 'Call this tool to get sea shanty content — opening verses, verse judgments, etc.',
+    name: 'lookup_shanty_knowledge',
+    description: 'Retrieve sample shanty references, motifs, and battle cues.',
     parameters: SPECIALIST_INPUT_SCHEMA,
     strict: true
   },
   {
     type: 'function',
-    name: 'treasure_specialist',
-    description: 'Call this tool to get treasure hunt content — scene descriptions, outcome narrations, etc.',
+    name: 'lookup_treasure_knowledge',
+    description: 'Retrieve sample treasure lore, locations, and clues.',
     parameters: SPECIALIST_INPUT_SCHEMA,
     strict: true
   },
   {
     type: 'function',
-    name: 'crew_specialist',
-    description: 'Call this tool to get crew interview content — interview questions, answer evaluations, etc.',
+    name: 'lookup_crew_knowledge',
+    description: 'Retrieve sample crew roles, ranks, and qualifications.',
     parameters: SPECIALIST_INPUT_SCHEMA,
     strict: true
   },
@@ -204,19 +202,10 @@ const TOOL_DEFINITIONS: readonly FunctionTool[] = [
   }
 ] as const;
 
-/** Specialist agent-tool names — emit tool.called/tool.done SSE events for these. */
-const SPECIALIST_TOOLS = new Set(['shanty_specialist', 'treasure_specialist', 'crew_specialist']);
+const KNOWLEDGE_TOOLS = new Set(['lookup_shanty_knowledge', 'lookup_treasure_knowledge', 'lookup_crew_knowledge']);
 
 /** Resolution tool names. */
 const RESOLUTION_TOOLS = new Set(['resolve_shanty', 'resolve_treasure', 'resolve_crew']);
-
-/** Map specialist tool name → config key for instructions. */
-const SPECIALIST_INSTRUCTIONS_MAP: Record<string, 'shantyInstructions' | 'treasureInstructions' | 'crewInstructions'> =
-  {
-    shanty_specialist: 'shantyInstructions',
-    treasure_specialist: 'treasureInstructions',
-    crew_specialist: 'crewInstructions'
-  };
 
 // ---------------------------------------------------------------------------
 // Internal state
@@ -237,6 +226,11 @@ function isNotFoundError(err: unknown): boolean {
 interface CapturedResolution {
   tool: string;
   result: Record<string, unknown>;
+}
+
+function shouldEmitLifecycleEvents(metadata: Record<string, unknown> | undefined): boolean {
+  const mode = metadata?.['mode'];
+  return mode === 'shanty' || mode === 'treasure' || mode === 'crew';
 }
 
 /**
@@ -326,7 +320,9 @@ export class FoundryClient {
     const project = new AIProjectClient(this.config.azureEndpoint, credential);
     this.projectClient = project;
 
-    const telemetryConnectionString = await project.telemetry.getApplicationInsightsConnectionString();
+    const telemetryConnectionString =
+      this.config.applicationInsightsConnectionString ??
+      (await project.telemetry.getApplicationInsightsConnectionString());
 
     // enable Azure Monitor OpenTelemetry with the connection string from the project client
     const options: AzureMonitorOpenTelemetryOptions = {
@@ -335,6 +331,7 @@ export class FoundryClient {
       }
     };
     useAzureMonitor(options);
+    setupTelemetry(telemetryConnectionString, 'caira-agent-foundry');
 
     // getOpenAIClient() returns a standard OpenAI client routed through
     // the Foundry endpoint with proper auth headers.
@@ -342,7 +339,7 @@ export class FoundryClient {
   }
 
   /**
-   * Register the captain and specialist agents server-side using a
+   * Register the specialist agents server-side using a
    * get-or-create pattern:
    *   1. Try to retrieve the agent by name (agents.get)
    *   2. If found, update it (agents.update — creates a new version only
@@ -361,21 +358,19 @@ export class FoundryClient {
 
     const agentDefs = [
       {
-        name: this.config.agentName,
-        instructions: this.config.captainInstructions,
-        tools: TOOL_DEFINITIONS as readonly FunctionTool[]
-      },
-      {
         name: 'shanty-specialist',
-        instructions: this.config.shantyInstructions
+        instructions: this.specialistInstructions('shanty', true),
+        tools: this.toolsForMode('shanty')
       },
       {
         name: 'treasure-specialist',
-        instructions: this.config.treasureInstructions
+        instructions: this.specialistInstructions('treasure', true),
+        tools: this.toolsForMode('treasure')
       },
       {
         name: 'crew-specialist',
-        instructions: this.config.crewInstructions
+        instructions: this.specialistInstructions('crew', true),
+        tools: this.toolsForMode('crew')
       }
     ];
 
@@ -501,11 +496,18 @@ export class FoundryClient {
     const record = this.conversations.get(conversationId);
     if (!record) return undefined;
 
+    const mode = this.resolveConversationMode(record.metadata);
+    const specialistTool = this.specialistToolName(mode);
+    const tracer = trace.getTracer('caira.agent.foundry');
+    const emitLifecycleEvents = shouldEmitLifecycleEvents(record.metadata);
+
     this.log.info(
       {
         conversationId,
         serverConversationId: record.serverConversationId,
-        contentLength: content.length
+        contentLength: content.length,
+        mode,
+        specialistTool
       },
       'sendMessage started'
     );
@@ -535,13 +537,23 @@ export class FoundryClient {
 
       const createParams: ResponseCreateParamsNonStreaming = {
         model: this.config.model,
-        instructions: this.config.captainInstructions,
-        tools: [...TOOL_DEFINITIONS],
+        instructions: this.specialistInstructions(mode, emitLifecycleEvents),
+        tools: this.toolsForMode(mode),
         conversation: { id: record.serverConversationId },
         input: pendingInput
       };
 
-      const response = await openai.responses.create(createParams);
+      const response = await tracer.startActiveSpan('agent.send_message', async (span) => {
+        span.setAttribute('conversation.id', conversationId);
+        span.setAttribute('adventure.mode', mode);
+        try {
+          return await context.with(trace.setSpan(context.active(), span), async () =>
+            openai.responses.create(createParams)
+          );
+        } finally {
+          span.end();
+        }
+      });
 
       if (response.usage) {
         const ru = response.usage;
@@ -586,7 +598,7 @@ export class FoundryClient {
             'Function tool called'
           );
 
-          const toolResult = await this.executeToolCall(openai, fc.name, fc.arguments);
+          const toolResult = await this.executeToolCall(fc.name, fc.arguments);
 
           if (toolResult.resolution) {
             localResolution = toolResult.resolution;
@@ -659,11 +671,18 @@ export class FoundryClient {
       return;
     }
 
+    const mode = this.resolveConversationMode(record.metadata);
+    const specialistTool = this.specialistToolName(mode);
+    const tracer = trace.getTracer('caira.agent.foundry');
+    const emitLifecycleEvents = shouldEmitLifecycleEvents(record.metadata);
+
     this.log.info(
       {
         conversationId,
         serverConversationId: record.serverConversationId,
-        contentLength: content.length
+        contentLength: content.length,
+        mode,
+        specialistTool
       },
       'sendMessageStream started'
     );
@@ -685,6 +704,9 @@ export class FoundryClient {
     let localResolution: CapturedResolution | null = null;
 
     try {
+      if (emitLifecycleEvents) {
+        onChunk(formatSSE('tool.called', { toolName: specialistTool } satisfies SSEToolCalledEvent));
+      }
       let loopCount = 0;
       const MAX_LOOPS = 10;
       let pendingInput: string | ResponseInputItem.FunctionCallOutput[] = content;
@@ -694,13 +716,23 @@ export class FoundryClient {
 
         const createParams: ResponseCreateAndStreamParams = {
           model: this.config.model,
-          instructions: this.config.captainInstructions,
-          tools: [...TOOL_DEFINITIONS],
+          instructions: this.specialistInstructions(mode, emitLifecycleEvents),
+          tools: this.toolsForMode(mode),
           conversation: { id: record.serverConversationId },
           input: pendingInput
         };
 
-        const stream = openai.responses.stream(createParams);
+        const stream = await tracer.startActiveSpan('agent.send_message_stream', async (span) => {
+          span.setAttribute('conversation.id', conversationId);
+          span.setAttribute('adventure.mode', mode);
+          try {
+            return await context.with(trace.setSpan(context.active(), span), async () =>
+              openai.responses.stream(createParams)
+            );
+          } finally {
+            span.end();
+          }
+        });
 
         interface PendingFunctionCall {
           name: string;
@@ -728,7 +760,7 @@ export class FoundryClient {
             }
           } else if (event.type === 'response.output_item.added') {
             const item = event.item;
-            if (item.type === 'function_call' && SPECIALIST_TOOLS.has(item.name)) {
+            if (item.type === 'function_call' && KNOWLEDGE_TOOLS.has(item.name) && emitLifecycleEvents) {
               const toolCalledEvent: SSEToolCalledEvent = { toolName: item.name };
               onChunk(formatSSE('tool.called', toolCalledEvent));
               this.log.info(
@@ -799,7 +831,7 @@ export class FoundryClient {
             'Executing tool call (stream)'
           );
 
-          if (SPECIALIST_TOOLS.has(fc.name)) {
+          if (KNOWLEDGE_TOOLS.has(fc.name) && emitLifecycleEvents) {
             const toolDoneEvent: SSEToolDoneEvent = { toolName: fc.name };
             onChunk(formatSSE('tool.done', toolDoneEvent));
             this.log.info(
@@ -808,7 +840,7 @@ export class FoundryClient {
             );
           }
 
-          const toolResult = await this.executeToolCall(openai, fc.name, fc.arguments);
+          const toolResult = await this.executeToolCall(fc.name, fc.arguments);
 
           toolOutputItems.push({
             type: 'function_call_output',
@@ -868,6 +900,9 @@ export class FoundryClient {
       content: fullContent,
       ...(usage ? { usage } : {})
     };
+    if (emitLifecycleEvents) {
+      onChunk(formatSSE('tool.done', { toolName: specialistTool } satisfies SSEToolDoneEvent));
+    }
     onChunk(formatSSE('message.complete', completeEvent));
 
     this.log.info(
@@ -929,7 +964,6 @@ export class FoundryClient {
    * the return value — no shared mutable state needed.
    */
   private async executeToolCall(
-    openai: OpenAI,
     toolName: string,
     toolArgs: string
   ): Promise<{ output: string; resolution?: CapturedResolution }> {
@@ -941,29 +975,19 @@ export class FoundryClient {
       return { output: 'Error: invalid tool arguments' };
     }
 
-    // Specialist tools — call the Responses API with specialist instructions
-    const instructionKey = SPECIALIST_INSTRUCTIONS_MAP[toolName];
-    if (instructionKey) {
-      const specialistInstructions = this.config[instructionKey];
-      const request = (args['request'] as string) ?? 'Generate content';
+    if (toolName === 'lookup_shanty_knowledge') {
+      const query = (args['query'] as string) ?? (args['request'] as string) ?? '';
+      return { output: JSON.stringify({ items: lookupShantyKnowledge(query) }) };
+    }
 
-      this.log.info({ toolName, request }, 'Executing specialist tool');
+    if (toolName === 'lookup_treasure_knowledge') {
+      const query = (args['query'] as string) ?? (args['request'] as string) ?? '';
+      return { output: JSON.stringify({ items: lookupTreasureKnowledge(query) }) };
+    }
 
-      try {
-        const specialistResponse = await openai.responses.create({
-          model: this.config.model,
-          instructions: specialistInstructions,
-          input: request
-        });
-
-        const text = specialistResponse.output_text ?? '';
-        this.log.info({ toolName, responseLength: text.length }, 'Specialist tool completed');
-        return { output: text };
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Unknown error';
-        this.log.error({ toolName, err }, 'Specialist tool error');
-        return { output: `Error generating content: ${message}` };
-      }
+    if (toolName === 'lookup_crew_knowledge') {
+      const query = (args['query'] as string) ?? (args['request'] as string) ?? '';
+      return { output: JSON.stringify({ items: lookupCrewKnowledge(query) }) };
     }
 
     // Resolution tools — return the structured result alongside the output string
@@ -991,6 +1015,54 @@ export class FoundryClient {
 
     this.log.warn({ toolName }, 'Unknown tool called');
     return { output: `Error: unknown tool "${toolName}"` };
+  }
+
+  private resolveConversationMode(metadata: Record<string, unknown> | undefined): 'shanty' | 'treasure' | 'crew' {
+    const mode = metadata?.['mode'];
+    if (mode === 'treasure' || mode === 'crew' || mode === 'shanty') {
+      return mode;
+    }
+    return 'shanty';
+  }
+
+  private specialistToolName(mode: 'shanty' | 'treasure' | 'crew'): string {
+    switch (mode) {
+      case 'treasure':
+        return 'treasure_specialist';
+      case 'crew':
+        return 'crew_specialist';
+      case 'shanty':
+      default:
+        return 'shanty_specialist';
+    }
+  }
+
+  private specialistInstructions(mode: 'shanty' | 'treasure' | 'crew', includeShared = true): string {
+    const shared = this.config.captainInstructions.trim();
+    const specific =
+      mode === 'treasure'
+        ? this.config.treasureInstructions
+        : mode === 'crew'
+          ? this.config.crewInstructions
+          : this.config.shantyInstructions;
+    return includeShared ? `${shared}\n\n${specific}`.trim() : specific;
+  }
+
+  private toolsForMode(mode: 'shanty' | 'treasure' | 'crew'): FunctionTool[] {
+    const knowledgeTool =
+      mode === 'treasure'
+        ? TOOL_DEFINITIONS.find((tool) => tool.name === 'lookup_treasure_knowledge')
+        : mode === 'crew'
+          ? TOOL_DEFINITIONS.find((tool) => tool.name === 'lookup_crew_knowledge')
+          : TOOL_DEFINITIONS.find((tool) => tool.name === 'lookup_shanty_knowledge');
+    const resolutionTool =
+      mode === 'treasure'
+        ? TOOL_DEFINITIONS.find((tool) => tool.name === 'resolve_treasure')
+        : mode === 'crew'
+          ? TOOL_DEFINITIONS.find((tool) => tool.name === 'resolve_crew')
+          : TOOL_DEFINITIONS.find((tool) => tool.name === 'resolve_shanty');
+
+    return [knowledgeTool, resolutionTool].filter((tool): tool is FunctionTool => tool !== undefined);
   }
 }
 

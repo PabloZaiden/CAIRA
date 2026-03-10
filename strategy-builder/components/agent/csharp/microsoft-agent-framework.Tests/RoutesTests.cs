@@ -85,12 +85,13 @@ public class RoutesTests : IDisposable
     {
         var setupResult = new AgentSetupResult
         {
-            Workflow = null!,
+            Workflow = null,
             CheckpointManager = CheckpointManager.CreateInMemory(),
+            WorkflowsByMode = new Dictionary<string, Workflow>(),
         };
         var store = new ConversationStore();
         var logger = Mock.Of<ILogger<WorkflowRunner>>();
-        return new Mock<WorkflowRunner>(setupResult, store, logger) { CallBase = false };
+        return new Mock<WorkflowRunner>(setupResult, store, logger, new System.Diagnostics.ActivitySource("CairaAgent.Tests")) { CallBase = false };
     }
 
     // ========================================================================

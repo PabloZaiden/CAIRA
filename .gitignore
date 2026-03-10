@@ -257,6 +257,7 @@ final_resources_planned.txt
 
 # developer files
 .dev/
+.opencode-server/
 
 #backup folders
 .backup/

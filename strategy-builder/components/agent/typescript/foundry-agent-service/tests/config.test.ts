@@ -17,10 +17,11 @@ describe('loadConfig', () => {
     expect(config.azureEndpoint).toBe('https://test.ai.azure.com');
     expect(config.model).toBe('gpt-5.2-chat');
     expect(config.agentName).toBe('caira-pirate-agent');
-    expect(config.captainInstructions).toContain('Captain');
+    expect(config.captainInstructions).toContain('discrete specialist');
     expect(config.shantyInstructions).toContain('shanty');
     expect(config.treasureInstructions).toContain('treasure');
     expect(config.crewInstructions).toContain('crew');
+    expect(config.applicationInsightsConnectionString).toBeUndefined();
     expect(config.logLevel).toBe('debug');
     expect(config.skipAuth).toBe(false);
   });
@@ -40,6 +41,7 @@ describe('loadConfig', () => {
       SHANTY_INSTRUCTIONS: 'Custom shanty prompt.',
       TREASURE_INSTRUCTIONS: 'Custom treasure prompt.',
       CREW_INSTRUCTIONS: 'Custom crew prompt.',
+      APPLICATIONINSIGHTS_CONNECTION_STRING: 'InstrumentationKey=test',
       LOG_LEVEL: 'info',
       SKIP_AUTH: 'true'
     });
@@ -51,8 +53,17 @@ describe('loadConfig', () => {
     expect(config.shantyInstructions).toBe('Custom shanty prompt.');
     expect(config.treasureInstructions).toBe('Custom treasure prompt.');
     expect(config.crewInstructions).toBe('Custom crew prompt.');
+    expect(config.applicationInsightsConnectionString).toBe('InstrumentationKey=test');
     expect(config.logLevel).toBe('info');
     expect(config.skipAuth).toBe(true);
+  });
+
+  it('supports TRIAGE_INSTRUCTIONS as a legacy alias', () => {
+    const config = loadConfig({
+      ...REQUIRED_ENV,
+      TRIAGE_INSTRUCTIONS: 'Legacy triage prompt.'
+    });
+    expect(config.captainInstructions).toBe('Legacy triage prompt.');
   });
 
   it('strips trailing slashes from endpoint', () => {

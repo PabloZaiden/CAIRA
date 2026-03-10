@@ -11,6 +11,7 @@
 
 import { loadConfig } from './config.ts';
 import { buildApp } from './app.ts';
+import { shutdownTelemetry } from './telemetry.ts';
 
 async function main(): Promise<void> {
   const config = loadConfig();
@@ -20,6 +21,7 @@ async function main(): Promise<void> {
   const shutdown = async (signal: string): Promise<void> => {
     app.log.info(`Received ${signal}, shutting down gracefully...`);
     await app.close();
+    await shutdownTelemetry();
     process.exit(0);
   };
 

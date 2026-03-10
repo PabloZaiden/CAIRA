@@ -13,6 +13,7 @@ import type { OpenAIClientOptions } from './openai-client.ts';
 import type { Config } from './config.ts';
 import { registerRoutes } from './routes.ts';
 import type { ErrorResponse } from './types.ts';
+import { extractTraceContext, setupTelemetry } from './telemetry.ts';
 
 const DEFAULT_CLIENT_INITIALISATION_TIMEOUT_MS = 60_000;
 
@@ -79,6 +80,8 @@ export interface BuildAppOptions {
 export async function buildApp(options: BuildAppOptions): Promise<FastifyInstance> {
   const { config } = options;
 
+  setupTelemetry('caira-agent-openai', config.applicationInsightsConnectionString);
+
   const app = Fastify({
     logger: {
       level: config.logLevel
@@ -90,6 +93,8 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   // When SKIP_AUTH=true (local dev / tests), we skip validation entirely.
   if (!config.skipAuth) {
     app.addHook('onRequest', async (request, reply) => {
+      const extracted = extractTraceContext(request.headers as Record<string, string | string[] | undefined>);
+      void extracted;
       // Health, metrics, and identity endpoints are public
       if (request.url === '/health' || request.url === '/metrics' || request.url === '/identity') {
         return;

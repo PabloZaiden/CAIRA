@@ -16,6 +16,7 @@ describe('loadConfig', () => {
     expect(config.host).toBe('0.0.0.0');
     expect(config.agentServiceUrl).toBe('http://localhost:3000');
     expect(config.agentTokenScope).toBeUndefined();
+    expect(config.applicationInsightsConnectionString).toBeUndefined();
     expect(config.logLevel).toBe('debug');
     expect(config.skipAuth).toBe(false);
   });
@@ -26,6 +27,7 @@ describe('loadConfig', () => {
       PORT: '5000',
       HOST: '127.0.0.1',
       AGENT_TOKEN_SCOPE: 'api://my-app/.default',
+      APPLICATIONINSIGHTS_CONNECTION_STRING: 'InstrumentationKey=test',
       LOG_LEVEL: 'debug',
       SKIP_AUTH: 'true'
     });
@@ -33,6 +35,7 @@ describe('loadConfig', () => {
     expect(config.host).toBe('127.0.0.1');
     expect(config.agentServiceUrl).toBe('http://agent:3000');
     expect(config.agentTokenScope).toBe('api://my-app/.default');
+    expect(config.applicationInsightsConnectionString).toBe('InstrumentationKey=test');
     expect(config.logLevel).toBe('debug');
     expect(config.skipAuth).toBe(true);
   });

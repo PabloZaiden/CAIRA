@@ -14,6 +14,7 @@ public class Program
         var config = ApiConfig.FromEnvironment();
 
         var builder = WebApplication.CreateBuilder(args);
+        builder.AddCairaTelemetry("caira-api-csharp", config.ApplicationInsightsConnectionString);
 
         // Configure logging
         builder.Logging.SetMinimumLevel(config.LogLevel.ToLowerInvariant() switch
@@ -30,6 +31,7 @@ public class Program
         // Register services
         builder.Services.AddSingleton(config);
         builder.Services.AddHttpClient<AgentHttpClient>();
+        builder.Services.AddSingleton(new System.Diagnostics.ActivitySource("caira-api-csharp"));
 
         var app = builder.Build();
 

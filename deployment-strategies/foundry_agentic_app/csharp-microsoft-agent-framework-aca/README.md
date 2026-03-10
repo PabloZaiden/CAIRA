@@ -91,6 +91,28 @@ To tear down:
 task strategy:destroy -- deployment-strategies/foundry_agentic_app/csharp-microsoft-agent-framework-aca
 ```
 
+## Optional APIM AI Gateway
+
+This strategy can optionally deploy Azure API Management in front of the
+Foundry OpenAI-style chat completions endpoint:
+
+- disabled by default
+- enable with `enable_apim_ai_gateway = true`
+- defaults to the `Developer_1` SKU unless you override `apim_sku_name`
+- intended for optional governance, observability, and policy enforcement
+
+When enabled, Terraform outputs expose:
+
+- `apim_gateway_name`
+- `apim_gateway_url`
+- `apim_openai_api_base_url`
+- `apim_chat_completions_url_template`
+
+The sample containers keep their default direct-to-Foundry wiring unless you
+explicitly point a caller at the APIM-fronted URL. Treat the gateway as an
+optional preview-shaped integration layer and validate the policies you need
+before using it in a real environment.
+
 ## Services
 
 | Service             | Port | Health Check | Description                                                               |
@@ -126,16 +148,17 @@ deployment-strategies/foundry_agentic_app/csharp-microsoft-agent-framework-aca/
 
 ### Optional
 
-| Variable                   | Default              | Description                                       |
-|----------------------------|----------------------|---------------------------------------------------|
-| `AZURE_OPENAI_API_VERSION` | `2025-03-01-preview` | API version (default: 2025-03-01-preview)         |
-| `AGENT_MODEL`              | `gpt-5.2-chat`       | Model deployment name (default: gpt-5.2-chat)     |
-| `AGENT_NAME`               | ``                   | Agent display name                                |
-| `CAPTAIN_INSTRUCTIONS`     | ``                   | System prompt for captain agent                   |
-| `SHANTY_INSTRUCTIONS`      | ``                   | System prompt for shanty battle specialist        |
-| `TREASURE_INSTRUCTIONS`    | ``                   | System prompt for treasure hunt specialist        |
-| `CREW_INSTRUCTIONS`        | ``                   | System prompt for crew interview specialist       |
-| `LOG_LEVEL`                | `debug`              | Log level: trace, debug, info, warn, error, fatal |
+| Variable                                | Default              | Description                                             |
+|-----------------------------------------|----------------------|---------------------------------------------------------|
+| `AZURE_OPENAI_API_VERSION`              | `2025-03-01-preview` | API version (default: 2025-03-01-preview)               |
+| `AGENT_MODEL`                           | `gpt-5.2-chat`       | Model deployment name (default: gpt-5.2-chat)           |
+| `AGENT_NAME`                            | ``                   | Agent display name                                      |
+| `CAPTAIN_INSTRUCTIONS`                  | ``                   | Shared system prompt applied to all specialists         |
+| `SHANTY_INSTRUCTIONS`                   | ``                   | System prompt for shanty battle specialist              |
+| `TREASURE_INSTRUCTIONS`                 | ``                   | System prompt for treasure hunt specialist              |
+| `CREW_INSTRUCTIONS`                     | ``                   | System prompt for crew interview specialist             |
+| `APPLICATIONINSIGHTS_CONNECTION_STRING` | ``                   | Optional App Insights connection string for OTEL export |
+| `LOG_LEVEL`                             | `debug`              | Log level: trace, debug, info, warn, error, fatal       |
 
 ## Troubleshooting
 

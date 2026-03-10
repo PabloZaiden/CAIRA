@@ -1,7 +1,7 @@
 #  yaml-language-server: $schema=https://taskfile.dev/schema.json
 # docs: https://taskfile.dev
 ---
-version: "3"
+version: '3'
 
 includes:
   internal: internal.yml
@@ -19,8 +19,8 @@ tasks:
           else
           echo "${arch}"
           fi
-      GITLEAKS_VERSION: "8.30.0"
-      GITLEAKS_URL: "https://github.com/gitleaks/gitleaks/releases/download/v{{.GITLEAKS_VERSION}}/gitleaks_{{.GITLEAKS_VERSION}}_{{.OS}}_{{.GITLEAKS_ARCH}}.tar.gz"
+      GITLEAKS_VERSION: '8.30.0'
+      GITLEAKS_URL: 'https://github.com/gitleaks/gitleaks/releases/download/v{{.GITLEAKS_VERSION}}/gitleaks_{{.GITLEAKS_VERSION}}_{{.OS}}_{{.GITLEAKS_ARCH}}.tar.gz'
     cmds:
       - task: internal:install:brew
         vars:
@@ -68,13 +68,14 @@ tasks:
   lint:
     desc: Run Security linters
     cmds:
-      - gitleaks detect --config ./.github/linters/.gitleaks.toml --redact=90 --verbose --source .
+      - cmd: gitleaks detect --config ./.github/linters/.gitleaks.toml --redact=90 --verbose --source .
       - cmd: |
           trivy --config ./.github/linters/.trivy.yml fs . \
             --skip-dirs "**/node_modules" \
             --skip-dirs "**/.terraform" \
             --skip-dirs "**/.venv" \
             --skip-dirs "**/.dev" \
+            --skip-dirs "**/.opencode-server" \
             --skip-dirs "**/dist" \
             --skip-dirs "**/coverage" \
             --skip-dirs "**/site" \
@@ -85,8 +86,9 @@ tasks:
             --skip-path .terraform \
             --skip-path .venv \
             --skip-path .dev \
+            --skip-path .opencode-server \
             --skip-path dist \
             --skip-path coverage \
             --skip-path site \
             --skip-path strategy-builder/testing/container-health/tests/fixtures
-    dir: "{{.ROOT_DIR}}"
+    dir: '{{.ROOT_DIR}}'

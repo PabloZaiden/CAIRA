@@ -5,21 +5,17 @@
  *
  *   1. How to connect the SDK to Azure OpenAI via DefaultAzureCredential
  *   2. How to create agents with system instructions
- *   3. How to use .asTool() to compose agents into an agent-as-tool hierarchy
- *   4. How to define FunctionTools (resolution tools with Zod schemas)
+ *   3. How to attach local knowledge tools and resolution tools to specialists
+ *   4. How to pick a discrete specialist agent per conversation mode
  *
- * Architecture (agent-as-tool):
+ * Architecture (discrete specialists):
  *
- *   Captain agent (sole conversational agent — talks to the user)
- *     ├─ shanty_specialist   (Agent.asTool)
- *     ├─ treasure_specialist  (Agent.asTool)
- *     ├─ crew_specialist      (Agent.asTool)
- *     ├─ resolve_shanty       (FunctionTool)
- *     ├─ resolve_treasure     (FunctionTool)
- *     └─ resolve_crew         (FunctionTool)
- *
- * The captain orchestrates: it calls specialist tools for content generation
- * and resolution tools to end activities with structured outcomes.
+ *   Shanty agent    ─┬─ lookup_shanty_knowledge
+ *                    └─ resolve_shanty
+ *   Treasure agent  ─┬─ lookup_treasure_knowledge
+ *                    └─ resolve_treasure
+ *   Crew agent      ─┬─ lookup_crew_knowledge
+ *                    └─ resolve_crew
  */
 
 import { Agent, tool, setTracingDisabled, setDefaultOpenAIClient } from '@openai/agents';
@@ -28,6 +24,7 @@ import { DefaultAzureCredential, getBearerTokenProvider } from '@azure/identity'
 import { z } from 'zod';
 import type { Config } from './config.ts';
 import type { Logger } from './openai-client.ts';
+import { lookupCrewKnowledge, lookupShantyKnowledge, lookupTreasureKnowledge } from './knowledge-base.ts';
 
 // ---------------------------------------------------------------------------
 // Resolution tool names (must match what prompts tell agents to call)
@@ -38,6 +35,14 @@ export const RESOLUTION_TOOLS = new Set(['resolve_shanty', 'resolve_treasure', '
 
 /** Specialist agent-tool names — emit tool.called/tool.done SSE events for these. */
 export const SPECIALIST_TOOLS = new Set(['shanty_specialist', 'treasure_specialist', 'crew_specialist']);
+
+export type SpecialistMode = 'shanty' | 'treasure' | 'crew';
+
+export interface SpecialistAgents {
+  readonly shanty: Agent;
+  readonly treasure: Agent;
+  readonly crew: Agent;
+}
 
 // ---------------------------------------------------------------------------
 // Resolution tool definitions
@@ -103,6 +108,49 @@ function createResolutionTools(log: Logger) {
   return { resolveShanty, resolveTreasure, resolveCrew };
 }
 
+function createKnowledgeTools(log: Logger) {
+  const lookupShanty = tool({
+    name: 'lookup_shanty_knowledge',
+    description: 'Retrieve sample shanty references, motifs, and battle cues for the shanty specialist.',
+    parameters: z.object({
+      query: z.string().describe('What kind of shanty detail or motif is needed')
+    }),
+    execute: async ({ query }) => {
+      const matches = lookupShantyKnowledge(query);
+      log.info({ tool: 'lookup_shanty_knowledge', query, matches: matches.length }, 'Shanty knowledge lookup');
+      return JSON.stringify({ items: matches });
+    }
+  });
+
+  const lookupTreasure = tool({
+    name: 'lookup_treasure_knowledge',
+    description: 'Retrieve sample treasure lore, locations, and clues for the treasure specialist.',
+    parameters: z.object({
+      query: z.string().describe('What treasure clue, treasure name, or location detail is needed')
+    }),
+    execute: async ({ query }) => {
+      const matches = lookupTreasureKnowledge(query);
+      log.info({ tool: 'lookup_treasure_knowledge', query, matches: matches.length }, 'Treasure knowledge lookup');
+      return JSON.stringify({ items: matches });
+    }
+  });
+
+  const lookupCrew = tool({
+    name: 'lookup_crew_knowledge',
+    description: 'Retrieve sample ranks, shipboard roles, and qualifications for the crew specialist.',
+    parameters: z.object({
+      query: z.string().describe('What rank, role, or qualification detail is needed')
+    }),
+    execute: async ({ query }) => {
+      const matches = lookupCrewKnowledge(query);
+      log.info({ tool: 'lookup_crew_knowledge', query, matches: matches.length }, 'Crew knowledge lookup');
+      return JSON.stringify({ items: matches });
+    }
+  });
+
+  return { lookupShanty, lookupTreasure, lookupCrew };
+}
+
 // ---------------------------------------------------------------------------
 // Azure client setup
 // ---------------------------------------------------------------------------
@@ -144,71 +192,54 @@ export async function setupAzureClient(config: Config): Promise<void> {
 // ---------------------------------------------------------------------------
 
 /**
- * Create the full agent-as-tool hierarchy and return the captain agent.
+ * Create the three specialist agents used by the sample.
  *
- * The pattern:
- *   1. Create specialist agents with focused instructions
- *   2. Wrap each specialist as a tool via `.asTool()`
- *   3. Create a captain agent that has all tools (specialist + resolution)
- *   4. The captain is the sole conversational agent — all user messages
- *      go through it, and it delegates to specialists as needed
+ * Each specialist is a user-facing conversational agent for a single mode.
  */
-export function createAgentHierarchy(config: Config, log: Logger): Agent {
-  // Disable OpenAI tracing (not needed in this context)
+export function createSpecialistAgents(config: Config, log: Logger): SpecialistAgents {
   setTracingDisabled(true);
 
-  // Create resolution tools (FunctionTools with Zod schemas)
   const { resolveShanty, resolveTreasure, resolveCrew } = createResolutionTools(log);
+  const { lookupShanty, lookupTreasure, lookupCrew } = createKnowledgeTools(log);
 
-  // Create specialist agents — each has focused instructions for one activity
+  const sharedInstructions = config.captainInstructions.trim();
+  const compose = (specialistInstructions: string) => `${sharedInstructions}\n\n${specialistInstructions}`.trim();
+
   const shantyAgent = new Agent({
     name: 'Shanty',
-    instructions: config.shantyInstructions,
-    model: config.model
-  });
-
-  const treasureAgent = new Agent({
-    name: 'Treasure',
-    instructions: config.treasureInstructions,
-    model: config.model
-  });
-
-  const crewAgent = new Agent({
-    name: 'Crew',
-    instructions: config.crewInstructions,
-    model: config.model
-  });
-
-  // Wrap specialists as tools via .asTool() — this is the key SDK pattern.
-  // When the captain calls one of these tools, the SDK runs the specialist
-  // agent internally and returns its output as the tool result.
-  const shantyTool = shantyAgent.asTool({
-    toolName: 'shanty_specialist',
-    toolDescription: 'Call this tool to get sea shanty content — opening verses, verse judgments, etc.'
-  });
-
-  const treasureTool = treasureAgent.asTool({
-    toolName: 'treasure_specialist',
-    toolDescription: 'Call this tool to get treasure hunt content — scene descriptions, outcome narrations, etc.'
-  });
-
-  const crewTool = crewAgent.asTool({
-    toolName: 'crew_specialist',
-    toolDescription: 'Call this tool to get crew interview content — interview questions, answer evaluations, etc.'
-  });
-
-  // Create the captain agent — the sole conversational agent with all tools
-  const captainAgent = new Agent({
-    name: config.agentName,
-    instructions: config.captainInstructions,
+    instructions: compose(config.shantyInstructions),
     model: config.model,
     modelSettings: {
       toolChoice: 'auto'
     },
-    tools: [shantyTool, treasureTool, crewTool, resolveShanty, resolveTreasure, resolveCrew]
+    tools: [lookupShanty, resolveShanty]
+  });
+
+  const treasureAgent = new Agent({
+    name: 'Treasure',
+    instructions: compose(config.treasureInstructions),
+    model: config.model,
+    modelSettings: {
+      toolChoice: 'auto'
+    },
+    tools: [lookupTreasure, resolveTreasure]
+  });
+
+  const crewAgent = new Agent({
+    name: 'Crew',
+    instructions: compose(config.crewInstructions),
+    model: config.model,
+    modelSettings: {
+      toolChoice: 'auto'
+    },
+    tools: [lookupCrew, resolveCrew]
   });
 
   log.info({ model: config.model, agentName: config.agentName }, 'Agent hierarchy initialised');
 
-  return captainAgent;
+  return {
+    shanty: shantyAgent,
+    treasure: treasureAgent,
+    crew: crewAgent
+  };
 }

@@ -4,15 +4,12 @@
 ///
 /// The pattern:
 ///   1. Create a ResponsesClient pointing at Azure OpenAI (or mock)
-///   2. Create specialist agents with focused system instructions
-///   3. Wrap each specialist as a tool via .AsAIFunction()
-///   4. Create resolution tools that capture structured activity outcomes
-///   5. Create the captain agent with all tools
-///   6. Bind the captain as a workflow executor via .BindAsExecutor()
-///   7. Build a Workflow using WorkflowBuilder
-///   8. Create a CheckpointManager for multi-turn conversation state
+///   2. Create three discrete specialist agents
+///   3. Attach local knowledge tools and resolution tools to each specialist
+///   4. Build one workflow executor per specialist
+///   5. Create a CheckpointManager for multi-turn conversation state
 ///
-/// Architecture diagram (MAF Workflow with agent-as-tool):
+/// Architecture diagram (MAF Workflow with discrete specialists):
 ///
 ///     User message
 ///         |
@@ -20,13 +17,9 @@
 ///   ┌───────────────────────────────────────────────┐
 ///   │  MAF Workflow (InProcessExecution)             │
 ///   │                                               │
-///   │  Captain Executor (AIAgentBinding)             │
-///   │  ├─ shanty_specialist    (sub-agent tool)     │
-///   │  ├─ treasure_specialist  (sub-agent tool)     │
-///   │  ├─ crew_specialist     (sub-agent tool)      │
-///   │  ├─ resolve_shanty      (lambda tool)         │
-///   │  ├─ resolve_treasure    (lambda tool)         │
-///   │  └─ resolve_crew        (lambda tool)         │
+///   │  Specialist Executor selected by mode         │
+///   │  ├─ lookup_*_knowledge  (local tool)          │
+///   │  └─ resolve_*           (lambda tool)         │
 ///   └───────────────────────────────────────────────┘
 ///         │
 ///         v
@@ -35,8 +28,7 @@
 ///   ├─ AgentResponseUpdateEvent (FunctionCallContent → resolution detection)
 ///   └─ SuperStepCompletedEvent (checkpoint for multi-turn state)
 ///
-/// The captain is the sole conversational agent. Specialist sub-agents
-/// are invoked as tools during the captain's internal tool loop.
+/// The selected specialist is the conversational agent for the current mode.
 ///
 /// Multi-turn chaining: The MAF CheckpointManager captures the full
 /// executor state (including the agent's conversation history) after
@@ -60,17 +52,16 @@ namespace CairaAgent;
 
 /// <summary>
 /// The result of agent setup — everything needed to run the workflow.
-/// Returns a Workflow and CheckpointManager. The workflow engine
+/// Returns the per-mode workflow map and checkpoint manager. The workflow engine
 /// handles execution, streaming events, and state management.
 /// </summary>
 public sealed class AgentSetupResult
 {
     /// <summary>
-    /// The MAF Workflow — a single-executor graph with the captain bound
-    /// as executor. Run via InProcessExecution.OffThread.OpenStreamingAsync()
-    /// or ResumeStreamingAsync() for subsequent turns.
+    /// Legacy default workflow reference kept for compatibility with callers
+    /// that still expect a single workflow instance.
     /// </summary>
-    public required Workflow Workflow { get; init; }
+    public required Workflow? Workflow { get; init; }
 
     /// <summary>
     /// In-memory checkpoint manager — stores workflow state (including
@@ -78,6 +69,11 @@ public sealed class AgentSetupResult
     /// own checkpoint chain via SuperStepCompletedEvent.CompletionInfo.Checkpoint.
     /// </summary>
     public required CheckpointManager CheckpointManager { get; init; }
+
+    /// <summary>
+    /// Workflow per activity mode.
+    /// </summary>
+    public required IReadOnlyDictionary<string, Workflow> WorkflowsByMode { get; init; }
 }
 
 // ---------------------------------------------------------------------------
@@ -93,67 +89,53 @@ public static class AgentSetup
     internal const string ResolutionToolPrefix = "resolve_";
 
     /// <summary>
-    /// Create the full agent hierarchy and MAF workflow.
+    /// Create the specialist workflows.
     ///
     /// The pattern:
     ///   1. Create specialist agents with focused instructions
-    ///   2. Wrap each as a tool via .AsAIFunction()
-    ///   3. Create resolution tools that capture structured outcomes
-    ///   4. Create the captain agent with all tools
-    ///   5. Bind captain as workflow executor: agent.BindAsExecutor(emitEvents: true)
-    ///   6. Build workflow: new WorkflowBuilder(binding).WithOutputFrom(binding).Build()
-    ///   7. Create CheckpointManager.CreateInMemory() for multi-turn state
+    ///   2. Add local knowledge and resolution tools to each specialist
+    ///   3. Build one workflow per specialist using BindAsExecutor(emitEvents: true)
+    ///   4. Create CheckpointManager.CreateInMemory() for multi-turn state
     /// </summary>
     public static AgentSetupResult Create(AgentConfig config, ILogger logger)
     {
         var responsesClient = CreateResponsesClient(config);
 
-        // ---- Specialist sub-agents ----
-        // Each specialist has focused system instructions for a specific
-        // pirate activity. They generate domain content but never speak
-        // directly to the user — the captain incorporates their output.
+        var sharedInstructions = config.CaptainInstructions.Trim();
+        string Compose(string specialistInstructions) => $"{sharedInstructions}\n\n{specialistInstructions}".Trim();
 
         var shantyAgent = responsesClient.AsAIAgent(
-            instructions: config.ShantyInstructions,
+            instructions: Compose(config.ShantyInstructions),
             name: "ShantySpecialist",
             description: "Sea shanty specialist — generates shanty battle content.");
 
         var treasureAgent = responsesClient.AsAIAgent(
-            instructions: config.TreasureInstructions,
+            instructions: Compose(config.TreasureInstructions),
             name: "TreasureSpecialist",
             description: "Treasure hunt specialist — generates treasure hunt content.");
 
         var crewAgent = responsesClient.AsAIAgent(
-            instructions: config.CrewInstructions,
+            instructions: Compose(config.CrewInstructions),
             name: "CrewSpecialist",
             description: "Crew interview specialist — generates crew interview content.");
 
-        // ---- Convert specialist agents to tools via .AsAIFunction() ----
-        // This is the key MAF pattern: when the captain calls one of these
-        // tools, the framework runs the specialist agent internally and
-        // returns its output as the tool result. The specialist is a content
-        // generator, not a conversational partner.
+        var shantyKnowledge = AIFunctionFactory.Create(
+            ([Description("What kind of shanty detail or motif is needed")] string query) =>
+                System.Text.Json.JsonSerializer.Serialize(new { items = KnowledgeBase.LookupShanty(query) }),
+            "lookup_shanty_knowledge",
+            "Retrieve sample shanty references, motifs, and battle cues.");
 
-        var shantyTool = shantyAgent.AsAIFunction(new AIFunctionFactoryOptions
-        {
-            Name = "shanty_specialist",
-            Description = "Call this tool to get sea shanty content — opening verses, verse judgments, etc.",
-        });
-        var treasureTool = treasureAgent.AsAIFunction(new AIFunctionFactoryOptions
-        {
-            Name = "treasure_specialist",
-            Description = "Call this tool to get treasure hunt content — scene descriptions, outcome narrations, etc.",
-        });
-        var crewTool = crewAgent.AsAIFunction(new AIFunctionFactoryOptions
-        {
-            Name = "crew_specialist",
-            Description = "Call this tool to get crew interview content — interview questions, answer evaluations, etc.",
-        });
+        var treasureKnowledge = AIFunctionFactory.Create(
+            ([Description("What treasure clue, name, or location detail is needed")] string query) =>
+                System.Text.Json.JsonSerializer.Serialize(new { items = KnowledgeBase.LookupTreasure(query) }),
+            "lookup_treasure_knowledge",
+            "Retrieve sample treasure lore, locations, and clues.");
 
-        // ---- Resolution tools ----
-        // These capture structured outcomes when an activity concludes.
-        // Resolution is detected by scanning AgentResponseUpdateEvent.Update.Contents
-        // for FunctionCallContent with a "resolve_" prefix in WorkflowRunner.
+        var crewKnowledge = AIFunctionFactory.Create(
+            ([Description("What rank, role, or qualification detail is needed")] string query) =>
+                System.Text.Json.JsonSerializer.Serialize(new { items = KnowledgeBase.LookupCrew(query) }),
+            "lookup_crew_knowledge",
+            "Retrieve sample crew roles, ranks, and qualifications.");
 
         var resolveShanty = AIFunctionFactory.Create(
             (
@@ -195,35 +177,49 @@ public static class AgentSetup
             "resolve_crew",
             "Call this when the crew interview concludes. Assigns a rank and role to the new crew member.");
 
-        var tools = new List<AITool>
+        var shantyAgentWithTools = responsesClient.AsAIAgent(
+            instructions: Compose(config.ShantyInstructions),
+            name: "ShantySpecialist",
+            tools:
+            [
+                shantyKnowledge,
+                resolveShanty,
+            ]);
+
+        var treasureAgentWithTools = responsesClient.AsAIAgent(
+            instructions: Compose(config.TreasureInstructions),
+            name: "TreasureSpecialist",
+            tools:
+            [
+                treasureKnowledge,
+                resolveTreasure,
+            ]);
+
+        var crewAgentWithTools = responsesClient.AsAIAgent(
+            instructions: Compose(config.CrewInstructions),
+            name: "CrewSpecialist",
+            tools:
+            [
+                crewKnowledge,
+                resolveCrew,
+            ]);
+
+        var shantyBinding = shantyAgentWithTools.BindAsExecutor(emitEvents: true);
+        var treasureBinding = treasureAgentWithTools.BindAsExecutor(emitEvents: true);
+        var crewBinding = crewAgentWithTools.BindAsExecutor(emitEvents: true);
+
+        var workflows = new Dictionary<string, Workflow>
         {
-            shantyTool, treasureTool, crewTool,
-            resolveShanty, resolveTreasure, resolveCrew,
+            ["shanty"] = new WorkflowBuilder(shantyBinding)
+                .WithOutputFrom(shantyBinding)
+                .Build(),
+            ["treasure"] = new WorkflowBuilder(treasureBinding)
+                .WithOutputFrom(treasureBinding)
+                .Build(),
+            ["crew"] = new WorkflowBuilder(crewBinding)
+                .WithOutputFrom(crewBinding)
+                .Build(),
         };
-
-        // ---- Captain agent ----
-        // The captain is the sole conversational agent. It talks to the user
-        // directly and delegates to specialist tools as needed.
-
-        var captainAgent = responsesClient.AsAIAgent(
-            instructions: config.CaptainInstructions,
-            name: "Captain",
-            tools: tools);
-
-        // ---- Bind captain as workflow executor ----
-        // BindAsExecutor(emitEvents: true) wraps the agent as an ExecutorBinding
-        // that emits AgentResponseUpdateEvent during streaming. This is how
-        // the workflow engine surfaces streaming text deltas and tool call info.
-
-        var captainBinding = captainAgent.BindAsExecutor(emitEvents: true);
-
-        // ---- Build the workflow ----
-        // WorkflowBuilder creates a single-executor workflow graph with the
-        // captain as both the entry point and the output source.
-
-        var workflow = new WorkflowBuilder(captainBinding)
-            .WithOutputFrom(captainBinding)
-            .Build();
 
         // ---- Create checkpoint manager ----
         // CheckpointManager.CreateInMemory() stores workflow state (including
@@ -234,13 +230,14 @@ public static class AgentSetup
         var checkpointManager = CheckpointManager.CreateInMemory();
 
         logger.LogInformation(
-            "Agent hierarchy initialised with MAF Workflow (model={Model}, name={AgentName})",
+            "Specialist workflows initialised with MAF (model={Model}, name={AgentName})",
             config.Model, config.AgentName);
 
         return new AgentSetupResult
         {
-            Workflow = workflow,
+            Workflow = workflows["shanty"],
             CheckpointManager = checkpointManager,
+            WorkflowsByMode = workflows,
         };
     }
 

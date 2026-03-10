@@ -351,6 +351,7 @@ paths = [
   '''GitleaksUdmCombo.toml''',
   '''.github/linters''',
   '''node_modules''',
+  '''(.*?)\.opencode-server(?:/.*)?$''',
   '''(.*?)gitleaks\.toml$''',
 ]
 commits = []

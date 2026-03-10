@@ -19,3 +19,13 @@ For each selected reference architecture or deployment strategy:
 1. Read the Terraform or application files that define behavior.
 1. Extract module dependencies from Terraform `source` declarations.
 1. Build a capability snapshot from the files that actually exist.
+
+## Reuse rules
+
+- Prefer the smallest architecture slice that satisfies the user's scenario.
+- If the user already has some of the platform pieces, map only the missing CAIRA assets into the target solution.
+- Exclude internal testing overlay files from normal reuse:
+  - `testing_overlay.tf`
+  - `testing_variables.tf`
+  - `testing_outputs.tf`
+- Treat pirate-themed names, prompts, agents, and tools as sample-only artifacts.

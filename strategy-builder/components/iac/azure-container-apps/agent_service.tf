@@ -1,5 +1,5 @@
 module "agent_app" {
-  source = "../../../infra/modules/container_app"
+  source = "../../../../strategy-builder/infra/modules/container_app"
 
   name                         = "${local.app_prefix}-agent"
   container_name               = "agent"
@@ -10,7 +10,7 @@ module "agent_app" {
   transport                    = "http"
   enable_registry_auth         = var.enable_registry_auth
   registry_server              = module.container_registry.login_server
-  environment_variables        = merge(var.agent_env, { PORT = "3000" })
+  environment_variables        = merge(local.app_common_env, var.agent_env, { PORT = "3000" })
   tags                         = var.tags
 }
 

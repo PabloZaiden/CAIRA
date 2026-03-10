@@ -21,6 +21,9 @@ public sealed class ApiConfig
     /// <summary>Azure AD token scope for agent auth (e.g., api://&lt;client-id&gt;/.default).</summary>
     public string? AgentTokenScope { get; init; }
 
+    /// <summary>Application Insights connection string for Azure Monitor OTEL export.</summary>
+    public string? ApplicationInsightsConnectionString { get; init; }
+
     /// <summary>Minimum log level.</summary>
     public string LogLevel { get; init; } = "Debug";
 
@@ -50,6 +53,7 @@ public sealed class ApiConfig
             Host = Environment.GetEnvironmentVariable("HOST") ?? "0.0.0.0",
             AgentServiceUrl = agentServiceUrl,
             AgentTokenScope = Environment.GetEnvironmentVariable("AGENT_TOKEN_SCOPE"),
+            ApplicationInsightsConnectionString = Environment.GetEnvironmentVariable("APPLICATIONINSIGHTS_CONNECTION_STRING"),
             LogLevel = Environment.GetEnvironmentVariable("LOG_LEVEL") ?? "Debug",
             SkipAuth = Environment.GetEnvironmentVariable("SKIP_AUTH") == "true",
         };

@@ -38,6 +38,7 @@ public sealed class ConversationRecord
     public Dictionary<string, object>? Metadata { get; init; }
     public required string CreatedAt { get; init; }
     public string UpdatedAt { get; set; }
+    public string? ActiveSpecialistTool { get; set; }
 
     /// <summary>
     /// The last workflow checkpoint for multi-turn conversation chaining.

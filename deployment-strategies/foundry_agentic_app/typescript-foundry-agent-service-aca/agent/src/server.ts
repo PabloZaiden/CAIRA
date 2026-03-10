@@ -11,11 +11,10 @@
 
 import { loadConfig } from './config.ts';
 import { buildApp } from './app.ts';
-import { shutdownAzureMonitor } from '@azure/monitor-opentelemetry';
-import process from 'process';
+import { shutdownTelemetry } from './telemetry.ts';
 
 async function main(): Promise<void> {
-  process.env['AZURE_TRACIING_GEN_AI_CONTENT_RECORDING_ENABLED'] = 'true';
+  process.env['AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED'] = 'true';
 
   const config = loadConfig();
   const app = await buildApp(config);
@@ -23,7 +22,7 @@ async function main(): Promise<void> {
   // Graceful shutdown
   const shutdown = async (signal: string): Promise<void> => {
     app.log.info(`Received ${signal}, shutting down gracefully...`);
-    await shutdownAzureMonitor();
+    await shutdownTelemetry();
     await app.close();
     process.exit(0);
   };

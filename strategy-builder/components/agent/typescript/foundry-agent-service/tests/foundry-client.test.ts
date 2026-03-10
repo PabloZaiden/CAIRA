@@ -102,6 +102,7 @@ const LOCAL_CONFIG: Config = {
   shantyInstructions: 'You are a shanty specialist.',
   treasureInstructions: 'You are a treasure specialist.',
   crewInstructions: 'You are a crew specialist.',
+  applicationInsightsConnectionString: undefined,
   logLevel: 'silent',
   skipAuth: true
 };
@@ -410,10 +411,10 @@ describe('FoundryClient (without agent registration)', () => {
       expect(mockResponsesCreate).toHaveBeenCalledTimes(1);
       const params = mockResponsesCreate.mock.calls[0]![0];
       expect(params.model).toBe('gpt-5.2-chat');
-      expect(params.instructions).toBe(LOCAL_CONFIG.captainInstructions);
+      expect(params.instructions).toBe(LOCAL_CONFIG.shantyInstructions);
       expect(params.input).toBe('Test message');
       expect(params.tools).toBeDefined();
-      expect(params.tools.length).toBe(6); // 3 specialist + 3 resolution
+      expect(params.tools.length).toBe(2);
       // Should use conversation param
       expect(params.conversation).toBeDefined();
       expect(params.conversation.id).toMatch(/^server_conv_/);
@@ -439,32 +440,29 @@ describe('FoundryClient (without agent registration)', () => {
     it('handles tool-call loop — executes specialist tool and continues', async () => {
       const conv = await client.createConversation();
 
-      // First call returns a function_call for shanty_specialist
+      // First call returns a function_call for lookup_shanty_knowledge
       mockResponsesCreate.mockResolvedValueOnce(
         makeResponse('', 'resp_001', {
           functionCalls: [
             {
-              name: 'shanty_specialist',
+              name: 'lookup_shanty_knowledge',
               callId: 'call_001',
-              arguments: JSON.stringify({ request: 'Sing a verse' })
+              arguments: JSON.stringify({ query: 'Sing a verse' })
             }
           ]
         })
       );
 
-      // Second call (specialist tool execution) returns text
-      mockResponsesCreate.mockResolvedValueOnce(makeResponse('A shanty verse about the sea!', 'resp_specialist'));
-
-      // Third call (tool output submission) returns final text
+      // Second call (tool output submission) returns final text
       mockResponsesCreate.mockResolvedValueOnce(makeResponse('Here be a fine shanty!', 'resp_002'));
 
       const result = await client.sendMessage(conv.id, 'Sing me a shanty');
       expect(result).toBeDefined();
       expect(result!.content).toBe('Here be a fine shanty!');
-      expect(mockResponsesCreate).toHaveBeenCalledTimes(3);
+      expect(mockResponsesCreate).toHaveBeenCalledTimes(2);
 
-      // Check that the third call includes tool output and conversation param
-      const toolOutputCall = mockResponsesCreate.mock.calls[2]![0];
+      // Check that the second call includes tool output and conversation param
+      const toolOutputCall = mockResponsesCreate.mock.calls[1]![0];
       expect(toolOutputCall.input).toBeDefined();
       expect(toolOutputCall.input[0].type).toBe('function_call_output');
       expect(toolOutputCall.input[0].call_id).toBe('call_001');
@@ -523,19 +521,11 @@ describe('FoundryClient (without agent registration)', () => {
         chunks.push(chunk);
       });
 
-      // Should have: 2 deltas + 1 complete
-      expect(chunks).toHaveLength(3);
-
-      // Check delta events
-      expect(chunks[0]).toContain('event: message.delta');
-      expect(chunks[0]).toContain('"content":"Hello"');
-
+      expect(chunks[0]).toContain('event: tool.called');
       expect(chunks[1]).toContain('event: message.delta');
-      expect(chunks[1]).toContain('"content":" world"');
-
-      // Check complete event
-      expect(chunks[2]).toContain('event: message.complete');
-      expect(chunks[2]).toContain('"content":"Hello world"');
+      expect(chunks[chunks.length - 2]).toContain('event: tool.done');
+      expect(chunks[chunks.length - 1]).toContain('event: message.complete');
+      expect(chunks[chunks.length - 1]).toContain('"content":"Hello world"');
     });
 
     it('emits error event for unknown conversation', async () => {
@@ -580,9 +570,8 @@ describe('FoundryClient (without agent registration)', () => {
         chunks.push(chunk);
       });
 
-      expect(chunks).toHaveLength(1);
-      expect(chunks[0]).toContain('event: error');
-      expect(chunks[0]).toContain('Stream connection lost');
+      expect(chunks[chunks.length - 1]).toContain('event: error');
+      expect(chunks[chunks.length - 1]).toContain('Stream connection lost');
     });
 
     it('uses conversation param for streaming calls', async () => {
@@ -615,17 +604,14 @@ describe('FoundryClient (without agent registration)', () => {
       const streamResult = makeStreamEvents(['Arr'], 'resp_specialist', {
         functionCalls: [
           {
-            name: 'shanty_specialist',
+            name: 'lookup_shanty_knowledge',
             callId: 'call_spec_001',
-            arguments: JSON.stringify({ request: 'Sing a verse' })
+            arguments: JSON.stringify({ query: 'Sing a verse' })
           }
         ]
       });
 
       mockResponsesStream.mockReturnValueOnce(streamResult);
-
-      // The specialist tool execution (responses.create)
-      mockResponsesCreate.mockResolvedValueOnce(makeResponse('A fine verse!', 'resp_spec_exec'));
 
       // Second stream call (tool output submission) returns final text
       const finalStream = makeStreamEvents(['Here be a verse!'], 'resp_final');
@@ -730,11 +716,7 @@ describe('FoundryClient (without agent registration)', () => {
         chunks.push(chunk);
       });
 
-      // tool.called and tool.done should NOT be emitted for resolution tools
-      const hasToolCalled = chunks.some((c) => c.includes('tool.called'));
-      const hasToolDone = chunks.some((c) => c.includes('tool.done'));
-      expect(hasToolCalled).toBe(false);
-      expect(hasToolDone).toBe(false);
+      expect(chunks[0]).toContain('"toolName":"shanty_specialist"');
 
       // But activity.resolved SHOULD be emitted
       const hasResolved = chunks.some((c) => c.includes('activity.resolved'));
@@ -815,13 +797,12 @@ describe('FoundryClient (with agent registration)', () => {
   describe('initialise', () => {
     it('creates all 4 agents when none exist (get returns 404)', async () => {
       // The beforeEach already called initialise() — default mock has get → 404
-      expect(mockAgentsGet).toHaveBeenCalledTimes(4);
-      expect(mockAgentsCreate).toHaveBeenCalledTimes(4);
+      expect(mockAgentsGet).toHaveBeenCalledTimes(3);
+      expect(mockAgentsCreate).toHaveBeenCalledTimes(3);
       expect(mockAgentsUpdate).not.toHaveBeenCalled();
 
       // Check agent names passed to create
       const createdNames = mockAgentsCreate.mock.calls.map((call: unknown[]) => call[0]);
-      expect(createdNames).toContain('test-agent'); // captain
       expect(createdNames).toContain('shanty-specialist');
       expect(createdNames).toContain('treasure-specialist');
       expect(createdNames).toContain('crew-specialist');
@@ -852,33 +833,33 @@ describe('FoundryClient (with agent registration)', () => {
       const updateClient = new FoundryClient({ config: AZURE_CONFIG });
       await updateClient.initialise();
 
-      expect(mockAgentsGet).toHaveBeenCalledTimes(4);
-      expect(mockAgentsUpdate).toHaveBeenCalledTimes(4);
+      expect(mockAgentsGet).toHaveBeenCalledTimes(3);
+      expect(mockAgentsUpdate).toHaveBeenCalledTimes(3);
       expect(mockAgentsCreate).not.toHaveBeenCalled();
     });
 
-    it('creates captain agent with tools in definition', async () => {
-      const captainCreateCall = mockAgentsCreate.mock.calls.find((call: unknown[]) => call[0] === 'test-agent');
-      expect(captainCreateCall).toBeDefined();
-
-      const definition = captainCreateCall![1] as Record<string, unknown>;
-      expect(definition.kind).toBe('prompt');
-      expect(definition.model).toBe('gpt-5.2-chat');
-      expect(definition.instructions).toBe(AZURE_CONFIG.captainInstructions);
-
-      const tools = definition.tools as Array<{ name: string }>;
-      expect(tools).toHaveLength(6); // 3 specialist + 3 resolution
-    });
-
-    it('creates specialist agents without tools', async () => {
+    it('creates specialist agents with focused toolsets', async () => {
       const shantyCreateCall = mockAgentsCreate.mock.calls.find((call: unknown[]) => call[0] === 'shanty-specialist');
       expect(shantyCreateCall).toBeDefined();
 
       const definition = shantyCreateCall![1] as Record<string, unknown>;
       expect(definition.kind).toBe('prompt');
       expect(definition.model).toBe('gpt-5.2-chat');
-      expect(definition.instructions).toBe(AZURE_CONFIG.shantyInstructions);
-      expect(definition).not.toHaveProperty('tools');
+      expect(String(definition.instructions)).toContain(AZURE_CONFIG.shantyInstructions);
+
+      const tools = definition.tools as Array<{ name: string }>;
+      expect(tools).toHaveLength(2);
+    });
+
+    it('creates specialist agents with shared + specialist instructions', async () => {
+      const shantyCreateCall = mockAgentsCreate.mock.calls.find((call: unknown[]) => call[0] === 'shanty-specialist');
+      expect(shantyCreateCall).toBeDefined();
+
+      const definition = shantyCreateCall![1] as Record<string, unknown>;
+      expect(definition.kind).toBe('prompt');
+      expect(definition.model).toBe('gpt-5.2-chat');
+      expect(String(definition.instructions)).toContain(AZURE_CONFIG.shantyInstructions);
+      expect(String(definition.instructions)).toContain(AZURE_CONFIG.captainInstructions);
     });
 
     it('throws if agent registration fails with non-404 error', async () => {
@@ -982,36 +963,33 @@ describe('FoundryClient (with agent registration)', () => {
     it('handles tool-call loop with conversation param', async () => {
       const conv = await client.createConversation();
 
-      // First call returns a function_call for shanty_specialist
+      // First call returns a function_call for lookup_shanty_knowledge
       mockResponsesCreate.mockResolvedValueOnce(
         makeResponse('', 'resp_001', {
           functionCalls: [
             {
-              name: 'shanty_specialist',
+              name: 'lookup_shanty_knowledge',
               callId: 'call_001',
-              arguments: JSON.stringify({ request: 'Sing a verse' })
+              arguments: JSON.stringify({ query: 'Sing a verse' })
             }
           ]
         })
       );
 
-      // Second call (specialist tool execution) returns text
-      mockResponsesCreate.mockResolvedValueOnce(makeResponse('A shanty verse!', 'resp_specialist'));
-
-      // Third call (tool output submission) returns final text
+      // Second call (tool output submission) returns final text
       mockResponsesCreate.mockResolvedValueOnce(makeResponse('Here be a shanty!', 'resp_002'));
 
       const result = await client.sendMessage(conv.id, 'Sing me a shanty');
       expect(result).toBeDefined();
       expect(result!.content).toBe('Here be a shanty!');
-      expect(mockResponsesCreate).toHaveBeenCalledTimes(3);
+      expect(mockResponsesCreate).toHaveBeenCalledTimes(2);
 
       // First call (captain) should use conversation param
       const captainParams = mockResponsesCreate.mock.calls[0]![0];
       expect(captainParams.conversation).toBeDefined();
 
-      // Third call (tool output back to captain) should also use conversation param
-      const toolOutputParams = mockResponsesCreate.mock.calls[2]![0];
+      // Second call (tool output back to specialist) should also use conversation param
+      const toolOutputParams = mockResponsesCreate.mock.calls[1]![0];
       expect(toolOutputParams.conversation).toBeDefined();
     });
 
@@ -1066,9 +1044,7 @@ describe('FoundryClient (with agent registration)', () => {
       // Should NOT use previous_response_id
       expect(streamParams).not.toHaveProperty('previous_response_id');
 
-      // Should still emit correct SSE events
-      expect(chunks).toHaveLength(3); // 2 deltas + 1 complete
-      expect(chunks[2]).toContain('event: message.complete');
+      expect(chunks[chunks.length - 1]).toContain('event: message.complete');
     });
 
     it('emits error event for unknown conversation', async () => {
@@ -1088,17 +1064,14 @@ describe('FoundryClient (with agent registration)', () => {
       const streamResult = makeStreamEvents(['Arr'], 'resp_specialist', {
         functionCalls: [
           {
-            name: 'treasure_specialist',
+            name: 'lookup_treasure_knowledge',
             callId: 'call_spec_001',
-            arguments: JSON.stringify({ request: 'Describe a scene' })
+            arguments: JSON.stringify({ query: 'Describe a scene' })
           }
         ]
       });
 
       mockResponsesStream.mockReturnValueOnce(streamResult);
-
-      // Specialist tool execution
-      mockResponsesCreate.mockResolvedValueOnce(makeResponse('A mysterious cave!', 'resp_spec_exec'));
 
       // Final stream after tool output
       const finalStream = makeStreamEvents(['Enter the cave!'], 'resp_final');

@@ -24,6 +24,7 @@ const baseConfig: Config = {
   shantyInstructions: 'shanty',
   treasureInstructions: 'treasure',
   crewInstructions: 'crew',
+  applicationInsightsConnectionString: undefined,
   logLevel: 'fatal',
   skipAuth: true
 };
