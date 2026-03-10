@@ -9,13 +9,13 @@ Default to `reference` mode unless the user explicitly asks for a copied, self-c
 ## `reference` mode
 
 - Keep selected reference architecture files close to the published CAIRA source.
-- Convert local module paths to pinned git module references.
-- Pin to an explicit tag or commit for reproducibility.
+- Convert local module paths to git module references that default to `main`.
+- Only pin to an explicit tag, release, commit, or other ref when the user explicitly asks for it.
 
 Template:
 
 ```hcl
-source = "git::https://github.com/pablozaiden/CAIRA.git//strategy-builder/infra/modules/<module_name>?ref=<ref>"
+source = "git::https://github.com/pablozaiden/CAIRA.git//strategy-builder/infra/modules/<module_name>?ref=main"
 ```
 
 ## `copy` mode
@@ -30,5 +30,6 @@ source = "git::https://github.com/pablozaiden/CAIRA.git//strategy-builder/infra/
 ## Ref resolution template
 
 ```bash
-curl -s https://api.github.com/repos/pablozaiden/CAIRA/releases/latest
+REF=main
+# Replace `main` only if the user explicitly asked for a specific CAIRA release, tag, commit, or other ref.
 ```

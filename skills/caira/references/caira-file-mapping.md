@@ -4,14 +4,16 @@ Discover the current repository structure at execution time instead of maintaini
 
 Default to `deployment-strategies/` and `docs/` as the main reference entry points. Use `strategy-builder/` only when you need the deeper source-of-truth assets behind those generated strategies or docs.
 
+Use `main` as the default repository ref. Only switch to a specific release tag or other ref when the user explicitly asks for it.
+
 ## Canonical discovery endpoints
 
-- Deployment strategies: `https://api.github.com/repos/pablozaiden/CAIRA/contents/deployment-strategies?ref=<ref>`
-- Docs: `https://api.github.com/repos/pablozaiden/CAIRA/contents/docs?ref=<ref>`
-- Reference architectures: `https://api.github.com/repos/pablozaiden/CAIRA/contents/strategy-builder/infra/reference-architectures?ref=<ref>`
-- Modules: `https://api.github.com/repos/pablozaiden/CAIRA/contents/strategy-builder/infra/modules?ref=<ref>`
-- Infra testing: `https://api.github.com/repos/pablozaiden/CAIRA/contents/strategy-builder/infra/testing?ref=<ref>`
-- Strategy builder: `https://api.github.com/repos/pablozaiden/CAIRA/contents/strategy-builder?ref=<ref>`
+- Deployment strategies: `https://api.github.com/repos/pablozaiden/CAIRA/contents/deployment-strategies?ref=main`
+- Docs: `https://api.github.com/repos/pablozaiden/CAIRA/contents/docs?ref=main`
+- Reference architectures: `https://api.github.com/repos/pablozaiden/CAIRA/contents/strategy-builder/infra/reference-architectures?ref=main`
+- Modules: `https://api.github.com/repos/pablozaiden/CAIRA/contents/strategy-builder/infra/modules?ref=main`
+- Infra testing: `https://api.github.com/repos/pablozaiden/CAIRA/contents/strategy-builder/infra/testing?ref=main`
+- Strategy builder: `https://api.github.com/repos/pablozaiden/CAIRA/contents/strategy-builder?ref=main`
 
 ## File inspection pattern
 

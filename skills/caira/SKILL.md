@@ -4,7 +4,7 @@ description: Primary entrypoint for coding agents using CAIRA as reference mater
 compatibility: Requires network access to github.com, api.github.com, and raw.githubusercontent.com.
 metadata:
   author: pablozaiden
-  version: "0.5.0"
+  version: "0.5.1"
 ---
 
 # CAIRA
@@ -40,7 +40,7 @@ Install this skill when a user wants to build or extend an Azure AI solution wit
 
 ## Dynamic discovery workflow
 
-1. Resolve the source version (tag, branch, or release).
+1. Resolve the source ref: use `main` by default, and only switch to a specific release tag or other ref when the user explicitly asks for it.
 1. Inspect the user's project and requirements first to determine which architecture slices are missing versus already present.
 1. Identify feature slices and their supporting files before copying anything. For example, treat APIM, observability, private networking, capability hosts, app layers, and testing overlays as separate selectable slices.
 1. Discover available assets from repository APIs in this order:
@@ -80,10 +80,10 @@ Install this skill when a user wants to build or extend an Azure AI solution wit
 ## Source-of-truth URLs
 
 - Repository root: <https://github.com/pablozaiden/CAIRA>
-- Latest release tag API: <https://api.github.com/repos/pablozaiden/CAIRA/releases/latest>
-- Deployment strategies listing API: `GET /repos/pablozaiden/CAIRA/contents/deployment-strategies?ref=<tag_or_ref>`
-- Docs listing API: `GET /repos/pablozaiden/CAIRA/contents/docs?ref=<tag_or_ref>`
-- Reference architectures listing API: `GET /repos/pablozaiden/CAIRA/contents/strategy-builder/infra/reference-architectures?ref=<tag_or_ref>`
-- Modules listing API: `GET /repos/pablozaiden/CAIRA/contents/strategy-builder/infra/modules?ref=<tag_or_ref>`
-- Infra testing listing API: `GET /repos/pablozaiden/CAIRA/contents/strategy-builder/infra/testing?ref=<tag_or_ref>`
-- Strategy builder listing API: `GET /repos/pablozaiden/CAIRA/contents/strategy-builder?ref=<tag_or_ref>`
+- Default source ref: `main` unless the user explicitly asks for another ref.
+- Deployment strategies listing API: `GET /repos/pablozaiden/CAIRA/contents/deployment-strategies?ref=main`
+- Docs listing API: `GET /repos/pablozaiden/CAIRA/contents/docs?ref=main`
+- Reference architectures listing API: `GET /repos/pablozaiden/CAIRA/contents/strategy-builder/infra/reference-architectures?ref=main`
+- Modules listing API: `GET /repos/pablozaiden/CAIRA/contents/strategy-builder/infra/modules?ref=main`
+- Infra testing listing API: `GET /repos/pablozaiden/CAIRA/contents/strategy-builder/infra/testing?ref=main`
+- Strategy builder listing API: `GET /repos/pablozaiden/CAIRA/contents/strategy-builder?ref=main`
