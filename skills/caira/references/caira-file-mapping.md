@@ -6,12 +6,12 @@ Default to `deployment-strategies/` and `docs/` as the main reference entry poin
 
 ## Canonical discovery endpoints
 
-- Deployment strategies: `https://api.github.com/repos/microsoft/CAIRA/contents/deployment-strategies?ref=<ref>`
-- Docs: `https://api.github.com/repos/microsoft/CAIRA/contents/docs?ref=<ref>`
-- Reference architectures: `https://api.github.com/repos/microsoft/CAIRA/contents/strategy-builder/infra/reference-architectures?ref=<ref>`
-- Modules: `https://api.github.com/repos/microsoft/CAIRA/contents/strategy-builder/infra/modules?ref=<ref>`
-- Infra testing: `https://api.github.com/repos/microsoft/CAIRA/contents/strategy-builder/infra/testing?ref=<ref>`
-- Strategy builder: `https://api.github.com/repos/microsoft/CAIRA/contents/strategy-builder?ref=<ref>`
+- Deployment strategies: `https://api.github.com/repos/pablozaiden/CAIRA/contents/deployment-strategies?ref=<ref>`
+- Docs: `https://api.github.com/repos/pablozaiden/CAIRA/contents/docs?ref=<ref>`
+- Reference architectures: `https://api.github.com/repos/pablozaiden/CAIRA/contents/strategy-builder/infra/reference-architectures?ref=<ref>`
+- Modules: `https://api.github.com/repos/pablozaiden/CAIRA/contents/strategy-builder/infra/modules?ref=<ref>`
+- Infra testing: `https://api.github.com/repos/pablozaiden/CAIRA/contents/strategy-builder/infra/testing?ref=<ref>`
+- Strategy builder: `https://api.github.com/repos/pablozaiden/CAIRA/contents/strategy-builder?ref=<ref>`
 
 ## File inspection pattern
 

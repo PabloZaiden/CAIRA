@@ -172,5 +172,5 @@ For detailed troubleshooting of specific issues, see the sections below.
 
 If you've tried the above solutions and are still encountering issues, please:
 
-- Review the [Support](https://github.com/microsoft/CAIRA/blob/main/SUPPORT.md) guide for how to file issues or request help.
+- Review the [Support](https://github.com/pablozaiden/CAIRA/blob/main/SUPPORT.md) guide for how to file issues or request help.
 - Search existing issues in the GitHub repository to see if your problem has already been addressed.

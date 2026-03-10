@@ -79,11 +79,11 @@ Install this skill when a user wants to build or extend an Azure AI solution wit
 
 ## Source-of-truth URLs
 
-- Repository root: <https://github.com/microsoft/CAIRA>
-- Latest release tag API: <https://api.github.com/repos/microsoft/CAIRA/releases/latest>
-- Deployment strategies listing API: `GET /repos/microsoft/CAIRA/contents/deployment-strategies?ref=<tag_or_ref>`
-- Docs listing API: `GET /repos/microsoft/CAIRA/contents/docs?ref=<tag_or_ref>`
-- Reference architectures listing API: `GET /repos/microsoft/CAIRA/contents/strategy-builder/infra/reference-architectures?ref=<tag_or_ref>`
-- Modules listing API: `GET /repos/microsoft/CAIRA/contents/strategy-builder/infra/modules?ref=<tag_or_ref>`
-- Infra testing listing API: `GET /repos/microsoft/CAIRA/contents/strategy-builder/infra/testing?ref=<tag_or_ref>`
-- Strategy builder listing API: `GET /repos/microsoft/CAIRA/contents/strategy-builder?ref=<tag_or_ref>`
+- Repository root: <https://github.com/pablozaiden/CAIRA>
+- Latest release tag API: <https://api.github.com/repos/pablozaiden/CAIRA/releases/latest>
+- Deployment strategies listing API: `GET /repos/pablozaiden/CAIRA/contents/deployment-strategies?ref=<tag_or_ref>`
+- Docs listing API: `GET /repos/pablozaiden/CAIRA/contents/docs?ref=<tag_or_ref>`
+- Reference architectures listing API: `GET /repos/pablozaiden/CAIRA/contents/strategy-builder/infra/reference-architectures?ref=<tag_or_ref>`
+- Modules listing API: `GET /repos/pablozaiden/CAIRA/contents/strategy-builder/infra/modules?ref=<tag_or_ref>`
+- Infra testing listing API: `GET /repos/pablozaiden/CAIRA/contents/strategy-builder/infra/testing?ref=<tag_or_ref>`
+- Strategy builder listing API: `GET /repos/pablozaiden/CAIRA/contents/strategy-builder?ref=<tag_or_ref>`

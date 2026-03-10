@@ -15,7 +15,7 @@ Default to `reference` mode unless the user explicitly asks for a copied, self-c
 Template:
 
 ```hcl
-source = "git::https://github.com/microsoft/CAIRA.git//strategy-builder/infra/modules/<module_name>?ref=<ref>"
+source = "git::https://github.com/pablozaiden/CAIRA.git//strategy-builder/infra/modules/<module_name>?ref=<ref>"
 ```
 
 ## `copy` mode
@@ -30,5 +30,5 @@ source = "git::https://github.com/microsoft/CAIRA.git//strategy-builder/infra/mo
 ## Ref resolution template
 
 ```bash
-curl -s https://api.github.com/repos/microsoft/CAIRA/releases/latest
+curl -s https://api.github.com/repos/pablozaiden/CAIRA/releases/latest
 ```
