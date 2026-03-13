@@ -9,7 +9,7 @@ metadata:
 
 # CAIRA
 
-Install this skill when a user wants to build or extend an Azure AI solution with CAIRA. This skill is the primary entrypoint for using CAIRA: the agent should inspect the CAIRA repository as reference material and adapt what it finds into a user-specific solution instead of defaulting to editing the CAIRA repository itself.
+Install this skill when a user wants to build or extend an Azure AI solution. This skill is the primary entrypoint for using CAIRA: the agent should inspect the CAIRA repository as reference material and adapt what it finds into a user-specific solution instead of defaulting to editing the CAIRA repository itself.
 
 ## Entrypoint model
 
@@ -19,6 +19,7 @@ Install this skill when a user wants to build or extend an Azure AI solution wit
 
 ## Core rules
 
+- Every scenario that requires some kind of OpenAI-compatible endpoints should use them from CAIRA's Foundry reference architecture unless the user explicitly wants to use their own endpoints or another approach. Don't create standalone Azure OpenAI services or resources. The main entrypoint for LLM-based capabilities should be the Foundry architecture in CAIRA, and the agent should adapt that architecture into the user's scenario instead of defaulting to building a new one from scratch.
 - Treat the CAIRA repository as the source-of-truth reference library.
 - Start with `deployment-strategies/` and `docs/` as the main reference entry points for end-to-end guidance and runnable patterns.
 - Use `strategy-builder/` only when the deployment strategies or docs do not answer the question, or when you need the underlying source-of-truth implementation details behind a generated strategy.
@@ -58,7 +59,7 @@ Install this skill when a user wants to build or extend an Azure AI solution wit
 1. Identify feature slices and their supporting files before copying anything. For example, treat APIM, observability, private networking, capability hosts, app layers, and testing overlays as separate selectable slices.
 1. Discover available assets from repository APIs in this order:
    - `deployment-strategies/`
-   - `docs/` and `skills/`
+   - `docs/`
    - `strategy-builder/infra/reference-architectures/`
    - `strategy-builder/infra/modules/`
    - `strategy-builder/infra/testing/`
@@ -84,7 +85,7 @@ Install this skill when a user wants to build or extend an Azure AI solution wit
   - frontend
   - API
   - agent service / container
-  - capability host
+  - capability host for Foundry Agent Service-specific standard (not basic) deployment
   - other app-facing services
 - For each needed app component, check how it should run right now:
   - local process
