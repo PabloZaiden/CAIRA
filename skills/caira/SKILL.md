@@ -4,7 +4,7 @@ description: Primary entrypoint for coding agents using CAIRA as reference mater
 compatibility: Requires network access to github.com, api.github.com, and raw.githubusercontent.com.
 metadata:
   author: pablozaiden
-  version: "0.5.3"
+  version: "0.5.4"
 ---
 
 # CAIRA
