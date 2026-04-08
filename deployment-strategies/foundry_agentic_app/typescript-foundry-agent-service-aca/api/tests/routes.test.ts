@@ -203,6 +203,10 @@ beforeAll(async () => {
       host: '127.0.0.1',
       agentServiceUrl: agentBaseUrl,
       agentTokenScope: undefined,
+      inboundAuthTenantId: undefined,
+      inboundAuthAllowedAudiences: [],
+      inboundAuthAllowedCallerAppIds: [],
+      inboundAuthAuthorityHost: 'https://login.microsoftonline.com',
       applicationInsightsConnectionString: undefined,
       logLevel: 'silent',
       skipAuth: true
@@ -211,18 +215,29 @@ beforeAll(async () => {
 
   appBaseUrl = await app.listen({ port: 0, host: '127.0.0.1' });
 
-  appWithAuth = await buildApp({
+appWithAuth = await buildApp({
     config: {
       port: 0,
       host: '127.0.0.1',
       agentServiceUrl: agentBaseUrl,
       agentTokenScope: undefined,
+      inboundAuthTenantId: undefined,
+      inboundAuthAllowedAudiences: [],
+      inboundAuthAllowedCallerAppIds: [],
+      inboundAuthAuthorityHost: 'https://login.microsoftonline.com',
       applicationInsightsConnectionString: undefined,
       logLevel: 'silent',
       skipAuth: false
     },
     agentClientOptions: {
       getToken: async () => 'test-agent-token'
+    },
+    incomingTokenValidator: {
+      validateAccessToken: async (token: string) => {
+        if (token !== 'bff-token') {
+          throw new Error('invalid token');
+        }
+      }
     }
   });
 
@@ -354,6 +369,17 @@ describe('API auth middleware', () => {
       Authorization: 'Bearer bff-token'
     });
     expect(withAuth.status).toBe(200);
+  });
+
+  it('rejects invalid bearer tokens', async () => {
+    const invalid = await apiRequestWithAuth('GET', '/api/pirate/adventures', undefined, {
+      Authorization: 'Bearer wrong-token'
+    });
+    expect(invalid.status).toBe(401);
+    expect(invalid.data).toEqual({
+      code: 'unauthorized',
+      message: 'Invalid or unauthorized bearer token'
+    });
   });
 });
 

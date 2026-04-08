@@ -25,6 +25,7 @@
 | 2 | Design shared JWT validation pattern | Define one repository-wide auth pattern for internal service-to-service traffic: required claims, issuer format, audience mapping, JWKS/signature validation approach, configuration surface, local mock/dev behavior, and exact sample limits. | 1 | High |
 | 3 | Implement hardened auth in agent containers | Add real JWT validation to `strategy-builder/components/agent/typescript/openai-agent-sdk`, `strategy-builder/components/agent/typescript/foundry-agent-service`, and `strategy-builder/components/agent/csharp/microsoft-agent-framework`, then update the generated deployment strategies that embed those components. | 2 | High |
 | 4 | Implement hardened auth in API containers | Apply the same validation posture to `strategy-builder/components/api/typescript` and `strategy-builder/components/api/csharp`, keeping downstream contract behavior stable while documenting which caller identity each service expects. | 2 | High |
+| 4a | Implement hardened auth in the frontend BFF | Replace the frontend static inter-service bearer token flow with real Entra token acquisition for BFF-to-API calls, keeping local mock/dev behavior explicit and aligned with the same validation contract used by the API and agent containers. | 2 | High |
 | 5 | Reframe the sample domain | Replace the pirate sample with a fictional sales / account-team domain. Working mapping candidate: `shanty -> discovery/qualification`, `treasure -> account planning/engagement`, `crew -> proposal/deal progression`; confirm the best fit, then propagate names, prompts, knowledge content, comments, and UX text consistently. | 1 | High |
 | 6 | Align MAF docs with implementation | Update docs so the C# variant is described honestly as workflow-per-mode selected by metadata, explain where it is conceptually equivalent to the other variants, and clearly state where it does not have a real captain/triage agent. Include small code improvements only if they materially reduce the doc/code gap without redesigning the architecture. | 1, 5 | Medium |
 | 7 | Strengthen production posture docs | Update `docs/security_posture.md`, strategy READMEs, and any adjacent guidance so an external reader can distinguish baseline coverage from production hardening work, and understand the differences between local dev, sample validation, sample Azure deployment, and real production. | 2, 3, 4 | Medium |
@@ -85,6 +86,12 @@
 - Ensure the API-to-agent call chain and the frontend/BFF-to-API expectations remain coherent.
 - Keep the public HTTP contract stable unless a change is required to support correct auth semantics.
 - Add/update tests for all relevant auth failure/success cases.
+
+### 4a. Implement hardened auth in the frontend BFF
+
+- Replace the static `INTER_SERVICE_TOKEN` proxy behavior in `strategy-builder/components/frontend/react-typescript` with real token acquisition for BFF-to-API requests.
+- Align the BFF configuration contract with the repository-wide auth design so it can request the API audience in Azure deployments and remain explicit about local-development bypass behavior.
+- Update tests and generated strategy copies so the BFF, API, and agent hops all follow the same service-to-service story.
 
 ### 5. Reframe the sample domain
 
@@ -162,6 +169,7 @@
 ## Dependency summary
 
 - Tasks 3 and 4 depend on task 2 because the repository needs one coherent JWT validation story before code is changed in multiple languages.
+- Task 4a also depends on task 2 because the BFF currently injects a static bearer token and must be brought onto the same Entra-based contract as the API and agent containers.
 - Task 5 can proceed once the inventory is complete, but its outputs must be reflected in tasks 6, 7, 8, and 9.
 - Task 6 depends on the inventory and benefits from the domain reframe so the docs are not rewritten twice.
 - Tasks 7 and 8 depend on having the auth shape and core repo positioning settled.

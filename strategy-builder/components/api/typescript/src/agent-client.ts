@@ -74,8 +74,6 @@ const JITTER_FACTOR = 0.25;
 
 const FAILURE_THRESHOLD = 5;
 const COOLDOWN_MS = 30_000;
-const FALLBACK_INTER_SERVICE_TOKEN = 'caira-internal-token';
-
 interface CircuitState {
   failures: number;
   lastFailure: number;
@@ -280,8 +278,8 @@ export class AgentClient {
 
   async checkHealth(): Promise<AgentClientResponse<AgentHealthResponse>> {
     // Health checks skip retry/circuit breaker — fast fail for readiness probes
-    const headers = await this.buildHeaders();
     try {
+      const headers = await this.buildHeaders();
       const resp = await fetch(`${this.baseUrl}/health`, {
         method: 'GET',
         headers,
@@ -345,22 +343,13 @@ export class AgentClient {
     const headers: Record<string, string> = injectTraceContext({});
 
     if (!this.skipAuth) {
-      let token = FALLBACK_INTER_SERVICE_TOKEN;
-
-      if (this.getTokenFn) {
-        try {
-          token = await this.getTokenFn();
-        } catch (err) {
-          this.log.warn(
-            {
-              error: err instanceof Error ? err.message : String(err),
-              tokenScope: this.tokenScope
-            },
-            'agent token acquisition failed, using fallback inter-service token'
-          );
-        }
+      if (!this.getTokenFn) {
+        throw new Error(
+          'AgentClient requires a token provider when auth is enabled. Configure AGENT_TOKEN_SCOPE or inject getToken().'
+        );
       }
 
+      const token = await this.getTokenFn();
       headers['Authorization'] = `Bearer ${token}`;
     }
 

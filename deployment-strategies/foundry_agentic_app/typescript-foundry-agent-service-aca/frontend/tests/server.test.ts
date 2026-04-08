@@ -12,6 +12,8 @@ let apiMock: FastifyInstance;
 let apiBaseUrl: string;
 let bffApp: FastifyInstance;
 let bffBaseUrl: string;
+let bffSkipAuthApp: FastifyInstance;
+let bffSkipAuthBaseUrl: string;
 let staticDir: string;
 let lastAuthorizationHeader: string | undefined;
 
@@ -27,7 +29,7 @@ beforeAll(async () => {
 
   apiMock.get('/api/pirate/adventures', async (request, reply) => {
     lastAuthorizationHeader = readAuthorizationHeader(request.headers['authorization']);
-    if (lastAuthorizationHeader !== 'Bearer caira-internal-token') {
+    if (lastAuthorizationHeader !== 'Bearer test-api-token' && lastAuthorizationHeader !== undefined) {
       await reply.status(401).send({
         code: 'unauthorized',
         message: 'Missing or invalid Authorization header'
@@ -45,7 +47,7 @@ beforeAll(async () => {
 
   apiMock.get('/health/deep', async (request, reply) => {
     lastAuthorizationHeader = readAuthorizationHeader(request.headers['authorization']);
-    if (lastAuthorizationHeader !== 'Bearer caira-internal-token') {
+    if (lastAuthorizationHeader !== 'Bearer test-api-token' && lastAuthorizationHeader !== undefined) {
       await reply.status(401).send({
         code: 'unauthorized',
         message: 'Missing or invalid Authorization header'
@@ -68,15 +70,32 @@ beforeAll(async () => {
       apiBaseUrl,
       logLevel: 'silent',
       applicationInsightsConnectionString: undefined,
-      interServiceToken: 'caira-internal-token'
+      apiTokenScope: 'api://test-api/.default',
+      skipAuth: false
     },
+    getAccessToken: async () => 'test-api-token',
     staticDir
   });
   bffBaseUrl = await bffApp.listen({ port: 0, host: '127.0.0.1' });
+
+  bffSkipAuthApp = await buildApp({
+    config: {
+      port: 0,
+      host: '127.0.0.1',
+      apiBaseUrl,
+      logLevel: 'silent',
+      applicationInsightsConnectionString: undefined,
+      apiTokenScope: undefined,
+      skipAuth: true
+    },
+    staticDir
+  });
+  bffSkipAuthBaseUrl = await bffSkipAuthApp.listen({ port: 0, host: '127.0.0.1' });
 });
 
 afterAll(async () => {
   await bffApp.close();
+  await bffSkipAuthApp.close();
   await apiMock.close();
   await rm(staticDir, { recursive: true, force: true });
 });
@@ -85,7 +104,7 @@ describe('BFF server inter-service auth', () => {
   it('injects Authorization when proxying /api requests', async () => {
     const response = await fetch(`${bffBaseUrl}/api/pirate/adventures`);
     expect(response.status).toBe(200);
-    expect(lastAuthorizationHeader).toBe('Bearer caira-internal-token');
+    expect(lastAuthorizationHeader).toBe('Bearer test-api-token');
   });
 
   it('returns healthy deep health when API deep auth call succeeds', async () => {
@@ -100,5 +119,11 @@ describe('BFF server inter-service auth', () => {
     expect(body.dependencies[0]?.status).toBe('healthy');
     expect(body.dependencies[1]?.name).toBe('agent-container-auth');
     expect(body.dependencies[1]?.status).toBe('healthy');
+  });
+
+  it('omits Authorization when auth bypass is enabled', async () => {
+    const response = await fetch(`${bffSkipAuthBaseUrl}/api/pirate/adventures`);
+    expect(response.status).toBe(200);
+    expect(lastAuthorizationHeader).toBeUndefined();
   });
 });

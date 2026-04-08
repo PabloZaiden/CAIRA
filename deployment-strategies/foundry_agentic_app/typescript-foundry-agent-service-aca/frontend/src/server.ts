@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 import Fastify, { type FastifyRequest, type FastifyReply } from 'fastify';
 import fastifyStatic from '@fastify/static';
 import fastifyHttpProxy from '@fastify/http-proxy';
+import { DefaultAzureCredential } from '@azure/identity';
 import type { DependencyHealth, HealthResponse } from './types.ts';
 import { injectTraceContext, setupTelemetry, shutdownTelemetry } from './telemetry.ts';
 
@@ -31,18 +32,31 @@ export interface BffConfig {
   readonly logLevel: string;
   /** Application Insights connection string for Azure Monitor OTEL export */
   readonly applicationInsightsConnectionString?: string | undefined;
-  /** Bearer token used for internal BFF -> API requests */
-  readonly interServiceToken: string;
+  /** Azure AD token scope for BFF -> API requests */
+  readonly apiTokenScope?: string | undefined;
+  /** Skip bearer token acquisition for local mock/dev flows */
+  readonly skipAuth: boolean;
 }
 
 export function loadConfig(env: Record<string, string | undefined> = process.env): BffConfig {
+  const skipAuth = env['SKIP_AUTH'] === 'true';
+  const apiTokenScope = env['API_TOKEN_SCOPE'];
+
+  if (!skipAuth && !apiTokenScope) {
+    throw new Error(
+      'API_TOKEN_SCOPE environment variable is required when SKIP_AUTH is not true. ' +
+        'Set it to the Entra application scope for the API container (for example, api://<api-app-id>/.default).'
+    );
+  }
+
   return {
     port: parseInt(env['PORT'] ?? '8080', 10),
     host: env['HOST'] ?? '0.0.0.0',
     apiBaseUrl: (env['API_BASE_URL'] ?? 'http://api:4000').replace(/\/+$/, ''),
     logLevel: env['LOG_LEVEL'] ?? 'debug',
     applicationInsightsConnectionString: env['APPLICATIONINSIGHTS_CONNECTION_STRING'],
-    interServiceToken: env['INTER_SERVICE_TOKEN'] ?? 'caira-internal-token'
+    apiTokenScope,
+    skipAuth
   };
 }
 
@@ -52,14 +66,72 @@ export interface BuildBffOptions {
   readonly config: BffConfig;
   /** Absolute path to the directory containing built static files (default: ../dist) */
   readonly staticDir?: string | undefined;
+  /** Override token acquisition for tests */
+  readonly getAccessToken?: (() => Promise<string>) | undefined;
 }
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000;
+
+interface ApiAuthProvider {
+  getAuthorizationHeader(): Promise<string | undefined>;
+}
+
+class EntraApiAuthProvider implements ApiAuthProvider {
+  private readonly credential = new DefaultAzureCredential();
+  private readonly scope: string;
+  private readonly getAccessTokenOverride: (() => Promise<string>) | undefined;
+  private cachedToken: { token: string; expiresOnTimestamp: number } | undefined;
+
+  constructor(scope: string, getAccessTokenOverride?: (() => Promise<string>) | undefined) {
+    this.scope = scope;
+    this.getAccessTokenOverride = getAccessTokenOverride;
+  }
+
+  async getAuthorizationHeader(): Promise<string> {
+    if (this.getAccessTokenOverride) {
+      const token = await this.getAccessTokenOverride();
+      return `Bearer ${token}`;
+    }
+
+    const now = Date.now();
+    if (this.cachedToken && this.cachedToken.expiresOnTimestamp - TOKEN_REFRESH_BUFFER_MS > now) {
+      return `Bearer ${this.cachedToken.token}`;
+    }
+
+    const accessToken = await this.credential.getToken(this.scope);
+    if (!accessToken?.token) {
+      throw new Error(`Failed to acquire an access token for scope ${this.scope}`);
+    }
+
+    this.cachedToken = {
+      token: accessToken.token,
+      expiresOnTimestamp: accessToken.expiresOnTimestamp
+    };
+
+    return `Bearer ${accessToken.token}`;
+  }
+}
+
+function createApiAuthProvider(config: BffConfig, getAccessToken?: (() => Promise<string>) | undefined): ApiAuthProvider {
+  if (config.skipAuth) {
+    return {
+      getAuthorizationHeader: async () => undefined
+    };
+  }
+
+  if (!config.apiTokenScope) {
+    throw new Error('API_TOKEN_SCOPE must be configured when BFF auth is enabled.');
+  }
+
+  return new EntraApiAuthProvider(config.apiTokenScope, getAccessToken);
+}
+
 export async function buildApp(options: BuildBffOptions) {
   const { config } = options;
   const staticDir = options.staticDir ?? join(__dirname, '..', 'dist');
-  const interServiceAuthHeader = `Bearer ${config.interServiceToken}`;
+  const apiAuthProvider = createApiAuthProvider(config, options.getAccessToken);
 
   setupTelemetry('caira-frontend-bff', config.applicationInsightsConnectionString);
 
@@ -77,11 +149,12 @@ export async function buildApp(options: BuildBffOptions) {
   app.get('/health/deep', { logLevel: 'silent' }, async (_request: FastifyRequest, reply: FastifyReply) => {
     const start = Date.now();
     try {
+      const authorization = await apiAuthProvider.getAuthorizationHeader();
       const response = await fetch(`${config.apiBaseUrl}/health/deep`, {
         method: 'GET',
         headers: injectTraceContext({
           Accept: 'application/json',
-          Authorization: interServiceAuthHeader
+          ...(authorization ? { Authorization: authorization } : {})
         }),
         signal: AbortSignal.timeout(5_000)
       });
@@ -118,7 +191,12 @@ export async function buildApp(options: BuildBffOptions) {
   app.addHook('onRequest', async (request) => {
     const path = request.url.split('?', 1)[0] ?? request.url;
     if (path === '/api' || path.startsWith('/api/')) {
-      (request.headers as Record<string, string>)['authorization'] = interServiceAuthHeader;
+      const authorization = await apiAuthProvider.getAuthorizationHeader();
+      if (authorization) {
+        (request.headers as Record<string, string>)['authorization'] = authorization;
+      } else {
+        delete (request.headers as Record<string, string | undefined>)['authorization'];
+      }
       injectTraceContext(request.headers as Record<string, string>);
     }
   });

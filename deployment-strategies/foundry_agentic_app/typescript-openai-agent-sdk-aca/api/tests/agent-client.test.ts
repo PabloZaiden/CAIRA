@@ -346,15 +346,16 @@ describe('AgentClient', () => {
       expect(lastAuthorizationHeader).toBe('Bearer test-token-123');
     });
 
-    it('sends fallback bearer token when auth is enabled without token provider', async () => {
+    it('fails when auth is enabled without a token provider', async () => {
       const client = new AgentClient({
         baseUrl,
         skipAuth: false
       });
 
       const result = await client.checkHealth();
-      expect(result.ok).toBe(true);
-      expect(lastAuthorizationHeader).toBe('Bearer caira-internal-token');
+      expect(result.ok).toBe(false);
+      expect(result.status).toBe(503);
+      expect(lastAuthorizationHeader).toBeUndefined();
     });
   });
 });
