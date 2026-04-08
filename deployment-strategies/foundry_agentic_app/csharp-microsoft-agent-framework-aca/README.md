@@ -4,7 +4,7 @@ A complete, self-contained deployment strategy for the Foundry Agentic App refer
 
 - **Frontend:** React + TypeScript (Vite build, Fastify BFF)
 - **API:** C# ASP.NET Core Minimal API
-- **Agent:** Agent container using Microsoft Agent Framework (Microsoft.Extensions.AI)
+- **Agent:** Agent container using Microsoft Agent Framework workflows
 
 ## Architecture
 
@@ -120,7 +120,7 @@ the policies you need before using it in a real environment.
 | Credentials Sidecar | 8079 | `/health`    | Serves Azure CLI tokens to containers via IDENTITY_ENDPOINT               |
 | Frontend            | 8080 | `/health`    | React SPA + BFF (proxies /api to API service)                             |
 | API                 | 4000 | `/health`    | Business API (routes, conversation management)                            |
-| Agent               | 3000 | `/health`    | Agent container using Microsoft Agent Framework (Microsoft.Extensions.AI) |
+| Agent               | 3000 | `/health`    | Agent container using Microsoft Agent Framework mode-specific workflows   |
 
 ## Project Structure
 
@@ -154,11 +154,55 @@ deployment-strategies/foundry_agentic_app/csharp-microsoft-agent-framework-aca/
 | `AGENT_MODEL`                           | `gpt-5.2-chat`       | Model deployment name (default: gpt-5.2-chat)           |
 | `AGENT_NAME`                            | ``                   | Agent display name                                      |
 | `CAPTAIN_INSTRUCTIONS`                  | ``                   | Shared system prompt applied to all specialists         |
-| `SHANTY_INSTRUCTIONS`                   | ``                   | System prompt for shanty battle specialist              |
-| `TREASURE_INSTRUCTIONS`                 | ``                   | System prompt for treasure hunt specialist              |
-| `CREW_INSTRUCTIONS`                     | ``                   | System prompt for crew interview specialist             |
+| `SHANTY_INSTRUCTIONS`                   | ``                   | System prompt for opportunity discovery specialist      |
+| `TREASURE_INSTRUCTIONS`                 | ``                   | System prompt for account planning specialist           |
+| `CREW_INSTRUCTIONS`                     | ``                   | System prompt for account-team staffing specialist      |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | ``                   | Optional App Insights connection string for OTEL export |
 | `LOG_LEVEL`                             | `debug`              | Log level: trace, debug, info, warn, error, fatal       |
+
+### Service-to-service auth
+
+The local and Azure deployment paths now use the same **Entra-issued access token** contract between services:
+
+- **Frontend BFF -> API** requests use `API_TOKEN_SCOPE` to request a token for the API audience.
+- **API -> agent** requests use `AGENT_TOKEN_SCOPE` to request a token for the agent audience.
+- **API inbound validation** checks signature/JWKS, issuer, audience, expiry, and optional caller application IDs using:
+  - `INBOUND_AUTH_TENANT_ID`
+  - `INBOUND_AUTH_ALLOWED_AUDIENCES`
+  - `INBOUND_AUTH_ALLOWED_CALLER_APP_IDS`
+  - `INBOUND_AUTH_AUTHORITY_HOST`
+- **Agent inbound validation** uses the same validator inputs.
+
+For local mock/dev, `SKIP_AUTH=true` is the explicit bypass. That bypass is only for local sample flows; it is not the recommended Azure posture.
+
+### Microsoft Agent Framework implementation note
+
+This strategy's C# agent is **not** implemented as the same captain/triage pattern used by the TypeScript variants.
+
+- It builds **one workflow per mode** (`shanty`, `treasure`, `crew`)
+- It chooses the workflow from conversation metadata
+- It applies the shared `CAPTAIN_INSTRUCTIONS` text to each specialist prompt, but **does not run a separate captain runtime agent**
+
+That keeps the HTTP contract equivalent while making the orchestration pattern honestly different.
+
+## Production posture
+
+This strategy already includes:
+
+- managed-identity-friendly credential flow
+- explicit inter-service token audiences/scopes
+- JWT validation at the API and agent layers
+- optional APIM / AI gateway and private-networking-aligned infrastructure slices
+- observability wiring points through Application Insights / OTEL
+
+This strategy still leaves downstream production work to you, including:
+
+- workload-specific RBAC review and conditional access
+- environment-specific network controls and segmentation
+- backup/DR and data protection controls
+- operational alerting, incident response, and compliance processes
+
+Treat the local compose stack, local validation, sample Azure deployment, and production rollout as distinct stages rather than the same trust level.
 
 ## Troubleshooting
 

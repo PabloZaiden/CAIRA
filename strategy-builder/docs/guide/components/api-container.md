@@ -4,7 +4,7 @@
 **Port:** 4000
 **Contract:** `contracts/backend-api.openapi.yaml`
 
-The API container is the **pirate-themed business operations layer**. It exposes business operations (start a sea shanty battle, seek treasure, enlist in crew) that create conversations on the agent container and return a mode-specific `syntheticMessage` for the frontend to send as the first parley. It also proxies ongoing chat via the adventures endpoints, **parsing the SSE stream** to detect `activity.resolved` events and capture resolution outcomes. Adventures gain `status` (`active`/`resolved`) and `outcome` fields. It is **agent-framework-agnostic** -- it only knows the agent API contract.
+The API container is the **business operations layer**. The current sample domain is a fictional sales/account-team scenario, while the route and mode identifiers stay pirate-shaped for compatibility. The API exposes business operations that create conversations on the agent container and return a mode-specific `syntheticMessage` for the frontend to send as the first parley. It also proxies ongoing chat via the adventures endpoints, **parsing the SSE stream** to detect `activity.resolved` events and capture resolution outcomes. Adventures gain `status` (`active`/`resolved`) and `outcome` fields. It is **agent-framework-agnostic** -- it only knows the agent API contract.
 
 ## Architecture
 
@@ -35,14 +35,14 @@ components/api/typescript/
 
 **Starting a new activity (business operation):**
 
-1. Frontend calls `POST /api/pirate/shanty` (or `/treasure`, `/crew/enlist`)
+1. Frontend calls `POST /api/pirate/shanty` (opportunity discovery), `/treasure` (account planning), or `/crew/enlist` (account-team staffing)
 1. API creates a conversation on the agent: `POST /conversations`
 1. API returns `{ id, mode, status, syntheticMessage, createdAt }` to the frontend
 1. Frontend sends `syntheticMessage` via `POST /api/pirate/adventures/{id}/parley` to get the first assistant response
 
 **Continuing a conversation:**
 
-1. Frontend calls `POST /api/pirate/adventures/{id}/parley` with `{ "message": "You fight like a dairy farmer!" }`
+1. Frontend calls `POST /api/pirate/adventures/{id}/parley` with the user's next message
 1. API translates to `POST /conversations/{id}/messages` with `{ "content": "You fight like a dairy farmer!" }`
 1. If streaming: API opens SSE connection to agent, **parses events** to detect `activity.resolved` (captures outcome, stores it, passes event through), pipes remaining events to the frontend response
 1. If non-streaming: API waits for JSON response from agent (which may include an optional `resolution` field), wraps it in the business response format
@@ -53,7 +53,7 @@ The `AgentClient` class is the HTTP client that talks to the agent container:
 
 - Base URL from `AGENT_SERVICE_URL` environment variable
 - Sends bearer tokens on downstream API→agent calls when `SKIP_AUTH=false`
-- Uses `DefaultAzureCredential` for token acquisition when available, otherwise falls back to an internal inter-service token for local/dev compatibility
+- Uses `DefaultAzureCredential` for token acquisition when auth is enabled
 - Token scope: `AGENT_TOKEN_SCOPE` env var (defaults to the Azure AI Foundry scope)
 - Retry logic for 429 (rate limit) and 503 (service unavailable)
 - Circuit breaker pattern for cascading failure prevention
@@ -65,13 +65,13 @@ The `AgentClient` class is the HTTP client that talks to the agent container:
 
 | Endpoint                                  | Method | Maps to agent API                                 | Description                                                                                  |
 |-------------------------------------------|--------|---------------------------------------------------|----------------------------------------------------------------------------------------------|
-| `POST /api/pirate/shanty`                 | POST   | `POST /conversations`                             | Start a sea shanty battle (creates conversation and returns `syntheticMessage`)              |
-| `POST /api/pirate/treasure`               | POST   | `POST /conversations`                             | Start a treasure hunt (creates conversation and returns `syntheticMessage`)                  |
-| `POST /api/pirate/crew/enlist`            | POST   | `POST /conversations`                             | Enlist in the crew (creates conversation and returns `syntheticMessage`)                     |
+| `POST /api/pirate/shanty`                 | POST   | `POST /conversations`                             | Start an opportunity discovery flow (creates conversation and returns `syntheticMessage`)    |
+| `POST /api/pirate/treasure`               | POST   | `POST /conversations`                             | Start an account planning flow (creates conversation and returns `syntheticMessage`)         |
+| `POST /api/pirate/crew/enlist`            | POST   | `POST /conversations`                             | Start an account-team staffing flow (creates conversation and returns `syntheticMessage`)    |
 | `GET /api/pirate/adventures`              | GET    | `GET /conversations`                              | List all adventures (with `mode` + `status` fields)                                          |
 | `GET /api/pirate/adventures/{id}`         | GET    | `GET /conversations/{id}`                         | Get adventure detail with messages, `status`, and `outcome`                                  |
 | `POST /api/pirate/adventures/{id}/parley` | POST   | `POST /conversations/{id}/messages`               | Continue chatting (SSE stream; parses for `activity.resolved`)                               |
-| `GET /api/pirate/stats`                   | GET    | Computed from `GET /conversations`                | Activity stats per mode (shanty battles, treasures, enlistments); includes resolution counts |
+| `GET /api/pirate/stats`                   | GET    | Computed from `GET /conversations`                | Activity stats per mode; includes resolution counts                                          |
 | `GET /health`                             | GET    | Also calls agent `/health`                        | Health check (self + agent dependency)                                                       |
 | `GET /health/deep`                        | GET    | Calls agent `GET /conversations?offset=0&limit=1` | Deep health check for authenticated API→agent connectivity                                   |
 | `GET /identity`                           | GET    | --                                                | Credential validation (returns identity claims from `DefaultAzureCredential`)                |
@@ -101,7 +101,11 @@ If the agent is unreachable, the API reports `degraded` (not `unhealthy`). The `
 | `HOST`              | No       | `0.0.0.0`                                      | Server host                                                     |
 | `AGENT_TOKEN_SCOPE` | No       | `https://cognitiveservices.azure.com/.default` | OAuth scope for agent tokens                                    |
 | `LOG_LEVEL`         | No       | `info`                                         | Pino log level                                                  |
-| `SKIP_AUTH`         | No       | `false`                                        | Disable bearer auth checks and downstream bearer forwarding     |
+| `SKIP_AUTH`         | No       | `false`                                        | Explicit local/dev auth bypass                                  |
+| `INBOUND_AUTH_TENANT_ID` | When `SKIP_AUTH=false` | --                              | Entra tenant used to derive valid issuers                       |
+| `INBOUND_AUTH_ALLOWED_AUDIENCES` | When `SKIP_AUTH=false` | --                         | Comma-separated accepted audiences                              |
+| `INBOUND_AUTH_ALLOWED_CALLER_APP_IDS` | No | --                                       | Optional caller application allowlist                           |
+| `INBOUND_AUTH_AUTHORITY_HOST` | No | `https://login.microsoftonline.com`             | Authority host override                                         |
 
 ## Dependencies
 
@@ -117,7 +121,7 @@ npm install && npm run test
 
 - `config.test.ts` -- config loading, required vars, defaults
 - `agent-client.test.ts` -- HTTP client: request formation, auth headers, retry, circuit breaker, SSE passthrough, error handling
-- `routes.test.ts` -- endpoint behavior: pirate-to-agent translation, response formats, error mapping, health aggregation
+- `routes.test.ts` -- endpoint behavior: business-operation translation, response formats, error mapping, health aggregation
 
 ## Docker
 

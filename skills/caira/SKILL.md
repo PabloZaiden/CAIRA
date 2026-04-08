@@ -4,7 +4,7 @@ description: Primary entrypoint for coding agents using CAIRA as reference mater
 compatibility: Requires network access to github.com, api.github.com, and raw.githubusercontent.com.
 metadata:
   author: pablozaiden
-  version: "0.5.4"
+  version: "0.5.5"
 ---
 
 # CAIRA
@@ -39,13 +39,169 @@ Install this skill when a user wants to build or extend an Azure AI solution. Th
 - For each needed app component, ask whether its supporting dependencies are already provided or need to be created, such as container registry, hosting environment, identities, endpoints, secrets/config, storage, and observability.
 - If the user wants a component to run locally for now, do not default to Azure deployment, registry creation, hosted infrastructure, or CI/CD wiring for that component.
 - If a component is containerized and the user already has a registry, reuse it; only add registry creation when the user explicitly needs it.
-- Treat pirate, captain, specialist, shanty, treasure, and crew content as sample-only. Never copy that sample domain as real business logic unless the user explicitly asks for sample content.
+- Treat CAIRA's sample activities, mode names, and fictional business content as sample-only. Never copy sample-domain prompts or UX text as real business logic unless the user explicitly asks for sample content.
 - Exclude CAIRA internal testing and deployed-validation overlay assets from the default reference set unless the user explicitly asks for testing infrastructure.
 - Treat deployment strategies as composable slices, not all-or-nothing bundles. Copy or adapt only the slices the user actually needs.
 - Do not bring a whole CAIRA strategy into the target solution just to disable most of it later. Prefer omitting unused slices entirely.
 - If the user wants APIM / AI gateway behavior, include the whole APIM slice together: Terraform resources, outputs, environment wiring, deploy/test wiring, and any related docs or policies.
 - If the user does not want APIM, ignore that slice completely and remove APIM-specific code, variables, outputs, and documentation from the target solution instead of carrying them in a disabled state.
 - Apply the same selective-slice rule to every major feature area: observability, private networking, capability hosts, extra projects, testing overlays, frontend, API, and agent containers.
+
+## Minimal intake before proposing changes
+
+Do the smallest intake that still lets you choose the right slices. At minimum, determine:
+
+1. **Outcome** — what the user is actually trying to ship or fix.
+1. **Existing assets** — what they already have and want to keep.
+1. **Needed slices** — which CAIRA components are in scope versus explicitly out of scope.
+1. **Runtime target** — local-only, existing hosting, or new Azure deployment.
+1. **Adoption mode** — `copy` mode or `reference` mode.
+
+If any of those are unknown, do not default to a full end-to-end CAIRA clone.
+
+## Component intake matrix
+
+Use this matrix to avoid overbuilding:
+
+| Component | Determine if needed | Reuse-first questions | Typical CAIRA sources |
+| --- | --- | --- | --- |
+| Frontend | Does the user need a user-facing web app at all? | Existing SPA? Existing BFF? Existing auth/session model? | `deployment-strategies/.../frontend/`, `strategy-builder/components/frontend/react-typescript/` |
+| API | Is a business API needed between UI/callers and the agent? | Existing REST API? Existing gateway? Existing conversation/state layer? | `deployment-strategies/.../api/`, `strategy-builder/components/api/` |
+| Agent container | Does the user need a new agent runtime, or only prompt/tool changes in an existing one? | Existing agent service? Existing Foundry/OpenAI endpoint? Existing container host? | `deployment-strategies/.../agent/`, `strategy-builder/components/agent/` |
+| Capability host | Is the user specifically using a Foundry Agent Service capability-host pattern? | Existing capability host or MCP-style host already present? | `deployment-strategies/.../infra/`, `strategy-builder/infra/reference-architectures/` |
+| Observability | Do they need telemetry hookup only, or a whole platform slice? | Existing App Insights? Existing OTEL collector? Existing dashboards/alerts? | strategy READMEs, infra modules, app component env/config |
+| APIM / AI gateway | Do they need governance, policy, or gateway-based endpoint exposure? | Existing APIM instance? Existing AI gateway conventions? | strategy `infra/`, APIM outputs/docs |
+| Private networking | Do they need private endpoints/network isolation now? | Existing VNet, DNS, hub-spoke, or private endpoint standards? | reference architecture + infra modules |
+
+## Copy mode vs reference mode
+
+Choose a mode explicitly before generating files:
+
+### Copy mode
+
+Use `copy` mode when:
+
+- the user wants to own and edit the assets directly
+- the solution needs meaningful customization beyond light wiring
+- the user does not want a runtime dependency on the CAIRA repo
+- a single slice should be lifted into an existing codebase
+
+In copy mode:
+
+- copy only the selected slices
+- remove unrelated files, env vars, outputs, docs, and tests
+- rewrite sample-domain prompts/content to the user's scenario unless they explicitly want CAIRA sample content
+
+### Reference mode
+
+Use `reference` mode when:
+
+- the user wants to stay close to upstream CAIRA
+- they only need infra/module references, env contracts, or a small number of files
+- they prefer updates to flow from a pinned CAIRA release or commit
+
+In reference mode:
+
+- pin to a concrete release tag or commit SHA
+- document the exact CAIRA paths and pinned ref used
+- avoid generating references to `main` unless the user explicitly wants floating dependencies
+
+## Slice selection rules
+
+Treat each major concern as a selectable slice with supporting wiring:
+
+- frontend
+- API
+- agent container
+- capability host
+- observability
+- APIM / AI gateway
+- private networking
+- testing / validation overlays
+
+For every selected slice:
+
+- include the wiring that makes it actually runnable end to end
+- include the required env vars, identities, outputs, and docs
+
+For every unselected slice:
+
+- omit it completely
+- do not leave dead flags, unused outputs, placeholder docs, or disabled modules behind
+
+## Reuse of user-owned existing assets
+
+Prefer reusing what the user already owns before creating new CAIRA-shaped infrastructure.
+
+### Reuse-first order
+
+1. Existing Foundry/OpenAI-compatible endpoints
+1. Existing hosting environments
+1. Existing identities and auth wiring
+1. Existing observability resources
+1. Existing API gateways / APIM
+1. Existing private-networking patterns
+
+Only add CAIRA assets for the gaps that remain after that reuse pass.
+
+## Provenance rules
+
+When recommending or generating a slice, explain where it came from:
+
+- cite the exact CAIRA path(s)
+- say whether the asset came from `deployment-strategies/`, `docs/`, or `strategy-builder/`
+- explain why that slice was selected and what was intentionally left out
+- if adapting from a generated strategy, say which source component backs it
+
+Good provenance example:
+
+> Use the API slice from `deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca/api/` as the runnable reference, backed by `strategy-builder/components/api/typescript/` for source-of-truth edits. Omit the frontend and APIM slices because the user already has a web app and does not want a gateway.
+
+## Partial adoption decision patterns
+
+### Agent-only + existing Foundry
+
+Use when the user already has:
+
+- a Foundry project or Azure OpenAI endpoint
+- hosting for the agent, or a plan to host only that component
+- no need for CAIRA frontend or business API
+
+Then:
+
+- reuse the existing endpoint/project
+- take only the chosen agent container slice
+- keep only the agent's required env/auth wiring
+- omit frontend, API, APIM, and unrelated infra unless explicitly requested
+
+### Observability hookup only
+
+Use when the user already has app code and hosting, but needs telemetry alignment.
+
+Then:
+
+- inspect existing OTEL/App Insights setup first
+- copy only the observability env/config and any minimal infra wiring required
+- do not import the full reference architecture or app stack just to add telemetry
+
+### Existing hosting + new agent
+
+Use when the user already has a platform such as ACA, AKS, App Service, or another container host.
+
+Then:
+
+- treat hosting as provided
+- adapt only the agent container plus the required identity/env contract
+- add registry creation only if the user lacks an existing registry
+- keep deployment docs scoped to that host instead of copying the full CAIRA deployment strategy
+
+## What not to do
+
+- Do not copy a whole CAIRA strategy when the user needs only one or two slices.
+- Do not recreate Foundry, APIM, observability, or hosting resources the user already has.
+- Do not leave sample-domain prompts, labels, or fictional UX text in a production-facing user solution by default.
+- Do not include testing overlays, private networking, capability hosts, or APIM just because they exist in CAIRA.
+- Do not recommend a full end-to-end stack until you have confirmed the user actually needs every layer.
 
 ## Dynamic discovery workflow
 

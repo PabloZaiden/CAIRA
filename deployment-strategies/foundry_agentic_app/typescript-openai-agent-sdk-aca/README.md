@@ -155,9 +155,9 @@ deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca/
 | `AGENT_MODEL`                           | `gpt-5.2-chat`       | Model deployment name (default: gpt-5.2-chat)           |
 | `AGENT_NAME`                            | ``                   | Agent display name                                      |
 | `CAPTAIN_INSTRUCTIONS`                  | ``                   | Shared system prompt applied to all specialists         |
-| `SHANTY_INSTRUCTIONS`                   | ``                   | System prompt for shanty battle specialist              |
-| `TREASURE_INSTRUCTIONS`                 | ``                   | System prompt for treasure hunt specialist              |
-| `CREW_INSTRUCTIONS`                     | ``                   | System prompt for crew interview specialist             |
+| `SHANTY_INSTRUCTIONS`                   | ``                   | System prompt for opportunity discovery specialist      |
+| `TREASURE_INSTRUCTIONS`                 | ``                   | System prompt for account planning specialist           |
+| `CREW_INSTRUCTIONS`                     | ``                   | System prompt for account-team staffing specialist      |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | ``                   | Optional App Insights connection string for OTEL export |
 | `LOG_LEVEL`                             | `debug`              | Log level: trace, debug, info, warn, error, fatal       |
 
@@ -180,6 +180,26 @@ If ports 3000, 4000, or 8080 are in use, stop the conflicting service or modify 
 This deployment strategy uses `DefaultAzureCredential` for Azure authentication. Credentials are provided
 to containers via the **az credential sidecar** — a TypeScript HTTP server that
 serves Azure CLI tokens to app containers.
+
+### Service identities and token validation
+
+The hardened sample now expects **Entra-issued access tokens on each internal hop**:
+
+- **Frontend BFF -> API**
+  - requests a token for `API_TOKEN_SCOPE`
+  - API validates signature/JWKS, issuer, audience, expiry, and optional caller app IDs
+- **API -> agent**
+  - requests a token for `AGENT_TOKEN_SCOPE`
+  - agent validates the same token properties with its own configured audiences/callers
+
+The relevant validator configuration is:
+
+- `INBOUND_AUTH_TENANT_ID`
+- `INBOUND_AUTH_ALLOWED_AUDIENCES`
+- `INBOUND_AUTH_ALLOWED_CALLER_APP_IDS`
+- `INBOUND_AUTH_AUTHORITY_HOST`
+
+For local mock/dev only, `SKIP_AUTH=true` explicitly bypasses inbound validation. In Azure deployments, the intended posture is managed identity plus real token validation.
 
 ### Setup
 
@@ -204,4 +224,23 @@ token cache) and serves tokens via HTTP. App containers set `IDENTITY_ENDPOINT` 
 `IMDS_ENDPOINT` environment variables, which `DefaultAzureCredential`'s
 `ManagedIdentityCredential` chain detects automatically.
 
-For production deployments on Azure Container Apps, real managed identity is used instead.
+For Azure Container Apps deployments, real managed identity is used instead.
+
+## Production posture
+
+This strategy already includes:
+
+- managed-identity-friendly credential flow
+- explicit inter-service token audiences/scopes
+- JWT validation at the API and agent layers
+- optional APIM / AI gateway and private-networking-aligned infrastructure slices
+- observability wiring points through Application Insights / OTEL
+
+This strategy still leaves downstream production work to you, including:
+
+- workload-specific RBAC review and conditional access
+- environment-specific network controls and segmentation
+- backup/DR and data protection controls
+- operational alerting, incident response, and compliance processes
+
+Treat the local compose stack, local validation, sample Azure deployment, and production rollout as distinct stages rather than the same trust level.

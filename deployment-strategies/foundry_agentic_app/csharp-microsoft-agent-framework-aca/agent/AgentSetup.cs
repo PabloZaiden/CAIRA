@@ -107,75 +107,75 @@ public static class AgentSetup
         var shantyAgent = responsesClient.AsAIAgent(
             instructions: Compose(config.ShantyInstructions),
             name: "ShantySpecialist",
-            description: "Sea shanty specialist — generates shanty battle content.");
+            description: "Opportunity discovery specialist for the fictional sales/account-team sample.");
 
         var treasureAgent = responsesClient.AsAIAgent(
             instructions: Compose(config.TreasureInstructions),
             name: "TreasureSpecialist",
-            description: "Treasure hunt specialist — generates treasure hunt content.");
+            description: "Account planning specialist for the fictional sales/account-team sample.");
 
         var crewAgent = responsesClient.AsAIAgent(
             instructions: Compose(config.CrewInstructions),
             name: "CrewSpecialist",
-            description: "Crew interview specialist — generates crew interview content.");
+            description: "Account-team staffing specialist for the fictional sales/account-team sample.");
 
         var shantyKnowledge = AIFunctionFactory.Create(
-            ([Description("What kind of shanty detail or motif is needed")] string query) =>
+            ([Description("What discovery signal, qualification detail, or customer need is needed")] string query) =>
                 System.Text.Json.JsonSerializer.Serialize(new { items = KnowledgeBase.LookupShanty(query) }),
             "lookup_shanty_knowledge",
-            "Retrieve sample shanty references, motifs, and battle cues.");
+            "Retrieve fictional sample discovery guidance and qualification cues.");
 
         var treasureKnowledge = AIFunctionFactory.Create(
-            ([Description("What treasure clue, name, or location detail is needed")] string query) =>
+            ([Description("What account-planning priority, risk, or next-step detail is needed")] string query) =>
                 System.Text.Json.JsonSerializer.Serialize(new { items = KnowledgeBase.LookupTreasure(query) }),
             "lookup_treasure_knowledge",
-            "Retrieve sample treasure lore, locations, and clues.");
+            "Retrieve fictional sample account-planning guidance, risks, and milestones.");
 
         var crewKnowledge = AIFunctionFactory.Create(
-            ([Description("What rank, role, or qualification detail is needed")] string query) =>
+            ([Description("What staffing role, coverage level, or qualification detail is needed")] string query) =>
                 System.Text.Json.JsonSerializer.Serialize(new { items = KnowledgeBase.LookupCrew(query) }),
             "lookup_crew_knowledge",
-            "Retrieve sample crew roles, ranks, and qualifications.");
+            "Retrieve fictional sample staffing roles, coverage guidance, and qualifications.");
 
         var resolveShanty = AIFunctionFactory.Create(
             (
                 [Description("Who won the shanty battle")] string winner,
-                [Description("Number of rounds completed")] int rounds,
-                [Description("The single best verse from the entire battle")] string best_verse
+                [Description("Number of qualification signals reviewed")] int rounds,
+                [Description("The single most important customer need or buying signal")] string best_verse
             ) =>
             {
-                logger.LogInformation("Shanty battle resolved: {Winner} wins after {Rounds} rounds", winner, rounds);
-                return $"Shanty battle resolved: {winner} wins after {rounds} rounds.";
+                logger.LogInformation("Discovery flow resolved: {Winner} after {Rounds} signals", winner, rounds);
+                return $"Discovery flow resolved: {winner} after {rounds} signals.";
             },
             "resolve_shanty",
-            "Call this when the Sea Shanty Battle concludes. Declares the winner and records the outcome.");
+            "Call this when the discovery activity concludes. Records the fit signal summary using the existing contract.");
 
         var resolveTreasure = AIFunctionFactory.Create(
             (
-                [Description("Whether the treasure was found")] bool found,
-                [Description("Name of the treasure")] string treasure_name,
-                [Description("Where the treasure was found or lost")] string location
+                [Description("Whether the plan should advance now")] bool found,
+                [Description("Primary account focus area")] string treasure_name,
+                [Description("Next milestone, meeting, or workstream")] string location
             ) =>
             {
-                var outcome = found ? "Found" : "Lost";
-                logger.LogInformation("Treasure hunt resolved: {Outcome} \"{TreasureName}\" at {Location}", outcome, treasure_name, location);
-                return $"Treasure hunt resolved: {outcome} \"{treasure_name}\" at {location}.";
+                var outcome = found ? "Advance" : "Rework";
+                logger.LogInformation("Account plan resolved: {Outcome} \"{TreasureName}\" at {Location}", outcome, treasure_name, location);
+                return $"Account plan resolved: {outcome} \"{treasure_name}\" at {location}.";
             },
             "resolve_treasure",
-            "Call this when the Treasure Hunt concludes. Records whether treasure was found and details.");
+            "Call this when the account-planning activity concludes. Records the planning outcome using the existing contract.");
 
         var resolveCrew = AIFunctionFactory.Create(
             (
-                [Description("The assigned rank (e.g., Able Seaman, Quartermaster)")] string rank,
-                [Description("The assigned role (e.g., lookout, cook, navigator)")] string role,
-                [Description("The name of the ship they are joining")] string ship_name
+                [Description("The recommended coverage level")] string rank,
+                [Description("The recommended owner role")] string role,
+                [Description("The fictional account team name")] string ship_name
             ) =>
             {
-                logger.LogInformation("Crew interview resolved: {Rank} {Role} aboard the {ShipName}", rank, role, ship_name);
-                return $"Crew interview resolved: {rank} {role} aboard the {ship_name}.";
+                logger.LogInformation("Staffing flow resolved: {Rank} {Role} on {ShipName}", rank, role, ship_name);
+                return $"Staffing flow resolved: {rank} {role} on {ship_name}.";
             },
             "resolve_crew",
-            "Call this when the crew interview concludes. Assigns a rank and role to the new crew member.");
+            "Call this when the staffing conversation concludes. Records the staffing recommendation using the existing contract.");
 
         var shantyAgentWithTools = responsesClient.AsAIAgent(
             instructions: Compose(config.ShantyInstructions),
@@ -230,7 +230,7 @@ public static class AgentSetup
         var checkpointManager = CheckpointManager.CreateInMemory();
 
         logger.LogInformation(
-            "Specialist workflows initialised with MAF (model={Model}, name={AgentName})",
+            "Mode-specific MAF workflows initialised (model={Model}, name={AgentName})",
             config.Model, config.AgentName);
 
         return new AgentSetupResult
