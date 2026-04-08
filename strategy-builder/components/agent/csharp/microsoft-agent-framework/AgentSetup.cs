@@ -247,7 +247,7 @@ public static class AgentSetup
     /// Create a ResponsesClient pointing at Azure OpenAI or an APIM gateway.
     ///
     /// Always uses AzureOpenAIClient with a TokenCredential:
-    ///   - HTTPS endpoint (production): DefaultAzureCredential for real
+    ///   - HTTPS endpoint (production): the runtime-appropriate Azure credential for real
     ///     Azure AD tokens via the cognitiveservices scope
     ///   - HTTP endpoint + SKIP_AUTH (local dev / CI): a static dummy
     ///     token credential — the Azure SDK's AzureTokenAuthenticationPolicy
@@ -262,12 +262,27 @@ public static class AgentSetup
 
         Azure.Core.TokenCredential credential = isHttpEndpoint && config.SkipAuth
             ? new StaticTokenCredential("dummy")
-            : new Azure.Identity.DefaultAzureCredential();
+            : CreateAzureCredential();
 
         var azureClient = new Azure.AI.OpenAI.AzureOpenAIClient(
             new Uri(config.AzureEndpoint),
             credential);
         return azureClient.GetResponsesClient(config.Model);
+    }
+
+    private static Azure.Core.TokenCredential CreateAzureCredential()
+    {
+        var managedIdentityEndpoint = Environment.GetEnvironmentVariable("IDENTITY_ENDPOINT")
+            ?? Environment.GetEnvironmentVariable("MSI_ENDPOINT");
+        if (!string.IsNullOrWhiteSpace(managedIdentityEndpoint))
+        {
+            var clientId = Environment.GetEnvironmentVariable("AZURE_CLIENT_ID");
+            return string.IsNullOrWhiteSpace(clientId)
+                ? new Azure.Identity.ManagedIdentityCredential()
+                : new Azure.Identity.ManagedIdentityCredential(clientId);
+        }
+
+        return new Azure.Identity.DefaultAzureCredential();
     }
 }
 
@@ -278,7 +293,7 @@ public static class AgentSetup
 /// <summary>
 /// A TokenCredential that always returns a fixed token string.
 /// Used for HTTP endpoints (local dev / CI) where the Azure SDK's
-/// DefaultAzureCredential cannot acquire real tokens. Equivalent to
+/// the runtime-selected Azure credential cannot acquire real tokens. Equivalent to
 /// the TypeScript pattern: () => Promise.resolve('dummy').
 /// </summary>
 internal sealed class StaticTokenCredential : Azure.Core.TokenCredential

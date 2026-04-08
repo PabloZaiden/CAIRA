@@ -43,6 +43,47 @@ output "ai_foundry_default_project_name" {
   value       = module.default_project.ai_foundry_project_name
 }
 
+output "auth_tenant_id" {
+  description = "Entra tenant ID used to issue and validate internal CAIRA service tokens."
+  value       = data.azurerm_client_config.auth.tenant_id
+}
+
+output "api_token_scope" {
+  description = "Scope used by the frontend BFF when calling the API."
+  value       = "api://${azuread_application.api_auth.client_id}/.default"
+}
+
+output "agent_token_scope" {
+  description = "Scope used by the API when calling the agent container."
+  value       = "api://${azuread_application.agent_auth.client_id}/.default"
+}
+
+output "api_inbound_allowed_audiences" {
+  description = "Accepted audiences for inbound access tokens presented to the API."
+  value = [
+    azuread_application.api_auth.client_id,
+    "api://${azuread_application.api_auth.client_id}"
+  ]
+}
+
+output "agent_inbound_allowed_audiences" {
+  description = "Accepted audiences for inbound access tokens presented to the agent container."
+  value = [
+    azuread_application.agent_auth.client_id,
+    "api://${azuread_application.agent_auth.client_id}"
+  ]
+}
+
+output "api_inbound_allowed_caller_app_ids" {
+  description = "Caller application IDs accepted by the API for frontend BFF traffic."
+  value       = var.enable_registry_auth ? [data.azuread_service_principal.frontend_managed_identity[0].client_id] : []
+}
+
+output "agent_inbound_allowed_caller_app_ids" {
+  description = "Caller application IDs accepted by the agent container for API traffic."
+  value       = var.enable_registry_auth ? [data.azuread_service_principal.api_managed_identity[0].client_id] : []
+}
+
 output "agent_internal_fqdn" {
   description = "Internal FQDN for the agent container app."
   value       = module.agent_app.fqdn

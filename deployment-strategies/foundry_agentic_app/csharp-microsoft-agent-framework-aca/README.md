@@ -21,6 +21,10 @@ Credentials Sidecar (:8079) ← azurecli volume ← `az login`
 - [Docker](https://docs.docker.com/get-docker/) with Docker Compose v2
 - [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli)
 - An Azure AI endpoint with a deployed model
+- For Azure deployment, an Entra tenant role or delegated permission set that can:
+  - create application registrations
+  - create corresponding service principals
+  - create app-role assignments between the frontend and API identities, and between the API and agent identities
 
 ## Quick Start
 
@@ -82,8 +86,11 @@ The deploy command:
 - Rolls out bootstrap app shells first, then updates them to the strategy images
 - Uses managed identity auth for Container Apps image pulls from ACR
 - Creates required role assignments (AcrPull + Azure AI roles for the agent)
+- Creates Entra application registrations, service principals, and app-role assignments for the internal frontend -> API -> agent token flow
 - Exposes frontend via HTTPS termination (container still serves HTTP internally)
 - Builds/pushes images and updates the deployment
+
+If the deployment identity can create app registrations but **cannot** create the matching service principals or app-role assignments, Terraform can fail with `403 Authorization_RequestDenied`. In that state, the container apps may still deploy, but internal token acquisition can later fail with `AADSTS500011` because the API or agent resource principal does not exist in the tenant.
 
 To tear down:
 
@@ -220,9 +227,7 @@ If ports 3000, 4000, or 8080 are in use, stop the conflicting service or modify 
 
 ## Authentication
 
-This deployment strategy uses `DefaultAzureCredential` for Azure authentication. Credentials are provided
-to containers via the **az credential sidecar** — a TypeScript HTTP server that
-serves Azure CLI tokens to app containers.
+This deployment strategy uses a **runtime-appropriate Azure credential** for outbound token acquisition.
 
 ### Setup
 
@@ -243,8 +248,10 @@ curl http://localhost:4000/identity
 ### How it works
 
 The az credential sidecar mounts the `azurecli` Docker volume (containing your Azure CLI
-token cache) and serves tokens via HTTP. App containers set `IDENTITY_ENDPOINT` and
-`IMDS_ENDPOINT` environment variables, which `DefaultAzureCredential`'s
-`ManagedIdentityCredential` chain detects automatically.
+token cache) and serves tokens via HTTP. App containers use the managed-identity-style
+`IDENTITY_ENDPOINT` contract directly, so local compose still exercises the same token
+request shape as Azure.
 
-For production deployments on Azure Container Apps, real managed identity is used instead.
+For Azure Container Apps deployments, the same helper uses the platform-provided managed
+identity endpoint and header. The remaining deployment prerequisite is tenant-side Entra
+permission to create the API and agent service principals and their app-role assignments.

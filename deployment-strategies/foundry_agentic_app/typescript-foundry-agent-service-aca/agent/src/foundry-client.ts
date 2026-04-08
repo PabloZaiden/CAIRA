@@ -43,8 +43,8 @@ import type {
 import type { ResponseCreateAndStreamParams } from 'openai/lib/responses/ResponseStream';
 import { AIProjectClient } from '@azure/ai-projects';
 import type { Agent } from '@azure/ai-projects';
-import { DefaultAzureCredential } from '@azure/identity';
 import type { Config } from './config.ts';
+import { createAzureCredential } from './azure-credential.ts';
 import { lookupCrewKnowledge, lookupShantyKnowledge, lookupTreasureKnowledge } from './knowledge-base.ts';
 import type {
   Conversation,
@@ -316,7 +316,7 @@ export class FoundryClient {
     }
 
     // Production — use AIProjectClient for agent registration + OpenAI client
-    const credential = new DefaultAzureCredential();
+    const credential = createAzureCredential();
     const project = new AIProjectClient(this.config.azureEndpoint, credential);
     this.projectClient = project;
 

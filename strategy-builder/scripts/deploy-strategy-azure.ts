@@ -300,6 +300,41 @@ function pickComponentEnv(
   return selected;
 }
 
+function pickNamespacedAuthEnv(
+  envValues: Record<string, string>,
+  component: 'agent' | 'api' | 'frontend'
+): Record<string, string> {
+  if (component === 'frontend') {
+    const apiTokenScope = envValues['API_TOKEN_SCOPE'];
+    return apiTokenScope ? { API_TOKEN_SCOPE: apiTokenScope } : {};
+  }
+
+  const prefix = component === 'api' ? 'API' : 'AGENT';
+  const authEnv: Record<string, string> = {};
+  const mappedEntries: Array<[string, string]> = [
+    [`${prefix}_INBOUND_AUTH_TENANT_ID`, 'INBOUND_AUTH_TENANT_ID'],
+    [`${prefix}_INBOUND_AUTH_ALLOWED_AUDIENCES`, 'INBOUND_AUTH_ALLOWED_AUDIENCES'],
+    [`${prefix}_INBOUND_AUTH_ALLOWED_CALLER_APP_IDS`, 'INBOUND_AUTH_ALLOWED_CALLER_APP_IDS'],
+    [`${prefix}_INBOUND_AUTH_AUTHORITY_HOST`, 'INBOUND_AUTH_AUTHORITY_HOST']
+  ];
+
+  for (const [sourceKey, targetKey] of mappedEntries) {
+    const value = envValues[sourceKey];
+    if (value) {
+      authEnv[targetKey] = value;
+    }
+  }
+
+  if (component === 'api') {
+    const agentTokenScope = envValues['AGENT_TOKEN_SCOPE'];
+    if (agentTokenScope) {
+      authEnv['AGENT_TOKEN_SCOPE'] = agentTokenScope;
+    }
+  }
+
+  return authEnv;
+}
+
 function ensureRequiredEnv(
   component: string,
   manifest: ComponentManifest,
@@ -589,6 +624,14 @@ function readOptionalOutputString(outputs: TerraformOutputMap, key: string): str
   return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
+function readOptionalOutputStringArray(outputs: TerraformOutputMap, key: string): string[] {
+  const value = outputs[key]?.value;
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter((entry): entry is string => typeof entry === 'string' && entry.length > 0);
+}
+
 function normalizeSampleName(sampleName: string): string {
   return sampleName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
 }
@@ -667,7 +710,10 @@ async function ensureWorkspaceSelected(
 
   const existing = await listTerraformWorkspaces(infraDir);
   if (existing.includes(trimmed)) {
-    await runCapture('terraform', ['workspace', 'select', trimmed], { cwd: infraDir, timeoutMs: 30_000 });
+    await runCapture('terraform', ['workspace', 'select', trimmed], {
+      cwd: infraDir,
+      timeoutMs: 30_000
+    });
     return;
   }
 
@@ -742,7 +788,14 @@ function toReferenceOutputs(outputs: TerraformOutputMap): TerraformOutputs {
     ai_foundry_name: requireOutputString(outputs, 'ai_foundry_name'),
     ai_foundry_default_project_name: requireOutputString(outputs, 'ai_foundry_default_project_name'),
     ai_foundry_id: requireOutputString(outputs, 'ai_foundry_id'),
-    apim_gateway_url: readOptionalOutputString(outputs, 'apim_gateway_url')
+    apim_gateway_url: readOptionalOutputString(outputs, 'apim_gateway_url'),
+    auth_tenant_id: readOptionalOutputString(outputs, 'auth_tenant_id'),
+    api_token_scope: readOptionalOutputString(outputs, 'api_token_scope'),
+    agent_token_scope: readOptionalOutputString(outputs, 'agent_token_scope'),
+    api_inbound_allowed_audiences: readOptionalOutputStringArray(outputs, 'api_inbound_allowed_audiences'),
+    agent_inbound_allowed_audiences: readOptionalOutputStringArray(outputs, 'agent_inbound_allowed_audiences'),
+    api_inbound_allowed_caller_app_ids: readOptionalOutputStringArray(outputs, 'api_inbound_allowed_caller_app_ids'),
+    agent_inbound_allowed_caller_app_ids: readOptionalOutputStringArray(outputs, 'agent_inbound_allowed_caller_app_ids')
   };
 }
 
@@ -890,9 +943,18 @@ async function main(): Promise<void> {
     await ensureRbac(referenceOutputs.ai_foundry_id);
 
     const envValues = existsSync(envPath) ? parseDotEnv(readFileSync(envPath, 'utf-8')) : {};
-    const agentEnv = pickComponentEnv(envValues, agentManifest, blockedAgent);
-    const apiEnv = pickComponentEnv(envValues, apiManifest, blockedApi);
-    const frontendEnv = pickComponentEnv(envValues, frontendManifest, blockedFrontend);
+    const agentEnv = {
+      ...pickComponentEnv(envValues, agentManifest, blockedAgent),
+      ...pickNamespacedAuthEnv(envValues, 'agent')
+    };
+    const apiEnv = {
+      ...pickComponentEnv(envValues, apiManifest, blockedApi),
+      ...pickNamespacedAuthEnv(envValues, 'api')
+    };
+    const frontendEnv = {
+      ...pickComponentEnv(envValues, frontendManifest, blockedFrontend),
+      ...pickNamespacedAuthEnv(envValues, 'frontend')
+    };
 
     ensureRequiredEnv('agent', agentManifest, agentEnv, new Set());
     ensureRequiredEnv('api', apiManifest, apiEnv, new Set(['AGENT_SERVICE_URL']));
@@ -909,9 +971,6 @@ async function main(): Promise<void> {
     log('Waiting 60s for RBAC propagation before rolling out private images...');
     await sleep(60_000);
 
-    log(`Logging in to ACR ${acrName} using Azure CLI...`);
-    await runStream('az', ['acr', 'login', '--name', acrName], { cwd: REPO_ROOT });
-
     const builds: Array<{ name: string; image: string; context: string }> = [
       { name: 'agent', image: agentImage, context: resolve(sampleDir, 'agent') },
       { name: 'api', image: apiImage, context: resolve(sampleDir, 'api') },
@@ -919,12 +978,23 @@ async function main(): Promise<void> {
     ];
 
     for (const build of builds) {
-      log(`Building ${build.name} image for ${ACA_TARGET_PLATFORM}...`);
-      await runStream('docker', ['build', '--platform', ACA_TARGET_PLATFORM, '-t', build.image, build.context], {
-        cwd: REPO_ROOT
-      });
-      log(`Pushing ${build.name} image...`);
-      await runStream('docker', ['push', build.image], { cwd: REPO_ROOT });
+      const registryImage = build.image.replace(`${loginServer}/`, '');
+      log(`Building and pushing ${build.name} image with ACR Tasks for ${ACA_TARGET_PLATFORM}...`);
+      await runStream(
+        'az',
+        [
+          'acr',
+          'build',
+          '--registry',
+          acrName,
+          '--platform',
+          ACA_TARGET_PLATFORM,
+          '--image',
+          registryImage,
+          build.context
+        ],
+        { cwd: REPO_ROOT }
+      );
     }
 
     const finalVars: DeployTfVars = {

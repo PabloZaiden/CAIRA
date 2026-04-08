@@ -60,6 +60,7 @@ The agent containers use the same validation pattern and configuration shape for
 - **Local sample/dev path** can set `SKIP_AUTH=true` to bypass inbound token validation for mock and compose-based flows.
 - **Local credentialed path** uses Azure CLI credentials or other `DefaultAzureCredential` sources so the sample can request real tokens while still running outside Azure.
 - **Azure deployment path** uses managed identity for outbound token acquisition and expects the configured audiences and callers to match the deployed app identities.
+- **Azure deployment prerequisite** for the hardened inter-service path is tenant permission to create the Entra application registrations, service principals, and app-role assignments that back the API and agent audiences.
 
 `SKIP_AUTH=true` is an explicit sample-development convenience, not a production recommendation.
 
@@ -83,6 +84,7 @@ CAIRA is a starting point, not a finished production landing zone. Production de
 - explicit data protection, backup, and disaster recovery policies
 - durable state stores, secret rotation processes, and production-grade data governance for any non-sample data
 - tenant-specific conditional access, access reviews, and service principal lifecycle controls where required
+- the tenant-scoped Entra permissions needed to create and govern service principals for internal API and agent audiences
 
 ## Limits of the sample
 
@@ -93,6 +95,7 @@ The repository still does **not** claim to be a turnkey production environment. 
 - the sample keeps certain legacy mode/tool identifiers for compatibility even while the user-facing domain shifts to sales/account-team language
 - the sample does not provide a full landing zone, enterprise SOC process, or organization-specific compliance implementation
 - Azure deployment samples prove the reference pattern, but they do not replace workload-specific threat modeling, pen testing, SRE runbooks, or DR exercises
+- a sample Azure deployment can still fail even when subscription RBAC is correct if the deployment identity cannot complete the Entra service-principal or app-role-assignment steps; in that case, Terraform can fail with `403 Authorization_RequestDenied`, and any partially deployed app can later surface `AADSTS500011` for the missing audience principal
 
 ## Practical guidance
 

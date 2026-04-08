@@ -6,7 +6,7 @@ module "frontend_app" {
   resource_group_name          = local.resource_group_name
   container_app_environment_id = module.container_apps_environment.id
   image                        = local.resolved_frontend_image
-  target_port                  = 8080
+  target_port                  = local.resolved_frontend_port
   transport                    = "auto"
   external_enabled             = local.effective_frontend_external_enabled
   allowed_cidrs                = local.effective_frontend_allowed_cidrs

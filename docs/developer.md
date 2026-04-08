@@ -51,9 +51,11 @@ deployment-strategies/     Generated, committed end-to-end strategy outputs
    subscription:
 
    ```bash
-   az login
-   eval "$(task tf:env:setup)"
-   ```
+    az login
+    eval "$(task tf:env:setup)"
+    ```
+
+1. For the hardened ACA strategies, make sure the deployment identity can do more than subscription-scoped Azure RBAC. It must also be able to create the Entra application registrations, service principals, and app-role assignments used for the frontend -> API -> agent token flow.
 
 1. Keep Docker running before using the local compose or image-building tasks.
 1. Treat durable infrastructure pools as shared test assets. Only deploy or
@@ -129,6 +131,8 @@ strategies, or their Azure deployment path.
 | `task strategy:destroy -- deployment-strategies/<reference-architecture>/<name>`       | You finished manual Azure validation                                           | Destroys one deployed strategy                                                                                              | Use after `task strategy:deploy` or after interrupted manual tests                         |
 | `task strategy:test:deployed -- deployment-strategies/<reference-architecture>/<name>` | You need a full deploy/validate/destroy lifecycle                              | Deploys, validates, and destroys one strategy across `public`, `private`, and `private-capability-host` profiles by default | Use `--test-profile <profile>` to narrow the matrix during local debugging                 |
 | `task strategy:deploy:reference`                                                       | You are explicitly working on the shared baseline or strategy `.env` sync path | Deploys or refreshes the baseline reference architecture and rewrites strategy env files                                    | Use sparingly; this is maintainer-style work, not an everyday contributor task             |
+
+If one of the Azure-backed strategy tasks fails at `azuread_service_principal` or `azuread_app_role_assignment` with `403 Authorization_RequestDenied`, treat that as an environment permission issue first. The sample now relies on tenant-level Entra objects for its hardened inter-service auth path, so subscription `Contributor` / `User Access Administrator` alone may still be insufficient.
 
 ## Scenario playbooks
 

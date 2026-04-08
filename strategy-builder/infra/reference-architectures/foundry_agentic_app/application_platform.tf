@@ -12,6 +12,7 @@ resource "random_string" "app_suffix" {
 
 locals {
   bootstrap_image = "mcr.microsoft.com/k8se/quickstart:latest"
+  bootstrap_port  = 80
 
   app_base_raw = trim(substr(local.base_name, 0, 15), "-")
   app_base     = length(local.app_base_raw) > 0 ? local.app_base_raw : "caira"
@@ -23,6 +24,9 @@ locals {
   resolved_agent_image    = trimspace(var.agent_image) != "" ? trimspace(var.agent_image) : local.bootstrap_image
   resolved_api_image      = trimspace(var.api_image) != "" ? trimspace(var.api_image) : local.bootstrap_image
   resolved_frontend_image = trimspace(var.frontend_image) != "" ? trimspace(var.frontend_image) : local.bootstrap_image
+  resolved_agent_port     = trimspace(var.agent_image) != "" ? 3000 : local.bootstrap_port
+  resolved_api_port       = trimspace(var.api_image) != "" ? 4000 : local.bootstrap_port
+  resolved_frontend_port  = trimspace(var.frontend_image) != "" ? 8080 : local.bootstrap_port
 }
 
 module "container_registry" {

@@ -13,8 +13,8 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { FoundryClient } from './foundry-client.ts';
 import type { ErrorResponse } from './types.ts';
-import { DefaultAzureCredential } from '@azure/identity';
 import { randomUUID } from 'node:crypto';
+import { createAzureCredential } from './azure-credential.ts';
 
 // ---------- Trace ID helper ----------
 
@@ -269,14 +269,18 @@ export function registerRoutes(app: FastifyInstance, foundryClient: FoundryClien
 
   // ---- GET /identity ----
   // Diagnostic endpoint — always attempts real credential validation regardless
-  // of SKIP_AUTH. Works with any credential source that DefaultAzureCredential
+  // of SKIP_AUTH. Works with any credential source that the runtime-selected
+  // Azure credential can use.
   // supports: az CLI, managed identity, environment variables, etc.
   app.get('/identity', async (req, reply) => {
     try {
-      const credential = new DefaultAzureCredential();
+      const credential = createAzureCredential();
       const tokenResponse = await credential.getToken('https://management.azure.com/.default', {
         abortSignal: AbortSignal.timeout(5000)
       });
+      if (!tokenResponse) {
+        throw new Error('Failed to acquire Azure management token');
+      }
 
       const claims = decodeJwtPayload(tokenResponse.token);
       await reply.send({

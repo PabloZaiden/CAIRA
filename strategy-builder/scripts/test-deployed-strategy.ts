@@ -247,12 +247,27 @@ function readOptionalOutputString(outputs: TerraformOutputMap, key: string): str
   return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
+function readOptionalOutputStringArray(outputs: TerraformOutputMap, key: string): string[] {
+  const value = outputs[key]?.value;
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter((entry): entry is string => typeof entry === 'string' && entry.length > 0);
+}
+
 function toReferenceOutputs(outputs: TerraformOutputMap): ReferenceTerraformOutputs {
   return {
     ai_foundry_name: requireOutputString(outputs, 'ai_foundry_name'),
     ai_foundry_default_project_name: requireOutputString(outputs, 'ai_foundry_default_project_name'),
     ai_foundry_id: requireOutputString(outputs, 'ai_foundry_id'),
-    apim_gateway_url: readOptionalOutputString(outputs, 'apim_gateway_url')
+    apim_gateway_url: readOptionalOutputString(outputs, 'apim_gateway_url'),
+    auth_tenant_id: readOptionalOutputString(outputs, 'auth_tenant_id'),
+    api_token_scope: readOptionalOutputString(outputs, 'api_token_scope'),
+    agent_token_scope: readOptionalOutputString(outputs, 'agent_token_scope'),
+    api_inbound_allowed_audiences: readOptionalOutputStringArray(outputs, 'api_inbound_allowed_audiences'),
+    agent_inbound_allowed_audiences: readOptionalOutputStringArray(outputs, 'agent_inbound_allowed_audiences'),
+    api_inbound_allowed_caller_app_ids: readOptionalOutputStringArray(outputs, 'api_inbound_allowed_caller_app_ids'),
+    agent_inbound_allowed_caller_app_ids: readOptionalOutputStringArray(outputs, 'agent_inbound_allowed_caller_app_ids')
   };
 }
 

@@ -215,7 +215,7 @@ beforeAll(async () => {
 
   appBaseUrl = await app.listen({ port: 0, host: '127.0.0.1' });
 
-appWithAuth = await buildApp({
+  appWithAuth = await buildApp({
     config: {
       port: 0,
       host: '127.0.0.1',

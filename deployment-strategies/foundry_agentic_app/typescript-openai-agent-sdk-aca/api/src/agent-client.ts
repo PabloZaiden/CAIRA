@@ -3,7 +3,7 @@
  *
  * Handles:
  * - Request forwarding to the agent container
- * - Bearer token acquisition via DefaultAzureCredential
+ * - Bearer token acquisition via the runtime-appropriate Azure credential
  * - Retry with exponential backoff + jitter (per INTER-SERVICE.md)
  * - Circuit breaker (5 failures, 30s cooldown)
  * - SSE streaming passthrough

@@ -15,9 +15,9 @@ import { fileURLToPath } from 'node:url';
 import Fastify, { type FastifyRequest, type FastifyReply } from 'fastify';
 import fastifyStatic from '@fastify/static';
 import fastifyHttpProxy from '@fastify/http-proxy';
-import { DefaultAzureCredential } from '@azure/identity';
 import type { DependencyHealth, HealthResponse } from './types.ts';
 import { injectTraceContext, setupTelemetry, shutdownTelemetry } from './telemetry.ts';
+import { createAzureCredential } from './azure-credential.ts';
 
 // ---- Configuration ----
 
@@ -79,7 +79,7 @@ interface ApiAuthProvider {
 }
 
 class EntraApiAuthProvider implements ApiAuthProvider {
-  private readonly credential = new DefaultAzureCredential();
+  private readonly credential = createAzureCredential();
   private readonly scope: string;
   private readonly getAccessTokenOverride: (() => Promise<string>) | undefined;
   private cachedToken: { token: string; expiresOnTimestamp: number } | undefined;
@@ -114,7 +114,10 @@ class EntraApiAuthProvider implements ApiAuthProvider {
   }
 }
 
-function createApiAuthProvider(config: BffConfig, getAccessToken?: (() => Promise<string>) | undefined): ApiAuthProvider {
+function createApiAuthProvider(
+  config: BffConfig,
+  getAccessToken?: (() => Promise<string>) | undefined
+): ApiAuthProvider {
   if (config.skipAuth) {
     return {
       getAuthorizationHeader: async () => undefined

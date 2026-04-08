@@ -9,13 +9,15 @@ const SHANTY_ENTRIES: readonly KnowledgeEntry[] = [
   {
     id: 'shanty-stormcaller',
     title: 'Qualification Signals Checklist',
-    summary: 'Use budget, urgency, business pain, and decision process as the core discovery signals for a first qualification pass.',
+    summary:
+      'Use budget, urgency, business pain, and decision process as the core discovery signals for a first qualification pass.',
     tags: ['qualification', 'budget', 'urgency', 'decision', 'discovery']
   },
   {
     id: 'shanty-bell',
     title: 'Discovery Question Sequence',
-    summary: 'A short pattern that starts with business goals, then blockers, then success measures to keep early conversations focused.',
+    summary:
+      'A short pattern that starts with business goals, then blockers, then success measures to keep early conversations focused.',
     tags: ['questions', 'goals', 'blockers', 'success', 'sequence']
   },
   {
@@ -30,19 +32,22 @@ const TREASURE_ENTRIES: readonly KnowledgeEntry[] = [
   {
     id: 'treasure-ruby',
     title: 'Account Priority Map',
-    summary: 'Anchor the plan on business outcomes, active stakeholders, delivery risks, and the next committed milestone.',
+    summary:
+      'Anchor the plan on business outcomes, active stakeholders, delivery risks, and the next committed milestone.',
     tags: ['account', 'priority', 'stakeholders', 'risk', 'milestone']
   },
   {
     id: 'treasure-atlas',
     title: 'Engagement Motion Guide',
-    summary: 'Choose among executive alignment, technical validation, or adoption recovery based on the account signal the user provides.',
+    summary:
+      'Choose among executive alignment, technical validation, or adoption recovery based on the account signal the user provides.',
     tags: ['engagement', 'executive', 'technical', 'adoption', 'motion']
   },
   {
     id: 'treasure-idol',
     title: 'Risk Review Prompts',
-    summary: 'Surface timeline risk, unclear ownership, low sponsor engagement, and missing success criteria before recommending a plan.',
+    summary:
+      'Surface timeline risk, unclear ownership, low sponsor engagement, and missing success criteria before recommending a plan.',
     tags: ['risk', 'timeline', 'ownership', 'sponsor', 'success']
   }
 ] as const;
@@ -57,13 +62,15 @@ const CREW_ENTRIES: readonly KnowledgeEntry[] = [
   {
     id: 'crew-navigator',
     title: 'Solution Specialist',
-    summary: 'Handles product fit, technical storytelling, and proof planning when the account needs deeper solution confidence.',
+    summary:
+      'Handles product fit, technical storytelling, and proof planning when the account needs deeper solution confidence.',
     tags: ['solution', 'technical', 'fit', 'proof', 'planning']
   },
   {
     id: 'crew-lookout',
     title: 'Customer Success Partner',
-    summary: 'Focuses on adoption signals, operational blockers, and expansion readiness after the initial plan is in motion.',
+    summary:
+      'Focuses on adoption signals, operational blockers, and expansion readiness after the initial plan is in motion.',
     tags: ['success', 'adoption', 'operations', 'expansion', 'readiness']
   }
 ] as const;
