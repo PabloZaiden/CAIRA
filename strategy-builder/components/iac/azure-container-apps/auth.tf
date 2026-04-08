@@ -4,7 +4,13 @@ resource "random_uuid" "api_auth_role_id" {}
 
 resource "random_uuid" "agent_auth_role_id" {}
 
+locals {
+  api_auth_identifier_uri   = "api://${local.app_prefix}-api-auth"
+  agent_auth_identifier_uri = "api://${local.app_prefix}-agent-auth"
+}
+
 resource "azuread_application" "api_auth" {
+  identifier_uris  = [local.api_auth_identifier_uri]
   display_name     = "${local.app_prefix}-api-auth"
   sign_in_audience = "AzureADMyOrg"
 
@@ -30,6 +36,7 @@ resource "azuread_service_principal" "api_auth" {
 }
 
 resource "azuread_application" "agent_auth" {
+  identifier_uris  = [local.agent_auth_identifier_uri]
   display_name     = "${local.app_prefix}-agent-auth"
   sign_in_audience = "AzureADMyOrg"
 

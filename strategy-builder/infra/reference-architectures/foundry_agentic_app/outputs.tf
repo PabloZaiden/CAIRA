@@ -80,19 +80,19 @@ output "auth_tenant_id" {
 
 output "api_token_scope" {
   description = "Scope used by the frontend BFF when calling the API."
-  value       = "api://${azuread_application.api_auth.client_id}/.default"
+  value       = "${local.api_auth_identifier_uri}/.default"
 }
 
 output "agent_token_scope" {
   description = "Scope used by the API when calling the agent container."
-  value       = "api://${azuread_application.agent_auth.client_id}/.default"
+  value       = "${local.agent_auth_identifier_uri}/.default"
 }
 
 output "api_inbound_allowed_audiences" {
   description = "Accepted audiences for inbound access tokens presented to the API."
   value = [
     azuread_application.api_auth.client_id,
-    "api://${azuread_application.api_auth.client_id}"
+    local.api_auth_identifier_uri
   ]
 }
 
@@ -100,7 +100,7 @@ output "agent_inbound_allowed_audiences" {
   description = "Accepted audiences for inbound access tokens presented to the agent container."
   value = [
     azuread_application.agent_auth.client_id,
-    "api://${azuread_application.agent_auth.client_id}"
+    local.agent_auth_identifier_uri
   ]
 }
 

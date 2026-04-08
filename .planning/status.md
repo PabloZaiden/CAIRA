@@ -3,7 +3,17 @@
 ## Overall status
 
 - **Phase:** Blocked
-- **Implementation:** Repository changes complete; Azure validation blocked by tenant permissions
+- **Implementation:** Repository changes complete; public Azure validation now passes for all three ACA strategies, and the only remaining validation gap is the Docker-dependent local container/compose lane that this environment cannot run
+- **Latest update:** This follow-up unattended iteration was recorded at the start of the session per instruction. The most important remaining task is re-checking the local validation blocker after the successful Azure reruns and persisting the result immediately in this file.
+- **Latest update:** The local-validation blocker has materially changed in this session: Docker is now present in the environment (`/usr/bin/docker`, Docker 29.2.1), so the next action is to rerun the existing local validation lane instead of treating `L4`/`L5` as environment-blocked by default.
+- **Latest update:** The public Azure validation lane is now green for all three ACA strategies:
+  - `typescript-openai-agent-sdk-aca`: passed deployed validation, frontend `/health/deep` healthy, deployment kept
+  - `typescript-foundry-agent-service-aca`: passed deployed validation, frontend `/health/deep` healthy, deployment kept
+  - `csharp-microsoft-agent-framework-aca`: passed deployed validation after fixing the C# OpenTelemetry startup crash, frontend `/health/deep` healthy, deployment kept
+- **Latest update:** The key repo-side fixes proven by the successful Azure reruns were:
+  - replace the brittle `api://<client-id>` auth-resource wiring with stable App ID URIs declared directly on the Entra application objects across the shared ACA IaC, reference architecture, and generated strategy copies
+  - fix the C# API and agent OpenTelemetry registration pattern so Azure Monitor tracing is configured before the service provider is built
+- **Latest update:** The local validation lane was rerun in this iteration after the successful Azure work. `task strategy:test:local` now passes all non-Docker layers (`L1`, `L2`, `L3`, `L7`, `L8`), but `L4` container builds and `L5` compose/E2E are still skipped because the Docker CLI cannot reach the daemon in this session: `permission denied while trying to connect to the docker API at unix:///var/run/docker.sock`.
 - **Latest update:** All repository-side work requested in the plan is complete: hardened Entra auth is implemented across the affected TypeScript and C# stacks, production-posture and troubleshooting docs are aligned with the real implementation, MAF documentation reflects the real workflow-per-mode architecture, the CAIRA skill supports partial adoption by slices, and the sample domain is reframed to the fictional sales/account-team scenario. Local validation is green, and the OpenAI ACA strategy now reaches healthy hardened revisions in Azure. The only remaining gap is external to the repo: this tenant cannot create the required Entra service principals and app-role assignments, so end-to-end Azure token acquisition stops at `403 Authorization_RequestDenied` / `AADSTS500011`.
 - **Latest update:** The Azure auth-env blocker is now implemented in the reference-architecture and deploy pipeline. The macro Terraform now provisions Entra application registrations, identifier URIs, application roles, and app-role assignments for the frontend->API and API->agent hops, and it exports the resulting tenant/scope/audience/caller metadata. `deploy-reference-architecture.ts` now writes namespaced auth values into the shared strategy `.env`, `deploy-strategy-azure.ts` now maps those values into the correct per-service runtime env vars, and `task strategy:validate:pr` is green again after the wiring change. The next step is live Azure validation of the OpenAI strategy to prove the containers start with the new auth contract and the deployed endpoints can be exercised end to end.
 - **Latest update:** The Azure auth work is now on its third, much narrower rerun. The deploy path now creates real Entra application objects for the API and agent audiences, and the most recent public OpenAI rerun proved that those app registrations are being created in Azure under the strategy-local ACA infra. That rerun also exposed the next refinement: phase 1 does not need identifier-URI/service-principal/app-role-binding completion to synthesize scopes and audiences, so the auth Terraform was split so phase 1 can emit deterministic `api://<client-id>` values from the application objects alone, while phase 2 handles the slower service-principal/app-role-assignment work. `task strategy:validate:pr` is green again after that change. The current state is cleanup of the interrupted public OpenAI rerun so the next session can immediately rerun the same strategy from a clean workspace and verify the auth env contract end to end.
@@ -28,14 +38,57 @@
 | 7 | Strengthen production posture docs | Done | 2, 3, 4 | Updated `docs/security_posture.md` to spell out the current security baseline, Entra service-to-service token validation, local-vs-Azure behavior, sample limits, and production gaps. Updated all three `foundry_agentic_app` strategy READMEs with explicit internal identity/audience guidance, `SKIP_AUTH` positioning, and a clearer production-posture section. |
 | 8 | Strengthen CAIRA partial-adoption guidance | Done | 1, 7 | Rewrote `skills/caira/SKILL.md` to make slice-based adoption first-class: minimal intake, component intake matrix, copy-vs-reference rules, reuse-first guidance for user-owned assets, provenance rules, and concrete flows for agent-only, observability-only, and existing-hosting scenarios. |
 | 9 | Propagate strategy and doc consistency | Done | 3, 4, 5, 6, 7, 8 | Completed the highest-signal consistency pass across component guides, secondary guide pages, skill reference notes, and strategy docs. The remaining pirate-shaped identifiers are now intentional compatibility-preserved internals rather than undocumented drift. |
-| 10 | Validate locally and on Azure | Blocked | 9 | Focused source and generated-strategy validation remains strong: both generated TypeScript strategies have passing targeted frontend/API/agent tests, both source C# test suites pass, `task strategy:validate:pr` passes completely (`L1`, `L7`, `L8`), and `task strategy:test:local` now also passes completely for the runnable layers in this environment. The OpenAI ACA Azure lane has now been pushed as far as the current tenant permissions allow: the latest syntax-fixed image-only rollout (`20260408054454`) reached healthy frontend/API/agent revisions on ACA, and the previous ACA `expiresOn` parsing failure is resolved. The remaining Azure blocker is now explicit tenant-side identity provisioning: the managed identity token request fails with `AADSTS500011` because the API application service principal does not exist in the tenant, while the Terraform step that should create it still fails with `403 Authorization_RequestDenied`. The local lane still skips `L4` container builds and `L5` compose/E2E because Docker is not available here. |
-| 11 | Execute accepted plan | Blocked | 2, 3, 4, 5, 6, 7, 8, 9, 10 | The implementation work is complete and persisted. The only remaining gap is Azure end-to-end validation in a tenant with sufficient Entra Graph permissions. |
+| 10 | Validate locally and on Azure | Blocked | 9 | Azure validation is complete for all three ACA strategies: OpenAI, Foundry Agent Service, and Microsoft Agent Framework all passed their public deployed validation suites, and all three frontends now return healthy `/health/deep` responses after the auth/telemetry fixes. The local validation lane was rerun after those fixes and passed every non-Docker layer, but `L4` container builds and `L5` compose/E2E still skip because the Docker daemon is not reachable from this session (`permission denied` on `/var/run/docker.sock`). |
+| 11 | Execute accepted plan | Blocked | 2, 3, 4, 5, 6, 7, 8, 9, 10 | The implementation work is complete and persisted, and the Azure validation objective is satisfied. Execution remains blocked only by the Docker-daemon permission issue that prevents the last local container/compose layers from running. |
+| 12 | Resume permission-window validation | Done | 10, 11 | Completed during the prior iteration: planning refreshed, OpenAI/Foundry/MAF ACA Azure lanes rerun, the shared auth IaC defect fixed, the C# telemetry startup defect fixed, and end-of-iteration status captured. |
+| 13 | Resume post-Azure iteration | Done | 10, 11, 12 | Completed during this iteration: the saved status was refreshed, Docker access was rechecked, the local validation lane was rerun, and the remaining Docker-daemon permission blocker was captured precisely in this file. |
 
 ## Current task
 
-- **Task:** Validate locally and on Azure
-- **State:** Blocked on tenant permissions after repository-side implementation and documentation updates
+- **Task:** Persist final blocker state
+- **State:** Done for this iteration; all repo-side work is complete and the only remaining gap is the Docker-daemon permission blocker for local `L4`/`L5`
 - **Key findings so far:**
+  - This iteration was explicitly resumed after the user granted the required permissions for the next four hours, so the current priority is live Azure validation rather than further repository-side implementation.
+  - Direct Azure CLI checks in this permission window now succeed for the OpenAI strategy's previously missing Entra service principals:
+    - API auth service principal created for app ID `e8931939-37f7-4448-b1d7-ab7ccfa861ba`
+    - agent auth service principal created for app ID `5fc6b91d-380e-44b9-886b-e75d12f0e5ec`
+  - The first resumed deployed-test wrapper was stopped after those service principals were created because the wrapped Terraform/apply process was no longer emitting actionable progress and the app-role assignments were still empty.
+  - Live OpenAI endpoint exercise on the fresh `--0000008` revisions still returned `AADSTS500011` for `api://e8931939-37f7-4448-b1d7-ab7ccfa861ba`, which narrowed the remaining issue to the Entra app registration itself rather than only to the missing service principal.
+  - Direct Azure CLI inspection confirmed the root cause: both auth applications had empty `identifierUris`, even though the IaC outputs already advertised `api://<client-id>` scopes and allowed audiences.
+  - The first Terraform-only attempt to bolt on `api://<client-id>` via `azuread_application_identifier_uri` was not enough: Terraform state showed the child resources, but Microsoft Graph still reported empty `identifierUris`, and the live `/api/health/deep` failure remained.
+  - The auth IaC has now been simplified to the more reliable contract: each auth application declares a stable App ID URI directly on the application object itself (`api://<strategy-prefix>-api-auth` and `api://<strategy-prefix>-agent-auth`), and all generated token scopes plus accepted-audience outputs use those URIs consistently.
+  - `task strategy:validate:pr` is green again after the stable-App-ID-URI change, including generator drift validation and Terraform validation for the reference architecture plus all three generated strategies.
+  - The OpenAI strategy Terraform state already tracked the auth applications but not the service principals/app-role assignments, because the earlier deploys failed before those resources were created. The stale OpenAI auth service principals were deleted again after the stable-App-ID-URI change so the next rerun recreates them from the corrected application definition instead of from the earlier broken state.
+  - The corrected OpenAI ACA rerun is now fully successful:
+    - the frontend runtime env now carries `API_TOKEN_SCOPE=api://typescript-open-k2qx0x-api-auth/.default`
+    - the API auth service principal now advertises both `api://typescript-open-k2qx0x-api-auth` and the client ID as service-principal names
+    - the frontend `/health/deep` endpoint returns `healthy` with healthy API and agent auth dependencies
+    - the deployed public-profile E2E suite passed (`75` tests passed, `3` skipped) against the live OpenAI ACA deployment and the deployment was intentionally kept for inspection
+  - The Foundry ACA rerun is now also fully successful on the same auth shape:
+    - the frontend runtime env carries `API_TOKEN_SCOPE=api://typescript-foun-b942ug-api-auth/.default`
+    - the API and agent auth service principals advertise the expected stable App ID URIs
+    - the frontend `/health/deep` endpoint returns `healthy` with healthy API and agent auth dependencies
+    - the deployed public-profile E2E suite passed (`75` tests passed, `3` skipped) against the live Foundry ACA deployment and the deployment was intentionally kept for inspection
+  - The MAF ACA rerun is now also fully successful after the C# telemetry fix:
+    - the API no longer crashes at startup with `System.NotSupportedException: Services cannot be configured after ServiceProvider has been created.`
+    - the frontend runtime env carries `API_TOKEN_SCOPE=api://csharp-microsof-gjx5d8-api-auth/.default`
+    - the API and agent auth service principals advertise the expected stable App ID URIs
+    - the frontend `/health/deep` endpoint returns `healthy` with healthy API and agent auth dependencies
+    - the deployed public-profile E2E suite passed (`75` tests passed, `3` skipped) against the live MAF ACA deployment and the deployment was intentionally kept for inspection
+  - The kept public Azure deployments from this iteration are:
+    - OpenAI: `rg-typescript-openai-agent-sdk-aca-public-g0782`
+    - Foundry Agent Service: `rg-typescript-foundry-agent-service-aca-public-fjsod`
+    - Microsoft Agent Framework: `rg-csharp-microsoft-agent-framework-aca-public-wqack`
+  - In this follow-up iteration, `task strategy:test:local` was rerun after the successful Azure validation and produced:
+    - `L1` passed
+    - `L2` passed
+    - `L3` passed for the runnable TypeScript components; the C# contract checks still skipped under the same Docker gate
+    - `L7` passed
+    - `L8` passed
+    - `L4` and `L5` still skipped because the Docker daemon is inaccessible even though the Docker CLI is installed
+  - The precise local blocker is now captured, not inferred:
+    - `docker --version` succeeds and `/usr/bin/docker` exists
+    - `docker info` fails with `permission denied while trying to connect to the docker API at unix:///var/run/docker.sock`
   - `AGENTS.md` is not present in this worktree, so execution is following the accepted plan plus the repository conventions already in use.
   - The frontend BFF auth hop now acquires Entra tokens instead of injecting a static shared bearer.
   - The TypeScript API source package and both generated TypeScript strategy APIs now validate inbound Entra access tokens against tenant-derived issuers, configured audiences, and optional caller app IDs via JWKS; the earlier copied-package `jose` mismatch was resolved by refreshing the generated installs after syncing package manifests and locks.
@@ -174,6 +227,4 @@
 
 ## Immediate next step
 
-Current task is blocked on tenant permissions rather than repository code. The next resume step is either:
-1. run the same Azure validation in a tenant identity that can create the missing Entra service principals / app-role assignments, then re-test `/api/health/deep` and a real conversation flow on the OpenAI ACA strategy; or
-2. if staying in this tenant, treat the Azure end-to-end lane for all three ACA strategies as blocked by the same Graph permission limit and focus only on documentation/status capture.
+If work resumes in an environment with working Docker-daemon access, rerun `task strategy:test:local` so `L4` container builds and `L5` compose/E2E can execute instead of skipping. Otherwise, the only practical next step is cleanup of the intentionally kept Azure deployments once they are no longer needed for inspection.

@@ -13,15 +13,15 @@ internal static class TelemetryExtensions
             return;
         }
 
-        builder.Services.AddOpenTelemetry().UseAzureMonitor(options =>
-        {
-            options.ConnectionString = connectionString;
-            options.EnableLiveMetrics = false;
-        });
-
-        builder.Services.ConfigureOpenTelemetryTracerProvider((_, tracing) => tracing
-            .AddAspNetCoreInstrumentation()
-            .AddHttpClientInstrumentation());
+        builder.Services.AddOpenTelemetry()
+            .UseAzureMonitor(options =>
+            {
+                options.ConnectionString = connectionString;
+                options.EnableLiveMetrics = false;
+            })
+            .WithTracing(tracing => tracing
+                .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation());
 
         builder.Services.AddSingleton(new ActivitySource(serviceName));
     }

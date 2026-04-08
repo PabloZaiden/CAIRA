@@ -182,3 +182,11 @@
 - The domain reframe will likely require broad string and type updates; care is needed to preserve contracts and sample behavior.
 - The MAF docs must be corrected without overstating equivalence or understating useful similarities.
 - Full Azure validation depends on the repository's existing deploy/validation flows and on a usable Azure environment at execution time; if an environment-side blocker appears, it should be documented precisely rather than hand-waved.
+
+## Resumed execution plan for the current permission window
+
+1. Reconfirm the live Azure validation entrypoints, deployment-strategy inventory, and any repo-side guidance that must be updated while the remaining validation work runs.
+2. Re-run the OpenAI Agent SDK ACA validation in Azure first, because it already passed the deepest repo-side implementation checkpoints and is the fastest way to prove whether the newly granted tenant permissions unblock end-to-end auth.
+3. If the OpenAI lane succeeds, run the same deployed validation and endpoint exercise for the Foundry Agent Service ACA strategy and then the C# Microsoft Agent Framework ACA strategy.
+4. After each validation task, immediately update `.planning/status.md` with the exact outcome, any new blockers, and the next resume point so progress is preserved mid-iteration.
+5. At the end of the window, update the repository docs that describe production posture or validation limits if the live Azure results changed the documented boundary, then bring `.planning/status.md` to a fully current end-of-iteration state.
