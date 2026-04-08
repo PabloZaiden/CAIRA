@@ -1,0 +1,101 @@
+#  yaml-language-server: $schema=https://taskfile.dev/schema.json
+# docs: https://taskfile.dev
+---
+version: "3"
+
+tasks:
+  tools:
+    desc: Install base environment runtimes and CLIs
+    cmds:
+      - cmd: |
+          set -euo pipefail
+
+          if ! command -v node >/dev/null 2>&1; then
+            echo "Installing Node.js 24.x..."
+            curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
+            sudo apt-get -o DPkg::Lock::Timeout=-1 install -y -qq nodejs
+          else
+            echo "Node.js already installed: $(node --version)"
+          fi
+
+          if ! command -v python3 >/dev/null 2>&1; then
+            echo "Installing Python 3..."
+            sudo apt-get -o DPkg::Lock::Timeout=-1 update -qq
+            sudo apt-get -o DPkg::Lock::Timeout=-1 install -y -qq python3 python3-pip python3-venv
+          else
+            echo "Python already installed: $(python3 --version)"
+          fi
+
+          if ! command -v dotnet >/dev/null 2>&1; then
+            echo "Installing .NET SDK 10..."
+            curl -fsSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 10.0
+            sudo ln -sf "${HOME}/.dotnet/dotnet" /usr/local/bin/dotnet
+          else
+            echo ".NET SDK already installed: $(dotnet --version)"
+          fi
+
+          if ! command -v az >/dev/null 2>&1; then
+            echo "Installing Azure CLI..."
+            curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+          else
+            echo "Azure CLI already installed: $(az version --query '\"azure-cli\"' -o tsv)"
+          fi
+
+          if ! command -v bun >/dev/null 2>&1; then
+            echo "Installing Bun..."
+            curl -fsSL https://bun.sh/install | bash
+            sudo ln -sf "${HOME}/.bun/bin/bun" /usr/local/bin/bun
+            sudo ln -sf "${HOME}/.bun/bin/bunx" /usr/local/bin/bunx
+          else
+            echo "Bun already installed: $(bun --version)"
+          fi
+
+          if ! command -v uv >/dev/null 2>&1; then
+            echo "Installing uv..."
+            curl -LsSf https://astral.sh/uv/install.sh | sh
+            sudo ln -sf "${HOME}/.local/bin/uv" /usr/local/bin/uv
+          else
+            echo "uv already installed: $(uv --version)"
+          fi
+
+          if ! command -v docker >/dev/null 2>&1; then
+            echo "WARNING: Docker is not installed. In a devcontainer, Docker is provided"
+            echo "         by the Docker-in-Docker feature. In CI, use a setup action."
+          else
+            echo "Docker already installed: $(docker --version)"
+          fi
+        platforms: [linux]
+      - cmd: |
+          set -euo pipefail
+
+          if ! command -v brew >/dev/null 2>&1; then
+            echo "Homebrew is required for local macOS setup. Install Homebrew or use the devcontainer."
+            exit 1
+          fi
+
+          if ! command -v node >/dev/null 2>&1; then
+            brew install node
+          fi
+
+          if ! command -v python3 >/dev/null 2>&1; then
+            brew install python
+          fi
+
+          if ! command -v dotnet >/dev/null 2>&1; then
+            curl -fsSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 10.0
+            sudo mkdir -p /usr/local/bin
+            sudo ln -sf "${HOME}/.dotnet/dotnet" /usr/local/bin/dotnet
+          fi
+
+          if ! command -v bun >/dev/null 2>&1; then
+            brew install oven-sh/bun/bun
+          fi
+
+          if ! command -v az >/dev/null 2>&1; then
+            brew install azure-cli
+          fi
+
+          if ! command -v uv >/dev/null 2>&1; then
+            brew install uv
+          fi
+        platforms: [darwin]

@@ -16,14 +16,12 @@
       "jqVersion": "latest",
       "yqVersion": "latest"
     },
-    "ghcr.io/eitsupi/devcontainer-features/go-task:1": {}
+    "ghcr.io/eitsupi/devcontainer-features/go-task:1": {},
+    "ghcr.io/devcontainers/features/dotnet": {
+      "version": "10.0"
+    }
   },
-  "onCreateCommand": {
-    "chown-local": "sudo chown -R $(id -un):$(id -gn) $HOME",
-    "setup-tools": "task tools",
-    "setup-strategy-builder-prereqs": "bash strategy-builder/scripts/prerequisites.sh",
-    "bootstrap-workspace": "task bootstrap"
-  },
+  "onCreateCommand": "sudo chown -R $(id -un):$(id -gn) \"$HOME\" && task tools && task bootstrap",
   "postCreateCommand": {
     "git-safe-dir": "git config --global --add safe.directory ${containerWorkspaceFolder}"
   },

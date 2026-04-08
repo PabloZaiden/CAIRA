@@ -8,7 +8,7 @@
     "validate:backend": "redocly lint backend-api.openapi.yaml"
   },
   "devDependencies": {
-    "@redocly/cli": "^1"
+    "@redocly/cli": "^2.26.0"
   },
   "engines": {
     "node": ">=24.0.0"

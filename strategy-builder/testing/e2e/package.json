@@ -15,7 +15,7 @@
     "ajv": "^8",
     "ajv-formats": "^3",
     "fastify": "^5",
-    "vitest": "^3",
+    "vitest": "^4.1.3",
     "yaml": "^2"
   },
   "engines": {
