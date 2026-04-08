@@ -313,12 +313,9 @@ These workflows already cover the repository-wide automation model.
 | `.github/workflows/nightly-validation.yml`         | Daily schedule and manual dispatch                    | Deploy/validate/destroy for the selected or discovered strategies across `public`, `private`, and `private-capability-host` | Use it for post-merge confidence and for one-strategy reproduction through `task validate:nightly` |
 | `.github/workflows/codeql.yml`                     | Pull requests, pushes to `main`, and weekly schedule  | CodeQL analysis for Actions, JavaScript/TypeScript, and C#                                                                  | Expect security findings here, not runtime deployment validation                                   |
 | `.github/workflows/ghpages.yml`                    | Pushes to `main` that touch `docs/**` or `mkdocs.yml` | Strict MkDocs build and GitHub Pages deployment                                                                             | Docs contributors do not need a separate publish step after merge                                  |
-| `.github/workflows/prebuilt-devcontainer-base.yml` | Weekly schedule and manual dispatch                   | Builds and publishes the base prebuilt devcontainer image                                                                   | Maintainers use this to keep the devcontainer base current                                         |
-| `.github/workflows/prebuilt-devcontainer.yml`      | Daily schedule and manual dispatch                    | Builds, signs, and publishes the prebuilt contributor devcontainer image                                                    | Maintainers use this to keep contributor startup fast                                              |
-
 No additional GitHub workflow is required for the current contributor model.
 The existing workflow set already covers PR validation, nightly Azure-backed
-validation, security scanning, docs publishing, and devcontainer publication.
+validation, security scanning, and docs publishing.
 
 ## What should stay local or manually invoked
 

@@ -1,16 +1,35 @@
 {
-  "name": "CAIRA-prebuilt",
-  "image": "ghcr.io/microsoft/caira-prebuilt-devcontainer:latest",
-  "features": {},
+  "name": "CAIRA",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "configureZshAsDefaultShell": true
+    },
+    "ghcr.io/devcontainers/features/azure-cli:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/jsburckhardt/devcontainer-features/uv:1": {},
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "24"
+    },
+    "ghcr.io/eitsupi/devcontainer-features/jq-likes:2": {
+      "jqVersion": "latest",
+      "yqVersion": "latest"
+    },
+    "ghcr.io/eitsupi/devcontainer-features/go-task:1": {}
+  },
   "onCreateCommand": {
-    "chown-local": "sudo chown -R $(id -un):$(id -gn) $HOME"
+    "chown-local": "sudo chown -R $(id -un):$(id -gn) $HOME",
+    "setup-tools": "task tools",
+    "setup-strategy-builder-prereqs": "bash strategy-builder/scripts/prerequisites.sh",
+    "bootstrap-workspace": "task bootstrap"
   },
   "postCreateCommand": {
-    "git-safe-dir": "git config --global --add safe.directory ${containerWorkspaceFolder}",
-    "bootstrap-workspace": "task bootstrap"
+    "git-safe-dir": "git config --global --add safe.directory ${containerWorkspaceFolder}"
   },
   "workspaceMount": "source=${localWorkspaceFolder},target=${containerWorkspaceFolder},type=bind,consistency=cached",
   "workspaceFolder": "/workspace",
+  "privileged": true,
   "remoteEnv": {
     "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}",
     "DOTNET_ROOT": "/home/vscode/.dotnet",

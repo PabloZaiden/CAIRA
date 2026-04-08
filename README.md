@@ -65,7 +65,7 @@ CAIRA is not Terraform-only and not infrastructure-only. The repository intentio
 ## Contribute to the CAIRA repository
 
 1. Clone the repository.
-1. Preferred: open the repository in the provided devcontainer.
+1. Preferred: open the repository in the default repository devcontainer.
 1. Local setup: install Task, then run `task setup`.
 1. Authenticate with Azure when you need deployment or integration workflows: `az login`.
 1. Use the Taskfile-first workflow from the repository root.

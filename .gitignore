@@ -265,6 +265,7 @@ final_resources_planned.txt
 
 # Copilot tracking folder
 .copilot-tracking/
+.planning/
 
 # Scratch files
 scratch*.md

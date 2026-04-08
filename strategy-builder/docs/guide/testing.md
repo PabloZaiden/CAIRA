@@ -285,7 +285,7 @@ Unlike `compose-test-runner.ts`, this does **not** run any automated tests -- it
 
 ### Devcontainer support
 
-In devcontainers / Codespaces, Docker port publishing maps to the Docker host (not the devcontainer's localhost). The compose test runner auto-discovers container IPs via `docker inspect`, bypassing this limitation.
+In devcontainers / Codespaces, nested Docker networking can differ from a bare-metal host. The compose test runner auto-discovers container IPs via `docker inspect`, which keeps frontend reachability working even when published localhost ports are not the most reliable path.
 
 ---
 

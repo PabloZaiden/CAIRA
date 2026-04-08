@@ -70,7 +70,7 @@ const REPO_ROOT = resolve(import.meta.dirname ?? '.', '..');
  * Get the IP address that sibling Docker containers can use to reach
  * services running in this process (e.g., the ai-mock server).
  *
- * In devcontainer (docker-outside-of-docker) environments, we discover our
+ * In devcontainer and other nested-Docker environments, we discover our
  * own container's IP on the Docker bridge network. On bare metal, 127.0.0.1
  * works with --network=host, but we prefer the bridge approach since it
  * works everywhere.
