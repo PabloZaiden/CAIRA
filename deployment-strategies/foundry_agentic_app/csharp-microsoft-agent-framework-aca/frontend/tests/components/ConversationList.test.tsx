@@ -57,9 +57,9 @@ describe('ConversationList', () => {
     expect(screen.getByText('3h ago')).toBeInTheDocument();
 
     // Mode badges
-    expect(screen.getByTestId('mode-badge-adv-001')).toHaveTextContent('Shanty');
-    expect(screen.getByTestId('mode-badge-adv-002')).toHaveTextContent('Treasure');
-    expect(screen.getByTestId('mode-badge-adv-003')).toHaveTextContent('Crew');
+    expect(screen.getByTestId('mode-badge-adv-001')).toHaveTextContent('Discovery');
+    expect(screen.getByTestId('mode-badge-adv-002')).toHaveTextContent('Account Plan');
+    expect(screen.getByTestId('mode-badge-adv-003')).toHaveTextContent('Staffing');
   });
 
   it('shows resolved status badge for resolved adventures', () => {

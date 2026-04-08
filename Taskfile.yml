@@ -25,6 +25,8 @@ vars:
 includes:
   internal:
     taskfile: .taskfiles/internal.yml
+  env:
+    taskfile: .taskfiles/environment.yml
   sh:
     taskfile: .taskfiles/bash.yml
   gh:
@@ -57,6 +59,7 @@ tasks:
   tools:
     desc: Install tools
     cmds:
+      - task: env:tools
       - task: sh:tools
       - task: gh:tools
       - task: js:tools
@@ -75,39 +78,8 @@ tasks:
   setup:
     desc: Prepare a local machine for CAIRA development
     cmds:
-      - cmd: bash strategy-builder/scripts/prerequisites.sh
-        platforms: [linux]
       - cmd: |
           set -euo pipefail
-
-          if ! command -v brew >/dev/null 2>&1; then
-            echo "Homebrew is required for local macOS setup. Install Homebrew or use the devcontainer."
-            exit 1
-          fi
-
-          if ! command -v node >/dev/null 2>&1; then
-            brew install node
-          fi
-
-          if ! command -v python3 >/dev/null 2>&1; then
-            brew install python
-          fi
-
-          if ! command -v dotnet >/dev/null 2>&1; then
-            curl -fsSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 10.0
-          fi
-
-          if ! command -v bun >/dev/null 2>&1; then
-            brew install oven-sh/bun/bun
-          fi
-
-          if ! command -v az >/dev/null 2>&1; then
-            brew install azure-cli
-          fi
-
-          if ! command -v uv >/dev/null 2>&1; then
-            brew install uv
-          fi
 
           if ! command -v docker >/dev/null 2>&1; then
             echo "Docker Desktop is required for CAIRA local development. Install it or use the devcontainer."

@@ -25,6 +25,7 @@ import { promisify } from 'node:util';
 import { existsSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { homedir } from 'node:os';
+import { ensureAzurecliVolume, fixAzurecliPermissions } from './lib/compose-helpers.ts';
 
 const execFileAsync = promisify(execFile);
 
@@ -49,14 +50,6 @@ async function dockerVolumeExists(): Promise<boolean> {
   } catch {
     return false;
   }
-}
-
-async function ensureVolume(): Promise<void> {
-  if (await dockerVolumeExists()) {
-    return;
-  }
-  log(`Creating Docker volume '${VOLUME_NAME}'...`);
-  await execFileAsync('docker', ['volume', 'create', VOLUME_NAME]);
 }
 
 /**
@@ -131,31 +124,6 @@ async function verifyVolumeCredentials(): Promise<{
   }
 }
 
-// ─── Volume permissions ─────────────────────────────────────────────────
-
-/**
- * Fix file ownership in the azurecli volume for the azcred sidecar.
- *
- * The azcred container runs as uid 65532 (nonroot). Files injected by
- * `az login` or this script are owned by uid 1000 (devcontainer user).
- * Critical files like `config` and `msal_token_cache.json` have mode 600,
- * so only the owner can read them. This chowns everything to 65532 so
- * the azcred sidecar can access the credentials.
- */
-async function fixVolumePermissions(): Promise<void> {
-  log('  Fixing volume permissions for azcred sidecar (uid 65532)...');
-  try {
-    await execFileAsync(
-      'docker',
-      ['run', '--rm', '-v', `${VOLUME_NAME}:/data`, 'busybox', 'chown', '-R', '65532:65532', '/data'],
-      { timeout: 15_000 }
-    );
-  } catch (err: unknown) {
-    const error = err as { stderr?: string; message?: string };
-    logError(`Warning: could not fix volume permissions: ${error.stderr ?? error.message ?? String(err)}`);
-  }
-}
-
 // ─── Host credential detection ──────────────────────────────────────────
 
 function getHostAzureDir(): string {
@@ -191,7 +159,7 @@ function hostHasCredentials(azureDir: string): boolean {
 async function injectFromHost(azureDir: string): Promise<boolean> {
   log(`Injecting credentials from ${azureDir} into Docker volume '${VOLUME_NAME}'...`);
 
-  await ensureVolume();
+  await ensureAzurecliVolume();
 
   // Use a temporary container + docker cp to populate the volume.
   // We can't bind-mount host paths directly in Docker-in-Docker (devcontainer).
@@ -219,7 +187,7 @@ async function injectFromHost(azureDir: string): Promise<boolean> {
 
     // Fix ownership so the azcred sidecar (uid 65532) can read mode-600
     // files like config and msal_token_cache.json.
-    await fixVolumePermissions();
+    await fixAzurecliPermissions();
 
     return true;
   } catch (err: unknown) {
@@ -320,13 +288,13 @@ async function interactiveLogin(): Promise<void> {
   log(`Credentials will be stored in the '${VOLUME_NAME}' Docker volume.`);
   log('');
 
-  await ensureVolume();
+  await ensureAzurecliVolume();
 
   const result = await runAzCommand(['login', '--use-device-code'], true);
 
   if (result.exitCode === 0) {
     // Fix ownership so the azcred sidecar (uid 65532) can read credentials.
-    await fixVolumePermissions();
+    await fixAzurecliPermissions();
     log('');
     log('Login successful! The azurecli volume is ready.');
     log('You can now run: docker compose up --build');
@@ -427,7 +395,7 @@ async function main(): Promise<void> {
   }
 
   if (args.includes('--interactive')) {
-    await ensureVolume();
+    await ensureAzurecliVolume();
     await interactiveLogin();
     return;
   }

@@ -6,7 +6,7 @@ module "api_app" {
   resource_group_name          = local.resource_group_name
   container_app_environment_id = module.container_apps_environment.id
   image                        = local.resolved_api_image
-  target_port                  = 4000
+  target_port                  = local.resolved_api_port
   transport                    = "http"
   enable_registry_auth         = var.enable_registry_auth
   registry_server              = module.container_registry.login_server

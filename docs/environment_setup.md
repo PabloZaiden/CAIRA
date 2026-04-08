@@ -25,7 +25,7 @@ This prepares the full local toolchain used across the repository, including:
 
 - Terraform validation and documentation tooling
 - security and markdown linters
-- Node.js, .NET, and strategy-builder prerequisites
+- Node.js, Python, .NET, Azure CLI, Bun, uv, and the strategy-builder workspace prerequisites
 - workspace dependencies for the strategy builder
 
 ## Optional contributor verification

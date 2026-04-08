@@ -151,8 +151,8 @@ if ((FAIL_COUNT > 0)); then
   if ! $JSON_MODE; then
     echo ""
     echo "ERROR: $FAIL_COUNT tool(s) missing or below minimum version."
-    echo "Run the devcontainer post-create script or install tools manually."
-    echo "See docs/PREREQUISITES.md for installation instructions."
+    echo "Run 'task tools && task bootstrap' from the repository root, or use 'task setup' for the full local setup flow."
+    echo "See strategy-builder/docs/PREREQUISITES.md for installation instructions."
   fi
   exit 1
 else

@@ -60,11 +60,11 @@ describe('MessageInput', () => {
     expect(onSend).toHaveBeenCalledWith('Arr!');
   });
 
-  it('shows "Adventure complete" when resolved prop is true', () => {
+  it('shows "Activity complete" when resolved prop is true', () => {
     render(<MessageInput onSend={vi.fn()} resolved={true} />);
 
     expect(screen.getByTestId('message-input-resolved')).toBeInTheDocument();
-    expect(screen.getByText('Adventure complete')).toBeInTheDocument();
+    expect(screen.getByText('Activity complete')).toBeInTheDocument();
 
     // Should not render the form
     expect(screen.queryByTestId('message-input-form')).not.toBeInTheDocument();
