@@ -149,6 +149,7 @@ public class ConfigTests : IDisposable
     [Fact]
     public void Load_StripsTrailingSlashFromEndpoint()
     {
+        SetRequired();
         Environment.SetEnvironmentVariable("AZURE_OPENAI_ENDPOINT", "https://test.openai.azure.com/");
         var config = AgentConfig.Load();
         Assert.Equal("https://test.openai.azure.com", config.AzureEndpoint);
@@ -157,6 +158,7 @@ public class ConfigTests : IDisposable
     [Fact]
     public void Load_StripsMultipleTrailingSlashes()
     {
+        SetRequired();
         Environment.SetEnvironmentVariable("AZURE_OPENAI_ENDPOINT", "https://test.openai.azure.com///");
         // TrimEnd('/') removes all trailing slashes
         var config = AgentConfig.Load();
@@ -200,7 +202,7 @@ public class ConfigTests : IDisposable
     [Fact]
     public void Load_RequiresInboundAuthSettingsWhenSkipAuthDisabled()
     {
-        SetRequired();
+        Environment.SetEnvironmentVariable("AZURE_OPENAI_ENDPOINT", "https://test.openai.azure.com");
 
         var noTenant = Assert.Throws<InvalidOperationException>(() => AgentConfig.Load());
         Assert.Contains("INBOUND_AUTH_TENANT_ID", noTenant.Message);

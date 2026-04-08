@@ -192,12 +192,12 @@ When `E2E_BASE_URL` is not set, the compose E2E tests skip gracefully. When `E2E
 | Scenario                       | What it tests                                                        |
 |--------------------------------|----------------------------------------------------------------------|
 | Health                         | BFF health endpoint returns healthy                                  |
-| Start shanty                   | `POST /api/pirate/shanty` creates a sea shanty battle adventure      |
-| Start treasure                 | `POST /api/pirate/treasure` creates a treasure hunt adventure        |
-| Enlist in crew                 | `POST /api/pirate/crew/enlist` creates a crew enlistment adventure   |
+| Start shanty                   | `POST /api/pirate/shanty` creates an opportunity discovery activity  |
+| Start treasure                 | `POST /api/pirate/treasure` creates an account planning activity     |
+| Enlist in crew                 | `POST /api/pirate/crew/enlist` creates an account-team staffing activity |
 | List adventures                | `GET /api/pirate/adventures` includes created adventures             |
 | Adventure detail               | `GET /api/pirate/adventures/{id}` returns messages and status        |
-| Parley (JSON)                  | `POST /api/pirate/adventures/{id}/parley` returns a pirate response  |
+| Parley (JSON)                  | `POST /api/pirate/adventures/{id}/parley` returns the specialist response |
 | Parley (SSE)                   | SSE streaming with `message.delta` and `message.complete` events     |
 | SSE delta/complete consistency | Concatenated delta content matches complete content                  |
 | Stats                          | `GET /api/pirate/stats` returns per-mode activity statistics         |

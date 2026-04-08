@@ -42,4 +42,4 @@ For each selected reference architecture or deployment strategy:
   - `testing_overlay.tf`
   - `testing_variables.tf`
   - `testing_outputs.tf`
-- Treat pirate-themed names, prompts, agents, and tools as sample-only artifacts.
+- Treat sample-domain names, prompts, agents, and tools as sample-only artifacts.

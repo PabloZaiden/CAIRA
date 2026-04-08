@@ -30,7 +30,7 @@ source = "git::https://github.com/pablozaiden/CAIRA.git//strategy-builder/infra/
 
 - Copy the selected architecture files and only the required modules.
 - Determine required modules dynamically from Terraform `source` declarations.
-- Do not copy internal testing overlay files or sample pirate-domain business content unless the user explicitly asks for them.
+- Do not copy internal testing overlay files or sample-domain business content unless the user explicitly asks for them.
 - Copy complete working slices only. If APIM is selected, include its infra, outputs, env wiring, and deployment/test wiring together.
 - If APIM is not selected, omit APIM-specific files and references entirely instead of copying them and disabling them later.
 - Apply the same rule to observability, private networking, capability hosts, frontend, API, and agent layers.
