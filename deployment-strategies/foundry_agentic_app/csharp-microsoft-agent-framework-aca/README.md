@@ -4,7 +4,7 @@ A complete, self-contained deployment strategy for the Foundry Agentic App refer
 
 - **Frontend:** React + TypeScript (Vite build, Fastify BFF)
 - **API:** C# ASP.NET Core Minimal API
-- **Agent:** Agent container using Microsoft Agent Framework workflows
+- **Agent:** Agent container using Microsoft Agent Framework (Microsoft.Extensions.AI)
 
 ## Architecture
 
@@ -21,10 +21,6 @@ Credentials Sidecar (:8079) ← azurecli volume ← `az login`
 - [Docker](https://docs.docker.com/get-docker/) with Docker Compose v2
 - [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli)
 - An Azure AI endpoint with a deployed model
-- For Azure deployment, an Entra tenant role or delegated permission set that can:
-  - create application registrations
-  - create corresponding service principals
-  - create app-role assignments between the frontend and API identities, and between the API and agent identities
 
 ## Quick Start
 
@@ -86,11 +82,8 @@ The deploy command:
 - Rolls out bootstrap app shells first, then updates them to the strategy images
 - Uses managed identity auth for Container Apps image pulls from ACR
 - Creates required role assignments (AcrPull + Azure AI roles for the agent)
-- Creates Entra application registrations, service principals, and app-role assignments for the internal frontend -> API -> agent token flow
 - Exposes frontend via HTTPS termination (container still serves HTTP internally)
 - Builds/pushes images and updates the deployment
-
-If the deployment identity can create app registrations but **cannot** create the matching service principals or app-role assignments, Terraform can fail with `403 Authorization_RequestDenied`. In that state, the container apps may still deploy, but internal token acquisition can later fail with `AADSTS500011` because the API or agent resource principal does not exist in the tenant.
 
 To tear down:
 
@@ -122,12 +115,12 @@ the policies you need before using it in a real environment.
 
 ## Services
 
-| Service             | Port | Health Check | Description                                                             |
-|---------------------|------|--------------|-------------------------------------------------------------------------|
-| Credentials Sidecar | 8079 | `/health`    | Serves Azure CLI tokens to containers via IDENTITY_ENDPOINT             |
-| Frontend            | 8080 | `/health`    | React SPA + BFF (proxies /api to API service)                           |
-| API                 | 4000 | `/health`    | Business API (routes, conversation management)                          |
-| Agent               | 3000 | `/health`    | Agent container using Microsoft Agent Framework mode-specific workflows |
+| Service             | Port | Health Check | Description                                                               |
+|---------------------|------|--------------|---------------------------------------------------------------------------|
+| Credentials Sidecar | 8079 | `/health`    | Serves Azure CLI tokens to containers via IDENTITY_ENDPOINT               |
+| Frontend            | 8080 | `/health`    | React SPA + BFF (proxies /api to API service)                             |
+| API                 | 4000 | `/health`    | Business API (routes, conversation management)                            |
+| Agent               | 3000 | `/health`    | Agent container using Microsoft Agent Framework (Microsoft.Extensions.AI) |
 
 ## Project Structure
 
@@ -161,55 +154,15 @@ deployment-strategies/foundry_agentic_app/csharp-microsoft-agent-framework-aca/
 | `AGENT_MODEL`                           | `gpt-5.2-chat`       | Model deployment name (default: gpt-5.2-chat)           |
 | `AGENT_NAME`                            | ``                   | Agent display name                                      |
 | `CAPTAIN_INSTRUCTIONS`                  | ``                   | Shared system prompt applied to all specialists         |
-| `SHANTY_INSTRUCTIONS`                   | ``                   | System prompt for opportunity discovery specialist      |
-| `TREASURE_INSTRUCTIONS`                 | ``                   | System prompt for account planning specialist           |
-| `CREW_INSTRUCTIONS`                     | ``                   | System prompt for account-team staffing specialist      |
+| `SHANTY_INSTRUCTIONS`                   | ``                   | System prompt for shanty battle specialist              |
+| `TREASURE_INSTRUCTIONS`                 | ``                   | System prompt for treasure hunt specialist              |
+| `CREW_INSTRUCTIONS`                     | ``                   | System prompt for crew interview specialist             |
+| `INBOUND_AUTH_TENANT_ID`                | ``                   | INBOUND_AUTH_TENANT_ID                                  |
+| `INBOUND_AUTH_ALLOWED_AUDIENCES`        | ``                   | INBOUND_AUTH_ALLOWED_AUDIENCES                          |
+| `INBOUND_AUTH_ALLOWED_CALLER_APP_IDS`   | ``                   | INBOUND_AUTH_ALLOWED_CALLER_APP_IDS                     |
+| `INBOUND_AUTH_AUTHORITY_HOST`           | ``                   | INBOUND_AUTH_AUTHORITY_HOST                             |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | ``                   | Optional App Insights connection string for OTEL export |
 | `LOG_LEVEL`                             | `debug`              | Log level: trace, debug, info, warn, error, fatal       |
-
-### Service-to-service auth
-
-The local and Azure deployment paths now use the same **Entra-issued access token** contract between services:
-
-- **Frontend BFF -> API** requests use `API_TOKEN_SCOPE` to request a token for the API audience.
-- **API -> agent** requests use `AGENT_TOKEN_SCOPE` to request a token for the agent audience.
-- **API inbound validation** checks signature/JWKS, issuer, audience, expiry, and optional caller application IDs using:
-  - `INBOUND_AUTH_TENANT_ID`
-  - `INBOUND_AUTH_ALLOWED_AUDIENCES`
-  - `INBOUND_AUTH_ALLOWED_CALLER_APP_IDS`
-  - `INBOUND_AUTH_AUTHORITY_HOST`
-- **Agent inbound validation** uses the same validator inputs.
-
-For local mock/dev, `SKIP_AUTH=true` is the explicit bypass. That bypass is only for local sample flows; it is not the recommended Azure posture.
-
-### Microsoft Agent Framework implementation note
-
-This strategy's C# agent is **not** implemented as the same captain/triage pattern used by the TypeScript variants.
-
-- It builds **one workflow per mode** (`shanty`, `treasure`, `crew`)
-- It chooses the workflow from conversation metadata
-- It applies the shared `CAPTAIN_INSTRUCTIONS` text to each specialist prompt, but **does not run a separate captain runtime agent**
-
-That keeps the HTTP contract equivalent while making the orchestration pattern honestly different.
-
-## Production posture
-
-This strategy already includes:
-
-- managed-identity-friendly credential flow
-- explicit inter-service token audiences/scopes
-- JWT validation at the API and agent layers
-- optional APIM / AI gateway and private-networking-aligned infrastructure slices
-- observability wiring points through Application Insights / OTEL
-
-This strategy still leaves downstream production work to you, including:
-
-- workload-specific RBAC review and conditional access
-- environment-specific network controls and segmentation
-- backup/DR and data protection controls
-- operational alerting, incident response, and compliance processes
-
-Treat the local compose stack, local validation, sample Azure deployment, and production rollout as distinct stages rather than the same trust level.
 
 ## Troubleshooting
 
@@ -227,7 +180,9 @@ If ports 3000, 4000, or 8080 are in use, stop the conflicting service or modify 
 
 ## Authentication
 
-This deployment strategy uses a **runtime-appropriate Azure credential** for outbound token acquisition.
+This deployment strategy uses `DefaultAzureCredential` for Azure authentication. Credentials are provided
+to containers via the **az credential sidecar** — a TypeScript HTTP server that
+serves Azure CLI tokens to app containers.
 
 ### Setup
 
@@ -248,10 +203,8 @@ curl http://localhost:4000/identity
 ### How it works
 
 The az credential sidecar mounts the `azurecli` Docker volume (containing your Azure CLI
-token cache) and serves tokens via HTTP. App containers use the managed-identity-style
-`IDENTITY_ENDPOINT` contract directly, so local compose still exercises the same token
-request shape as Azure.
+token cache) and serves tokens via HTTP. App containers set `IDENTITY_ENDPOINT` and
+`IMDS_ENDPOINT` environment variables, which `DefaultAzureCredential`'s
+`ManagedIdentityCredential` chain detects automatically.
 
-For Azure Container Apps deployments, the same helper uses the platform-provided managed
-identity endpoint and header. The remaining deployment prerequisite is tenant-side Entra
-permission to create the API and agent service principals and their app-role assignments.
+For production deployments on Azure Container Apps, real managed identity is used instead.

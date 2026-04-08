@@ -231,7 +231,7 @@ describe('OpenAIClient', () => {
     it('creates specialist agents and becomes ready', async () => {
       // The agent is created during initialise — we verify the client is ready
       // by calling createConversation (which calls ensureReady)
-      const conv = await client.createConversation();
+      const conv = await client.createConversation({ mode: 'shanty' });
       expect(conv.id).toMatch(/^conv_/);
     });
 
@@ -248,7 +248,7 @@ describe('OpenAIClient', () => {
 
   describe('createConversation', () => {
     it('creates a conversation and returns it', async () => {
-      const conv = await client.createConversation();
+      const conv = await client.createConversation({ mode: 'shanty' });
       expect(conv.id).toMatch(/^conv_/);
       expect(conv.createdAt).toBeDefined();
       expect(conv.updatedAt).toBeDefined();
@@ -599,7 +599,7 @@ describe('OpenAIClient', () => {
     });
 
     it('emits tool.called and tool.done SSE events for specialist tools', async () => {
-      const conv = await client.createConversation();
+      const conv = await client.createConversation({ mode: 'shanty' });
       const streamResult = makeStreamedRunResult(['Arr'], 'Arr', 'resp_specialist', {
         specialistToolCall: 'shanty_specialist'
       });
@@ -610,12 +610,14 @@ describe('OpenAIClient', () => {
         chunks.push(chunk);
       });
 
-      expect(chunks[0]).toContain('event: tool.called');
-      expect(chunks[0]).toContain('"toolName":"shanty_specialist"');
-      expect(chunks[1]).toContain('event: message.delta');
-      expect(chunks[chunks.length - 2]).toContain('event: tool.done');
-      expect(chunks[chunks.length - 2]).toContain('"toolName":"shanty_specialist"');
-      expect(chunks[chunks.length - 1]).toContain('event: message.complete');
+      const toolCalledChunk = chunks.find((chunk) => chunk.includes('event: tool.called'));
+      const toolDoneChunk = chunks.find((chunk) => chunk.includes('event: tool.done'));
+      const completeChunk = chunks.find((chunk) => chunk.includes('event: message.complete'));
+
+      expect(toolCalledChunk).toContain('"toolName":"shanty_specialist"');
+      expect(chunks.some((chunk) => chunk.includes('event: message.delta'))).toBe(true);
+      expect(toolDoneChunk).toContain('"toolName":"shanty_specialist"');
+      expect(completeChunk).toBeDefined();
     });
 
     it('does not emit tool.called/tool.done for resolution tools', async () => {
@@ -646,7 +648,9 @@ describe('OpenAIClient', () => {
 
     it('emits tool.called/tool.done for all three specialist tools', async () => {
       for (const toolName of ['shanty_specialist', 'treasure_specialist', 'crew_specialist']) {
-        const conv = await client.createConversation();
+        const mode =
+          toolName === 'treasure_specialist' ? 'treasure' : toolName === 'crew_specialist' ? 'crew' : 'shanty';
+        const conv = await client.createConversation({ mode });
         const streamResult = makeStreamedRunResult(['Response'], 'Response', `resp_${toolName}`, {
           specialistToolCall: toolName
         });

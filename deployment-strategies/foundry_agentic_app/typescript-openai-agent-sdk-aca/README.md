@@ -21,10 +21,6 @@ Credentials Sidecar (:8079) ← azurecli volume ← `az login`
 - [Docker](https://docs.docker.com/get-docker/) with Docker Compose v2
 - [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli)
 - An Azure AI endpoint with a deployed model
-- For Azure deployment, an Entra tenant role or delegated permission set that can:
-  - create application registrations
-  - create corresponding service principals
-  - create app-role assignments between the frontend and API identities, and between the API and agent identities
 
 ## Quick Start
 
@@ -86,11 +82,8 @@ The deploy command:
 - Rolls out bootstrap app shells first, then updates them to the strategy images
 - Uses managed identity auth for Container Apps image pulls from ACR
 - Creates required role assignments (AcrPull + Azure AI roles for the agent)
-- Creates Entra application registrations, service principals, and app-role assignments for the internal frontend -> API -> agent token flow
 - Exposes frontend via HTTPS termination (container still serves HTTP internally)
 - Builds/pushes images and updates the deployment
-
-If the deployment identity can create app registrations but **cannot** create the matching service principals or app-role assignments, Terraform can fail with `403 Authorization_RequestDenied`. In that state, the container apps may still deploy, but internal token acquisition can later fail with `AADSTS500011` because the API or agent resource principal does not exist in the tenant.
 
 To tear down:
 
@@ -162,9 +155,13 @@ deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca/
 | `AGENT_MODEL`                           | `gpt-5.2-chat`       | Model deployment name (default: gpt-5.2-chat)           |
 | `AGENT_NAME`                            | ``                   | Agent display name                                      |
 | `CAPTAIN_INSTRUCTIONS`                  | ``                   | Shared system prompt applied to all specialists         |
-| `SHANTY_INSTRUCTIONS`                   | ``                   | System prompt for opportunity discovery specialist      |
-| `TREASURE_INSTRUCTIONS`                 | ``                   | System prompt for account planning specialist           |
-| `CREW_INSTRUCTIONS`                     | ``                   | System prompt for account-team staffing specialist      |
+| `SHANTY_INSTRUCTIONS`                   | ``                   | System prompt for shanty battle specialist              |
+| `TREASURE_INSTRUCTIONS`                 | ``                   | System prompt for treasure hunt specialist              |
+| `CREW_INSTRUCTIONS`                     | ``                   | System prompt for crew interview specialist             |
+| `INBOUND_AUTH_TENANT_ID`                | ``                   | INBOUND_AUTH_TENANT_ID                                  |
+| `INBOUND_AUTH_ALLOWED_AUDIENCES`        | ``                   | INBOUND_AUTH_ALLOWED_AUDIENCES                          |
+| `INBOUND_AUTH_ALLOWED_CALLER_APP_IDS`   | ``                   | INBOUND_AUTH_ALLOWED_CALLER_APP_IDS                     |
+| `INBOUND_AUTH_AUTHORITY_HOST`           | ``                   | INBOUND_AUTH_AUTHORITY_HOST                             |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | ``                   | Optional App Insights connection string for OTEL export |
 | `LOG_LEVEL`                             | `debug`              | Log level: trace, debug, info, warn, error, fatal       |
 
@@ -184,27 +181,9 @@ If ports 3000, 4000, or 8080 are in use, stop the conflicting service or modify 
 
 ## Authentication
 
-This deployment strategy uses a **runtime-appropriate Azure credential** for outbound token acquisition.
-
-### Service identities and token validation
-
-The hardened sample now expects **Entra-issued access tokens on each internal hop**:
-
-- **Frontend BFF -> API**
-  - requests a token for `API_TOKEN_SCOPE`
-  - API validates signature/JWKS, issuer, audience, expiry, and optional caller app IDs
-- **API -> agent**
-  - requests a token for `AGENT_TOKEN_SCOPE`
-  - agent validates the same token properties with its own configured audiences/callers
-
-The relevant validator configuration is:
-
-- `INBOUND_AUTH_TENANT_ID`
-- `INBOUND_AUTH_ALLOWED_AUDIENCES`
-- `INBOUND_AUTH_ALLOWED_CALLER_APP_IDS`
-- `INBOUND_AUTH_AUTHORITY_HOST`
-
-For local mock/dev only, `SKIP_AUTH=true` explicitly bypasses inbound validation. In Azure deployments, the intended posture is managed identity plus real token validation.
+This deployment strategy uses `DefaultAzureCredential` for Azure authentication. Credentials are provided
+to containers via the **az credential sidecar** — a TypeScript HTTP server that
+serves Azure CLI tokens to app containers.
 
 ### Setup
 
@@ -225,33 +204,8 @@ curl http://localhost:4000/identity
 ### How it works
 
 The az credential sidecar mounts the `azurecli` Docker volume (containing your Azure CLI
-token cache) and serves tokens via HTTP. App containers use the managed-identity-style
-`IDENTITY_ENDPOINT` contract directly, so local compose still exercises the same token
-request shape as Azure.
+token cache) and serves tokens via HTTP. App containers set `IDENTITY_ENDPOINT` and
+`IMDS_ENDPOINT` environment variables, which `DefaultAzureCredential`'s
+`ManagedIdentityCredential` chain detects automatically.
 
-For Azure Container Apps deployments, the same helper uses the platform-provided managed
-identity endpoint and header. The remaining deployment prerequisite is tenant-side Entra
-permission to create the API and agent service principals and their app-role assignments.
-
-## Production posture
-
-This strategy already includes:
-
-- managed-identity-friendly credential flow
-- explicit inter-service token audiences/scopes
-- JWT validation at the API and agent layers
-- optional APIM / AI gateway and private-networking-aligned infrastructure slices
-- observability wiring points through Application Insights / OTEL
-- deterministic phase-1 auth outputs for API and agent audiences, even before the slower Entra app-role wiring runs
-
-This strategy still leaves downstream production work to you, including:
-
-- workload-specific RBAC review and conditional access
-- environment-specific network controls and segmentation
-- backup/DR and data protection controls
-- operational alerting, incident response, and compliance processes
-- tenant-specific Entra admin consent and application lifecycle governance for the service principals the sample creates
-
-Treat the local compose stack, local validation, sample Azure deployment, and production rollout as distinct stages rather than the same trust level.
-
-For this strategy specifically, a sample Azure deployment is only fully valid when the deployment identity can complete the Entra service-principal and app-role-assignment steps. Subscription-scoped Azure RBAC alone is not enough.
+For production deployments on Azure Container Apps, real managed identity is used instead.

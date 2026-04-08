@@ -11,20 +11,20 @@ describe('ActivityPicker', () => {
     expect(screen.getByTestId('activity-btn-treasure')).toBeInTheDocument();
     expect(screen.getByTestId('activity-btn-crew')).toBeInTheDocument();
 
-    expect(screen.getByText('Sea Shanty Battle')).toBeInTheDocument();
-    expect(screen.getByText('Seek Treasure')).toBeInTheDocument();
-    expect(screen.getByText('Join the Crew')).toBeInTheDocument();
+    expect(screen.getByText('Opportunity Discovery')).toBeInTheDocument();
+    expect(screen.getByText('Account Planning')).toBeInTheDocument();
+    expect(screen.getByText('Team Staffing')).toBeInTheDocument();
   });
 
   it('renders descriptions for each activity', () => {
     render(<ActivityPicker onStart={() => {}} />);
 
-    expect(screen.getByText('Trade verses in a lyrical duel')).toBeInTheDocument();
-    expect(screen.getByText('Hunt for buried pirate treasure')).toBeInTheDocument();
-    expect(screen.getByText('Interview for a pirate role')).toBeInTheDocument();
+    expect(screen.getByText('Qualify a new customer opportunity')).toBeInTheDocument();
+    expect(screen.getByText('Shape the next account-team engagement plan')).toBeInTheDocument();
+    expect(screen.getByText('Assign the right role and coverage plan')).toBeInTheDocument();
   });
 
-  it('calls onStart with "shanty" when Sea Shanty Battle is clicked', async () => {
+  it('calls onStart with "shanty" when Opportunity Discovery is clicked', async () => {
     const onStart = vi.fn();
     const user = userEvent.setup();
 
@@ -35,7 +35,7 @@ describe('ActivityPicker', () => {
     expect(onStart).toHaveBeenCalledWith('shanty');
   });
 
-  it('calls onStart with "treasure" when Seek Treasure is clicked', async () => {
+  it('calls onStart with "treasure" when Account Planning is clicked', async () => {
     const onStart = vi.fn();
     const user = userEvent.setup();
 
@@ -46,7 +46,7 @@ describe('ActivityPicker', () => {
     expect(onStart).toHaveBeenCalledWith('treasure');
   });
 
-  it('calls onStart with "crew" when Join the Crew is clicked', async () => {
+  it('calls onStart with "crew" when Team Staffing is clicked', async () => {
     const onStart = vi.fn();
     const user = userEvent.setup();
 
@@ -104,11 +104,11 @@ describe('ActivityPicker', () => {
     expect(screen.getByText('Starting...')).toBeInTheDocument();
 
     // The other buttons should still show their normal labels
-    expect(screen.getByText('Seek Treasure')).toBeInTheDocument();
-    expect(screen.getByText('Join the Crew')).toBeInTheDocument();
+    expect(screen.getByText('Account Planning')).toBeInTheDocument();
+    expect(screen.getByText('Team Staffing')).toBeInTheDocument();
 
     // The loading button should NOT show its normal label
-    expect(screen.queryByText('Sea Shanty Battle')).not.toBeInTheDocument();
+    expect(screen.queryByText('Opportunity Discovery')).not.toBeInTheDocument();
   });
 
   it('disables all buttons when loadingMode is set', () => {
@@ -137,8 +137,8 @@ describe('ActivityPicker', () => {
     expect(screen.queryByTestId('activity-loading-crew')).not.toBeInTheDocument();
 
     // All labels should be visible
-    expect(screen.getByText('Sea Shanty Battle')).toBeInTheDocument();
-    expect(screen.getByText('Seek Treasure')).toBeInTheDocument();
-    expect(screen.getByText('Join the Crew')).toBeInTheDocument();
+    expect(screen.getByText('Opportunity Discovery')).toBeInTheDocument();
+    expect(screen.getByText('Account Planning')).toBeInTheDocument();
+    expect(screen.getByText('Team Staffing')).toBeInTheDocument();
   });
 });
