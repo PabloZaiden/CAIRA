@@ -26,7 +26,8 @@ import {
   waitForHealthy,
   discoverContainerIp,
   getComposeFiles,
-  captureContainerLogs
+  captureContainerLogs,
+  fixAzurecliPermissions
 } from './lib/compose-helpers.ts';
 import { generate } from './lib/generator/index.ts';
 import { DEPLOYMENT_STRATEGIES_ROOT, resolveStrategyPath } from './lib/paths.ts';
@@ -174,11 +175,7 @@ export async function runIdentityTest(options: IdentityTestOptions): Promise<Ide
 
   log('Step 1b: Fixing azurecli volume permissions for azcred sidecar (uid 65532)...');
   try {
-    await execFileAsync(
-      'docker',
-      ['run', '--rm', '-v', `${VOLUME_NAME}:/data`, 'busybox', 'chown', '-R', '65532:65532', '/data'],
-      { timeout: 15_000 }
-    );
+    await fixAzurecliPermissions();
     log('  Volume permissions fixed.');
   } catch (err: unknown) {
     const error = err as { stderr?: string; message?: string };
