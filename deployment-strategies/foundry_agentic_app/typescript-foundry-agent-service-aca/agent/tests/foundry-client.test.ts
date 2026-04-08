@@ -104,7 +104,11 @@ const LOCAL_CONFIG: Config = {
   crewInstructions: 'You are a crew specialist.',
   applicationInsightsConnectionString: undefined,
   logLevel: 'silent',
-  skipAuth: true
+  skipAuth: true,
+  inboundAuthTenantId: undefined,
+  inboundAuthAllowedAudiences: [],
+  inboundAuthAllowedCallerAppIds: [],
+  inboundAuthAuthorityHost: 'https://login.microsoftonline.com'
 };
 
 const AZURE_CONFIG: Config = {

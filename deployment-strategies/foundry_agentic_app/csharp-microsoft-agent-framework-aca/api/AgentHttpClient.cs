@@ -8,8 +8,6 @@
 /// - SSE streaming passthrough
 /// </summary>
 
-using Azure.Core;
-using Azure.Identity;
 using System.Net.Http.Json;
 using System.Net.Http.Headers;
 using System.Text;
@@ -45,14 +43,11 @@ public sealed class AgentHttpClient
     // Circuit breaker config
     private const int FailureThreshold = 5;
     private const int CooldownMs = 30_000;
-    private const string FallbackInterServiceToken = "caira-internal-token";
-
     private int _failures;
     private long _lastFailureTicks;
     private bool _circuitOpen;
-    private readonly Func<CancellationToken, Task<string>>? _getTokenOverride;
     private readonly string? _tokenScope;
-    private readonly DefaultAzureCredential? _credential;
+    private readonly IAccessTokenProvider _accessTokenProvider;
     private readonly ActivitySource _activitySource;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -60,8 +55,8 @@ public sealed class AgentHttpClient
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
 
-    public AgentHttpClient(HttpClient http, ApiConfig config, ILogger<AgentHttpClient> logger)
-        : this(http, config, logger, null, new ActivitySource("caira-api-csharp"))
+    public AgentHttpClient(HttpClient http, ApiConfig config, ILogger<AgentHttpClient> logger, IAccessTokenProvider accessTokenProvider)
+        : this(http, config, logger, accessTokenProvider, new ActivitySource("caira-api-csharp"))
     {
     }
 
@@ -69,7 +64,7 @@ public sealed class AgentHttpClient
         HttpClient http,
         ApiConfig config,
         ILogger<AgentHttpClient> logger,
-        Func<CancellationToken, Task<string>>? getTokenOverride,
+        IAccessTokenProvider accessTokenProvider,
         ActivitySource activitySource)
     {
         _http = http;
@@ -77,14 +72,9 @@ public sealed class AgentHttpClient
         _http.Timeout = TimeSpan.FromSeconds(120);
         _config = config;
         _logger = logger;
-        _getTokenOverride = getTokenOverride;
+        _accessTokenProvider = accessTokenProvider;
         _tokenScope = config.AgentTokenScope;
         _activitySource = activitySource;
-
-        if (!_config.SkipAuth && _getTokenOverride == null && !string.IsNullOrWhiteSpace(_tokenScope))
-        {
-            _credential = new DefaultAzureCredential();
-        }
     }
 
     // ---------- Public API ----------
@@ -305,29 +295,13 @@ public sealed class AgentHttpClient
 
     private async Task<string> AcquireBearerTokenAsync(CancellationToken ct)
     {
-        var token = FallbackInterServiceToken;
-
-        try
+        if (string.IsNullOrWhiteSpace(_tokenScope))
         {
-            if (_getTokenOverride != null)
-            {
-                return await _getTokenOverride(ct);
-            }
-
-            if (_credential != null && !string.IsNullOrWhiteSpace(_tokenScope))
-            {
-                var response = await _credential.GetTokenAsync(new TokenRequestContext([_tokenScope]), ct);
-                return response.Token;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex,
-                "agent token acquisition failed, using fallback inter-service token (tokenScope={TokenScope})",
-                _tokenScope);
+            throw new InvalidOperationException(
+                "AgentHttpClient requires AGENT_TOKEN_SCOPE when auth is enabled.");
         }
 
-        return token;
+        return await _accessTokenProvider.GetAccessTokenAsync(_tokenScope, ct);
     }
 
     // ---------- Core request with retry + circuit breaker ----------

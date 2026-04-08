@@ -10,9 +10,10 @@ import Fastify from 'fastify';
 import type { FastifyInstance } from 'fastify';
 import { OpenAIClient } from './openai-client.ts';
 import type { OpenAIClientOptions } from './openai-client.ts';
+import { createIncomingTokenValidator, extractBearerToken } from './auth.ts';
+import type { IncomingTokenValidator } from './auth.ts';
 import type { Config } from './config.ts';
 import { registerRoutes } from './routes.ts';
-import type { ErrorResponse } from './types.ts';
 import { extractTraceContext, setupTelemetry } from './telemetry.ts';
 
 const DEFAULT_CLIENT_INITIALISATION_TIMEOUT_MS = 60_000;
@@ -73,6 +74,8 @@ export interface BuildAppOptions {
   readonly config: Config;
   /** Override OpenAIClient options (for testing) */
   readonly openaiClientOptions?: Partial<OpenAIClientOptions> | undefined;
+  /** Override inbound token validation (for testing) */
+  readonly incomingTokenValidator?: IncomingTokenValidator | undefined;
   /** Skip OpenAIClient initialisation (for testing — caller must inject a ready client) */
   readonly skipInit?: boolean | undefined;
 }
@@ -89,33 +92,40 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   });
 
   // ---- Auth hook ----
-  // The agent container receives bearer tokens from the API container.
-  // When SKIP_AUTH=true (local dev / tests), we skip validation entirely.
   if (!config.skipAuth) {
+    const incomingTokenValidator =
+      options.incomingTokenValidator ??
+      createIncomingTokenValidator({
+        tenantId: config.inboundAuthTenantId ?? '',
+        authorityHost: config.inboundAuthAuthorityHost,
+        allowedAudiences: config.inboundAuthAllowedAudiences,
+        allowedCallerAppIds: config.inboundAuthAllowedCallerAppIds
+      });
+
     app.addHook('onRequest', async (request, reply) => {
       const extracted = extractTraceContext(request.headers as Record<string, string | string[] | undefined>);
       void extracted;
-      // Health, metrics, and identity endpoints are public
-      if (request.url === '/health' || request.url === '/metrics' || request.url === '/identity') {
+      const path = request.url.split('?', 1)[0];
+      if (path === '/health' || path === '/metrics' || path === '/identity') {
         return;
       }
 
-      const authHeader = request.headers['authorization'];
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        const body: ErrorResponse = {
+      const bearerToken = extractBearerToken(request.headers['authorization']);
+      if (!bearerToken) {
+        return reply.status(401).send({
           code: 'unauthorized',
           message: 'Missing or invalid Authorization header'
-        };
-        await reply.status(401).send(body);
+        });
       }
-      // TODO(WS-next): Implement JWT validation
-      // Currently we only check that a bearer token is present. A proper
-      // implementation should:
-      //   1. Decode the JWT and validate expiry (`exp` claim)
-      //   2. Verify the audience (`aud`) matches this service's app ID
-      //   3. Verify the issuer (`iss`) is the expected Azure AD tenant
-      //   4. Optionally validate the signature via JWKS endpoint
-      // See: https://learn.microsoft.com/en-us/entra/identity-platform/access-tokens
+
+      try {
+        await incomingTokenValidator.validateAccessToken(bearerToken);
+      } catch {
+        return reply.status(401).send({
+          code: 'unauthorized',
+          message: 'Invalid or unauthorized bearer token'
+        });
+      }
     });
   }
 

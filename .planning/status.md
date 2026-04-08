@@ -4,7 +4,7 @@
 
 - **Phase:** Executing
 - **Implementation:** In progress
-- **Latest update:** The TypeScript side of API auth hardening is now implemented in the source component: inbound auth uses an Entra/JWKS validator, outbound agent auth no longer falls back to a fake shared token, and the package tests/typecheck pass. The task remains in progress because the C# API variant still needs the same treatment, and one generated TypeScript strategy API copy still needs its dependency sync corrected before its copied validation is clean.
+- **Latest update:** The TypeScript auth foundation now covers the full BFF -> API -> agent chain in both source components and generated strategy copies. API auth is implemented across TypeScript and C# codepaths, but C# runtime verification is blocked here because `dotnet` is unavailable. Agent auth is now in progress: both TypeScript agent variants validate inbound Entra/JWKS tokens, their generated strategy copies are synced, targeted auth tests pass, and typecheck passes after adding the missing local `typescript` dev dependency.
 
 ## Progress tracker
 
@@ -12,8 +12,8 @@
 | --- | --- | --- | --- | --- |
 | 1 | Inventory current state | Done | None | Initial discovery completed across the requested source components, strategy READMEs, security posture doc, agent-container guide, and CAIRA skill. |
 | 2 | Design shared JWT validation pattern | Done | 1 | Chosen contract: Entra access tokens validated for signature, `exp`, issuer, audience, and optional caller client IDs; local mock/dev keeps an explicit auth bypass instead of trying to fake production token issuance. |
-| 3 | Implement hardened auth in agent containers | Pending | 2 | Waiting for implementation phase. |
-| 4 | Implement hardened auth in API containers | In progress | 2 | TypeScript source implementation is complete and validated. Remaining work: apply the same contract to the C# API, finish syncing the generated TypeScript strategy API copies cleanly, and then re-run their checks. |
+| 3 | Implement hardened auth in agent containers | In progress | 2 | TypeScript OpenAI Agent SDK and Foundry Agent Service variants now validate inbound Entra access tokens, and the same files were copied into both generated TypeScript strategy agents. Remaining work: implement/sync the C# Microsoft Agent Framework agent variant and verify it once a `dotnet` runtime is available. |
+| 4 | Implement hardened auth in API containers | Blocked | 2 | TypeScript API source and both generated TypeScript strategy APIs now validate inbound Entra tokens and use real outbound token acquisition. The C# API source and MAF strategy copy were updated to the same contract, but runtime verification is blocked here because `dotnet` is not installed in this environment. |
 | 4a | Implement hardened auth in the frontend BFF | Done | 2 | Replaced the static inter-service bearer with Entra token acquisition in `strategy-builder/components/frontend/react-typescript`, copied the same files into all three generated strategy frontends, and validated the source plus one generated strategy frontend with tests/typecheck. |
 | 5 | Reframe the sample domain | Pending | 1 | Waiting for implementation phase. |
 | 6 | Align MAF docs with implementation | Pending | 1, 5 | Waiting for implementation phase. |
@@ -25,16 +25,17 @@
 
 ## Current task
 
-- **Task:** Implement hardened auth in API containers
+- **Task:** Implement hardened auth in agent containers
 - **State:** In progress
 - **Key findings so far:**
   - `AGENTS.md` is not present in this worktree, so execution is following the accepted plan plus the repository conventions already in use.
-  - The TypeScript API source package now validates inbound Entra access tokens against tenant-derived issuers, configured audiences, and optional caller app IDs via JWKS, and its outbound agent client now requires a real token provider instead of falling back to a shared static bearer.
-  - The frontend BFF auth hop has been updated to acquire Entra tokens instead of injecting a static shared bearer.
-  - The TypeScript API package now carries `jose`; the C# API project still needs Entra/JWKS validation packages and middleware changes.
-  - The selected auth contract uses per-service audience configuration, tenant-derived issuer allowlists, JWKS-backed signature validation, and optional caller application-ID allowlists so the same model can be applied consistently to BFF -> API and API -> agent hops.
-  - Two generated TypeScript strategy API copies were synced from the source component, but one copied validation run exposed a dependency-sync mismatch (`jose` missing in the copied install), so the strategy copy propagation still needs one cleanup pass after the C# API work.
+  - The frontend BFF auth hop now acquires Entra tokens instead of injecting a static shared bearer.
+  - The TypeScript API source package and both generated TypeScript strategy APIs now validate inbound Entra access tokens against tenant-derived issuers, configured audiences, and optional caller app IDs via JWKS; the earlier copied-package `jose` mismatch was resolved by refreshing the generated installs after syncing package manifests and locks.
+  - The C# API source and the MAF strategy API copy now carry the same Entra/JWKS validator and outbound token-provider contract, but they cannot be exercised here because `dotnet` is unavailable.
+  - The TypeScript OpenAI Agent SDK and Foundry Agent Service source components now use the same inbound validator shape as the API layer, including `INBOUND_AUTH_TENANT_ID`, `INBOUND_AUTH_ALLOWED_AUDIENCES`, optional caller app IDs, and authority-host overrides.
+  - Both TypeScript agent packages already had a `typecheck` script but no local `typescript` dependency, so `typescript` was added explicitly to make the existing validation path real instead of accidental.
+  - The full-package agent test suites still contain unrelated pre-existing streaming-event failures in `openai-client.test.ts` and `foundry-client.test.ts`; targeted auth tests and typecheck are passing, so those older failures are not caused by the auth changes.
 
 ## Immediate next step
 
-Implement the same inbound/outbound auth contract in `strategy-builder/components/api/csharp`, update its tests to remove fallback-token expectations, then finish the TypeScript strategy API copy sync and re-run the copied validation.
+Implement the same inbound token-validation contract in `strategy-builder/components/agent/csharp/microsoft-agent-framework`, update its tests/docs where possible, and then move into the domain reframe plus MAF documentation alignment while the missing `dotnet` runtime continues to block C# execution checks.

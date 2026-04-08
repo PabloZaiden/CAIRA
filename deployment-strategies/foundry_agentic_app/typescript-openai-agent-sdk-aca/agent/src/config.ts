@@ -38,6 +38,14 @@ export interface Config {
   readonly logLevel: string;
   /** Skip bearer token validation on incoming requests */
   readonly skipAuth: boolean;
+  /** Tenant ID used to validate inbound Entra access tokens */
+  readonly inboundAuthTenantId: string | undefined;
+  /** Accepted audiences for inbound access tokens */
+  readonly inboundAuthAllowedAudiences: readonly string[];
+  /** Optional allowlist of caller application IDs */
+  readonly inboundAuthAllowedCallerAppIds: readonly string[];
+  /** Authority host used for Entra metadata and issuer validation */
+  readonly inboundAuthAuthorityHost: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -120,6 +128,31 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     );
   }
 
+  const skipAuth = env['SKIP_AUTH'] === 'true';
+  const inboundAuthTenantId = env['INBOUND_AUTH_TENANT_ID'];
+  const inboundAuthAllowedAudiences = splitCsv(env['INBOUND_AUTH_ALLOWED_AUDIENCES']);
+  const inboundAuthAllowedCallerAppIds = splitCsv(env['INBOUND_AUTH_ALLOWED_CALLER_APP_IDS']);
+  const inboundAuthAuthorityHost = (env['INBOUND_AUTH_AUTHORITY_HOST'] ?? 'https://login.microsoftonline.com').replace(
+    /\/+$/,
+    ''
+  );
+
+  if (!skipAuth) {
+    if (!inboundAuthTenantId) {
+      throw new Error(
+        'INBOUND_AUTH_TENANT_ID environment variable is required when SKIP_AUTH is not true. ' +
+          'Set it to the Entra tenant ID expected to issue API -> agent access tokens.'
+      );
+    }
+
+    if (inboundAuthAllowedAudiences.length === 0) {
+      throw new Error(
+        'INBOUND_AUTH_ALLOWED_AUDIENCES environment variable is required when SKIP_AUTH is not true. ' +
+          'Set it to a comma-separated list of accepted agent audiences.'
+      );
+    }
+  }
+
   return {
     port: parseInt(env['PORT'] ?? '3000', 10),
     host: env['HOST'] ?? '0.0.0.0',
@@ -133,6 +166,17 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     crewInstructions: env['CREW_INSTRUCTIONS'] ?? DEFAULT_CREW_INSTRUCTIONS,
     applicationInsightsConnectionString: env['APPLICATIONINSIGHTS_CONNECTION_STRING'],
     logLevel: env['LOG_LEVEL'] ?? 'info',
-    skipAuth: env['SKIP_AUTH'] === 'true'
+    skipAuth,
+    inboundAuthTenantId,
+    inboundAuthAllowedAudiences,
+    inboundAuthAllowedCallerAppIds,
+    inboundAuthAuthorityHost
   };
+}
+
+function splitCsv(rawValue: string | undefined): string[] {
+  return (rawValue ?? '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
 }

@@ -67,6 +67,13 @@ public class AgentHttpClientTests
         AgentTokenScope = agentTokenScope,
     };
 
+    private sealed class FakeAccessTokenProvider(Func<CancellationToken, Task<string>> getToken)
+        : IAccessTokenProvider
+    {
+        public Task<string> GetAccessTokenAsync(string scope, CancellationToken cancellationToken = default)
+            => getToken(cancellationToken);
+    }
+
     private static (AgentHttpClient client, MockHttpHandler handler) CreateClient(
         ApiConfig? config = null,
         Func<CancellationToken, Task<string>>? getTokenOverride = null)
@@ -75,7 +82,8 @@ public class AgentHttpClientTests
         var http = new HttpClient(handler);
         var effectiveConfig = config ?? CreateConfig();
         var logger = Mock.Of<ILogger<AgentHttpClient>>();
-        var client = new AgentHttpClient(http, effectiveConfig, logger, getTokenOverride, new ActivitySource("CairaApi.Tests"));
+        var accessTokenProvider = new FakeAccessTokenProvider(getTokenOverride ?? (_ => Task.FromResult("unused-token")));
+        var client = new AgentHttpClient(http, effectiveConfig, logger, accessTokenProvider, new ActivitySource("CairaApi.Tests"));
         return (client, handler);
     }
 
@@ -137,18 +145,15 @@ public class AgentHttpClientTests
     }
 
     [Fact]
-    public async Task CheckHealth_SendsFallbackBearerWhenAuthEnabledAndNoScope()
+    public async Task CheckHealth_FailsWhenAuthEnabledWithoutScope()
     {
         var (client, handler) = CreateClient(CreateConfig(skipAuth: false));
-        handler.Enqueue(HttpStatusCode.OK, new { status = "healthy" });
 
         var result = await client.CheckHealthAsync();
 
-        Assert.True(result.Ok);
-        var auth = handler.Requests[0].Headers.Authorization;
-        Assert.NotNull(auth);
-        Assert.Equal("Bearer", auth!.Scheme);
-        Assert.Equal("caira-internal-token", auth.Parameter);
+        Assert.False(result.Ok);
+        Assert.Equal(503, result.Status);
+        Assert.Empty(handler.Requests);
     }
 
     [Fact]
@@ -169,20 +174,17 @@ public class AgentHttpClientTests
     }
 
     [Fact]
-    public async Task CheckHealth_UsesFallbackWhenTokenProviderFails()
+    public async Task CheckHealth_FailsWhenTokenProviderFails()
     {
         var (client, handler) = CreateClient(
             CreateConfig(skipAuth: false, agentTokenScope: "api://scope/.default"),
             _ => Task.FromException<string>(new InvalidOperationException("token failure")));
-        handler.Enqueue(HttpStatusCode.OK, new { status = "healthy" });
 
         var result = await client.CheckHealthAsync();
 
-        Assert.True(result.Ok);
-        var auth = handler.Requests[0].Headers.Authorization;
-        Assert.NotNull(auth);
-        Assert.Equal("Bearer", auth!.Scheme);
-        Assert.Equal("caira-internal-token", auth.Parameter);
+        Assert.False(result.Ok);
+        Assert.Equal(503, result.Status);
+        Assert.Empty(handler.Requests);
     }
 
     // ========================================================================

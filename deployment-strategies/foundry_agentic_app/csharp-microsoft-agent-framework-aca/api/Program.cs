@@ -30,6 +30,9 @@ public class Program
 
         // Register services
         builder.Services.AddSingleton(config);
+        builder.Services.AddSingleton<IAccessTokenProvider, DefaultAzureAccessTokenProvider>();
+        builder.Services.AddSingleton<IIncomingTokenValidator>(
+            config.SkipAuth ? new NoOpIncomingTokenValidator() : new EntraIncomingTokenValidator(config));
         builder.Services.AddHttpClient<AgentHttpClient>();
         builder.Services.AddSingleton(new System.Diagnostics.ActivitySource("caira-api-csharp"));
 
@@ -37,6 +40,7 @@ public class Program
 
         if (!config.SkipAuth)
         {
+            var incomingTokenValidator = app.Services.GetRequiredService<IIncomingTokenValidator>();
             app.Use(async (context, next) =>
             {
                 var path = context.Request.Path.Value ?? string.Empty;
@@ -47,14 +51,26 @@ public class Program
                 }
 
                 var authHeader = context.Request.Headers.Authorization.ToString();
-                if (string.IsNullOrWhiteSpace(authHeader) ||
-                    !authHeader.StartsWith("Bearer ") ||
-                    authHeader.Length <= "Bearer ".Length)
+                var token = AuthHelpers.ExtractBearerToken(authHeader);
+                if (string.IsNullOrWhiteSpace(token))
                 {
                     context.Response.StatusCode = 401;
                     context.Response.ContentType = "application/json";
                     await context.Response.WriteAsync(
                         System.Text.Json.JsonSerializer.Serialize(new ErrorResponse("unauthorized", "Missing or invalid Authorization header")));
+                    return;
+                }
+
+                try
+                {
+                    await incomingTokenValidator.ValidateAccessTokenAsync(token, context.RequestAborted);
+                }
+                catch
+                {
+                    context.Response.StatusCode = 401;
+                    context.Response.ContentType = "application/json";
+                    await context.Response.WriteAsync(
+                        System.Text.Json.JsonSerializer.Serialize(new ErrorResponse("unauthorized", "Invalid or unauthorized bearer token")));
                     return;
                 }
 
