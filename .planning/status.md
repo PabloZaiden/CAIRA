@@ -2,10 +2,22 @@
 
 ## Overall status
 
-- **Phase:** Blocked
-- **Implementation:** Repository changes complete; public Azure validation now passes for all three ACA strategies, and the only remaining validation gap is the Docker-dependent local container/compose lane that this environment cannot run
-- **Latest update:** This follow-up unattended iteration was recorded at the start of the session per instruction. The most important remaining task is re-checking the local validation blocker after the successful Azure reruns and persisting the result immediately in this file.
-- **Latest update:** The local-validation blocker has materially changed in this session: Docker is now present in the environment (`/usr/bin/docker`, Docker 29.2.1), so the next action is to rerun the existing local validation lane instead of treating `L4`/`L5` as environment-blocked by default.
+- **Phase:** Complete
+- **Implementation:** Repository changes are complete, public Azure validation passes for all three ACA strategies, and the full local validation suite now passes end to end with Docker-enabled compose/E2E coverage.
+- **Latest update:** This final unattended verification pass was started after a previous iteration hit a no-activity timeout. The purpose of this pass is to confirm the tracked work is still fully complete and to persist that state cleanly in the planning files.
+- **Latest update:** This follow-up unattended iteration was recorded at the start of the session per instruction, and the new user message to continue after the Docker unblock has been persisted here before additional work.
+- **Latest update:** `AGENTS.md` is not present in this worktree, so execution continues from `.planning/plan.md` and `.planning/status.md`.
+- **Latest update:** The local-validation blocker has materially changed again in this session: Docker is now present and the daemon is reachable (`docker info` succeeded on Docker 29.3.1), so the next action is to rerun the existing local validation lane instead of treating `L4`/`L5` as environment-blocked.
+- **Latest update:** `task strategy:test:local` was rerun with working Docker access. `L1` through `L4` all passed, proving the old Docker-daemon blocker is gone. The remaining failure is now a real repo/runtime issue in `L5`: all three compose strategies (`csharp-microsoft-agent-framework-aca`, `typescript-foundry-agent-service-aca`, `typescript-openai-agent-sdk-aca`) timed out waiting for healthy services on `http://127.0.0.1:8080/health`.
+- **Latest update:** The shared `L5` root cause is identified and fixed in source: generated local compose files were still setting `SKIP_AUTH` on the API and agent but not on the frontend BFF, so the frontend crashed on startup with `API_TOKEN_SCOPE environment variable is required when SKIP_AUTH is not true`. The compose generator now includes `SKIP_AUTH: "true"` for the frontend in local compose, and the generator test suite asserts that behavior.
+- **Latest update:** After regenerating the strategies and rerunning the full local suite, `L1` through `L4` still pass and the frontend-auth compose fix is preserved, but `L5` is still failing for all three generated strategies with the same 90-second health timeout. The remaining work is now a second shared compose/runtime issue, not the original missing-Docker blocker and not the already-fixed frontend `API_TOKEN_SCOPE` crash.
+- **Latest update:** The second compose issue is now identified and fixed in the canonical deployment strategies: the local validation runner regenerates from `deployment-strategies/`, and those canonical `docker-compose.yml` files still lacked `SKIP_AUTH: "true"` on the frontend service even after the lightweight generator helper was fixed. All three canonical strategy compose files now set frontend `SKIP_AUTH` for local mock/dev compose.
+- **Latest update:** The next shared `L5` failure is also identified in the harness path: the mock compose overlay was publishing `ai-mock` on host port `8100`, while `L4` had just used the same host port for its standalone mock server. That made the first compose strategy vulnerable to a leftover host-port conflict even though the stack only needs `ai-mock` on the internal compose network. The overlay no longer publishes host port `8100`.
+- **Latest update:** The compose harness now reports `docker compose up` failures explicitly instead of masking them as generic health timeouts. This should surface the next concrete blocker directly on the next focused/local rerun.
+- **Latest update:** The next concrete blocker is fixed in the harness: `compose-test-runner.ts` and `dev-compose.ts` were computing `repoRoot` as the `strategy-builder/` folder and then passing it into `generateTestOverlay`, which duplicated the path to the mock build context (`strategy-builder/strategy-builder/testing/mocks/ai-mock`). Those scripts now keep separate `strategyBuilderRoot` and workspace-root values so overlay generation points at the real mock directory.
+- **Latest update:** Focused rerun after the harness path fix proved the compose stack now becomes healthy. The next blocker moved forward into E2E execution itself: `compose-test-runner.ts` was launching `npx vitest` with a stripped environment, which dropped `PATH` and failed with `spawn npx ENOENT`. The runner now preserves `process.env` when invoking the E2E tests.
+- **Latest update:** The focused `typescript-openai-agent-sdk-aca` compose/E2E rerun now passes end to end after the harness fixes. The next step is the final full local suite rerun so all three strategies and downstream layers are validated in one clean pass.
+- **Latest update:** The final full local rerun is now green. `task strategy:test:local` passed every enabled layer (`L1`, `L2`, `L3`, `L4`, `L5`, `L7`, `L8`), including compose/E2E validation for all three deployment strategies. The remaining follow-up is optional environment cleanup only.
 - **Latest update:** The public Azure validation lane is now green for all three ACA strategies:
   - `typescript-openai-agent-sdk-aca`: passed deployed validation, frontend `/health/deep` healthy, deployment kept
   - `typescript-foundry-agent-service-aca`: passed deployed validation, frontend `/health/deep` healthy, deployment kept
@@ -38,15 +50,16 @@
 | 7 | Strengthen production posture docs | Done | 2, 3, 4 | Updated `docs/security_posture.md` to spell out the current security baseline, Entra service-to-service token validation, local-vs-Azure behavior, sample limits, and production gaps. Updated all three `foundry_agentic_app` strategy READMEs with explicit internal identity/audience guidance, `SKIP_AUTH` positioning, and a clearer production-posture section. |
 | 8 | Strengthen CAIRA partial-adoption guidance | Done | 1, 7 | Rewrote `skills/caira/SKILL.md` to make slice-based adoption first-class: minimal intake, component intake matrix, copy-vs-reference rules, reuse-first guidance for user-owned assets, provenance rules, and concrete flows for agent-only, observability-only, and existing-hosting scenarios. |
 | 9 | Propagate strategy and doc consistency | Done | 3, 4, 5, 6, 7, 8 | Completed the highest-signal consistency pass across component guides, secondary guide pages, skill reference notes, and strategy docs. The remaining pirate-shaped identifiers are now intentional compatibility-preserved internals rather than undocumented drift. |
-| 10 | Validate locally and on Azure | Blocked | 9 | Azure validation is complete for all three ACA strategies: OpenAI, Foundry Agent Service, and Microsoft Agent Framework all passed their public deployed validation suites, and all three frontends now return healthy `/health/deep` responses after the auth/telemetry fixes. The local validation lane was rerun after those fixes and passed every non-Docker layer, but `L4` container builds and `L5` compose/E2E still skip because the Docker daemon is not reachable from this session (`permission denied` on `/var/run/docker.sock`). |
-| 11 | Execute accepted plan | Blocked | 2, 3, 4, 5, 6, 7, 8, 9, 10 | The implementation work is complete and persisted, and the Azure validation objective is satisfied. Execution remains blocked only by the Docker-daemon permission issue that prevents the last local container/compose layers from running. |
+| 10 | Validate locally and on Azure | Done | 9 | Azure validation is complete for all three ACA strategies, and the final local rerun now passes `L1`, `L2`, `L3`, `L4`, `L5`, `L7`, and `L8` end to end. |
+| 11 | Execute accepted plan | Done | 2, 3, 4, 5, 6, 7, 8, 9, 10 | The implementation work, documentation work, Azure validation, and full local validation are all complete and persisted. |
+| 14 | Resume after Docker unblock | Done | 10, 11, 13 | Added at the start of this iteration per user instruction. Docker availability was confirmed, the local compose/E2E regressions were fixed in the canonical strategies and harness, and the full local suite is now green. |
 | 12 | Resume permission-window validation | Done | 10, 11 | Completed during the prior iteration: planning refreshed, OpenAI/Foundry/MAF ACA Azure lanes rerun, the shared auth IaC defect fixed, the C# telemetry startup defect fixed, and end-of-iteration status captured. |
 | 13 | Resume post-Azure iteration | Done | 10, 11, 12 | Completed during this iteration: the saved status was refreshed, Docker access was rechecked, the local validation lane was rerun, and the remaining Docker-daemon permission blocker was captured precisely in this file. |
 
 ## Current task
 
-- **Task:** Persist final blocker state
-- **State:** Done for this iteration; all repo-side work is complete and the only remaining gap is the Docker-daemon permission blocker for local `L4`/`L5`
+- **Task:** Persist completed state
+- **State:** Done; repository work and non-manual validation are complete for this plan, and this verification pass confirmed there is no remaining non-manual task left open after the prior timeout
 - **Key findings so far:**
   - This iteration was explicitly resumed after the user granted the required permissions for the next four hours, so the current priority is live Azure validation rather than further repository-side implementation.
   - Direct Azure CLI checks in this permission window now succeed for the OpenAI strategy's previously missing Entra service principals:
@@ -90,6 +103,32 @@
     - `docker --version` succeeds and `/usr/bin/docker` exists
     - `docker info` fails with `permission denied while trying to connect to the docker API at unix:///var/run/docker.sock`
   - `AGENTS.md` is not present in this worktree, so execution is following the accepted plan plus the repository conventions already in use.
+  - Docker access has improved since the prior iteration: `docker info` now succeeds, so the previous daemon-permission blocker is no longer current.
+  - The local validation summary from this resumed run is now precise:
+    - `L1` passed
+    - `L2` passed
+    - `L3` passed, including the Docker-based C# contract checks
+    - `L4` passed, including all container builds
+    - `L5` failed for all three generated strategies because services never became healthy on the compose health probe endpoint within 90 seconds
+  - Manual compose reproduction of `typescript-openai-agent-sdk-aca` isolated the actual failure mode: the agent, API, azcred sidecar, and AI mock all became healthy, but the frontend container exited immediately because local compose lacked `SKIP_AUTH=true` for the BFF after the hardened auth changes.
+  - Post-fix rerun of `task strategy:test:local` confirms the repo has progressed materially: the old Docker gating is gone, the frontend auth-bypass regression is fixed, and the remaining failure space is narrower but still shared across the compose strategies.
+  - The compose regeneration path copies from canonical checked-in deployment strategies, so fixes for local compose must land there as well as in any supporting generator helpers/tests.
+  - The compose harness itself does not need the mock service published on the host. The frontend/API/agent path only requires `ai-mock` on the compose bridge network, so removing the host `8100` binding is the safer shared default.
+  - After the harness fixes, a focused local compose run for `typescript-openai-agent-sdk-aca` passes fully: stack healthy, E2E tests executed, stack torn down cleanly.
+  - The final full local validation summary is now:
+    - `L1` passed
+    - `L2` passed
+    - `L3` passed
+    - `L4` passed
+    - `L5` passed for `csharp-microsoft-agent-framework-aca`, `typescript-foundry-agent-service-aca`, and `typescript-openai-agent-sdk-aca`
+    - `L7` passed
+    - `L8` passed
+  - The key local-validation fixes completed in this iteration were:
+    - add frontend `SKIP_AUTH: "true"` to the canonical local compose files for all three strategies
+    - remove the unnecessary host `8100` binding from the mock compose overlay
+    - fix mock-overlay repo-root resolution in `compose-test-runner.ts` and `dev-compose.ts`
+    - preserve `PATH` and the rest of the process environment when invoking local E2E tests from `compose-test-runner.ts`
+    - fail fast on `docker compose up` errors so the harness reports concrete causes instead of masking them as generic health timeouts
   - The frontend BFF auth hop now acquires Entra tokens instead of injecting a static shared bearer.
   - The TypeScript API source package and both generated TypeScript strategy APIs now validate inbound Entra access tokens against tenant-derived issuers, configured audiences, and optional caller app IDs via JWKS; the earlier copied-package `jose` mismatch was resolved by refreshing the generated installs after syncing package manifests and locks.
   - The C# API source and the MAF strategy API copy now carry the same Entra/JWKS validator and outbound token-provider contract, and the source C# API test suite now passes under `dotnet test`.
@@ -227,4 +266,4 @@
 
 ## Immediate next step
 
-If work resumes in an environment with working Docker-daemon access, rerun `task strategy:test:local` so `L4` container builds and `L5` compose/E2E can execute instead of skipping. Otherwise, the only practical next step is cleanup of the intentionally kept Azure deployments once they are no longer needed for inspection.
+No repo-side implementation work remains. Optional follow-up is limited to environment cleanup, such as removing intentionally kept Azure deployments once they are no longer needed for inspection.

@@ -190,3 +190,29 @@
 3. If the OpenAI lane succeeds, run the same deployed validation and endpoint exercise for the Foundry Agent Service ACA strategy and then the C# Microsoft Agent Framework ACA strategy.
 4. After each validation task, immediately update `.planning/status.md` with the exact outcome, any new blockers, and the next resume point so progress is preserved mid-iteration.
 5. At the end of the window, update the repository docs that describe production posture or validation limits if the live Azure results changed the documented boundary, then bring `.planning/status.md` to a fully current end-of-iteration state.
+
+## Current resumed iteration after Docker unblock
+
+### Goal
+
+Close the last remaining non-manual validation gap by rerunning the Docker-gated local strategy validation lane now that the Docker daemon is reachable, then update repository docs only if the observed validation boundary changes.
+
+### Coding tasks for this iteration
+
+1. Reconfirm Docker daemon availability and the exact local validation entrypoints (`task strategy:test:local` and any directly referenced helper commands).
+2. Run the existing local validation suite end to end with Docker enabled so `L4` container builds and `L5` compose/E2E execute instead of skipping.
+3. If the local lane exposes repo-side defects, fix them in the smallest coherent set of files, rerun the affected validation, and sync any generated strategy copies if needed.
+4. Update documentation only where the newly observed local-validation behavior changes the repo's stated posture, limits, or troubleshooting guidance.
+5. Finish by updating `.planning/status.md` with completed work, current state, important findings, and the next steps to resume from if more work remains.
+
+## Final verification and persistence pass
+
+### Goal
+
+Verify that the previous unattended iteration really left no unfinished non-manual work, then refresh the planning artifacts so a compaction or timeout cannot re-open stale status.
+
+### Coding tasks for this verification pass
+
+1. Re-read `.planning/status.md` and the current repo status to confirm all tracked implementation and validation tasks are marked done.
+2. Record the new unattended follow-up in `.planning/status.md`, including that `AGENTS.md` is still not present in this worktree and that execution continues from the planning files.
+3. Update `.planning/status.md` with the final complete-state summary, current task state, and the only remaining optional follow-up: cleanup of intentionally kept Azure deployments if no longer needed.
