@@ -231,3 +231,16 @@ Bring this worktree up to date with `main` without regressing the repo-wide CAIR
 4. Reconcile any docs, scripts, or validation guidance affected by the devcontainer/layout changes so the repository remains internally consistent after the merge.
 5. Run the relevant existing validation for the merge surface and any touched files, with special attention to devcontainer references and strategy/test guidance.
 6. Finish by updating `.planning/status.md` with completed tasks, current state, notable findings from the merge, and the next steps to resume from if any work remains.
+
+## Current completion handoff iteration
+
+### Goal
+
+Honor the latest unattended instruction that the work can now be considered complete, and persist that complete-state handoff in the planning artifacts without reopening finished implementation work.
+
+### Coding tasks for this iteration
+
+1. Record the new completion-handoff request in `.planning/status.md` immediately so the instruction survives compaction or interruption.
+2. Re-read `.planning/plan.md`, `.planning/status.md`, and the current repo status to confirm no non-manual implementation tasks remain open.
+3. Update `.planning/status.md` to mark the completion-handoff task done, set the current task state to complete, and refresh the summary of finished work and key learnings.
+4. Leave the next-step guidance in `.planning/status.md` limited to optional environment cleanup or future user-directed work, rather than inventing new repo-side tasks.
