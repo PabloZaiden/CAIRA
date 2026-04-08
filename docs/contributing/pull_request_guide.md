@@ -55,7 +55,7 @@ Use Conventional Commits style titles, for example:
 ```text
 feat(strategy-builder): add deployed strategy smoke validation
 fix(infra): correct module path references
-refactor(devcontainer): align local and prebuilt setup
+refactor(devcontainer): simplify default contributor setup
 ```
 
 ## Notes for reviewers

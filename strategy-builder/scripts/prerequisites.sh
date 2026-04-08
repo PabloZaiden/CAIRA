@@ -176,7 +176,7 @@ fi
 # ---------------------------------------------------------------------------
 if ! command -v docker &>/dev/null; then
   echo "WARNING: Docker is not installed. In a devcontainer, Docker is provided"
-  echo "         by the docker-outside-of-docker feature. In CI, use a setup action."
+  echo "         by the Docker-in-Docker feature. In CI, use a setup action."
 else
   echo "Docker already installed: $(docker --version)"
 fi

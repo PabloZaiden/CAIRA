@@ -176,7 +176,7 @@ export async function runComposeTests(options: ComposeTestOptions): Promise<Comp
     frontendBaseUrlCandidates.push('http://127.0.0.1:8080');
     frontendBaseUrlCandidates.push('http://localhost:8080');
 
-    // Also try bridge-network IP for devcontainer/docker-outside-of-docker scenarios.
+    // Also try bridge-network IP for nested-Docker devcontainer scenarios.
     const frontendIp = await discoverContainerIp(projectName, 'frontend');
     if (frontendIp) {
       const frontendIpUrl = `http://${frontendIp}:8080`;
