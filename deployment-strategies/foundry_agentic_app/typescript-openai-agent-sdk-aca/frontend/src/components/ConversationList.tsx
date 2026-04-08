@@ -8,9 +8,9 @@ interface ConversationListProps {
 }
 
 const MODE_LABELS: Record<AdventureMode, string> = {
-  shanty: 'Shanty',
-  treasure: 'Treasure',
-  crew: 'Crew'
+  shanty: 'Discovery',
+  treasure: 'Account Plan',
+  crew: 'Staffing'
 };
 
 const MODE_COLORS: Record<AdventureMode, string> = {
@@ -39,12 +39,12 @@ export function ConversationList({ conversations, selectedId, onSelect, isLoadin
       data-testid='conversation-list'
     >
       <div className='border-b border-zinc-800 px-4 py-3'>
-        <h2 className='text-sm font-medium tracking-widest text-zinc-400 uppercase'>Adventures</h2>
+        <h2 className='text-sm font-medium tracking-widest text-zinc-400 uppercase'>Activities</h2>
       </div>
 
       {isLoading && conversations.length === 0 && (
         <div className='p-5 text-center text-sm text-zinc-500 italic' data-testid='conversation-list-loading'>
-          Loading adventures...
+          Loading activities...
         </div>
       )}
 

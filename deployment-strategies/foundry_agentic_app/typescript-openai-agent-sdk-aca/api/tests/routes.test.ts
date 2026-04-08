@@ -399,7 +399,7 @@ describe('POST /api/pirate/shanty', () => {
     expect(started.id).toBe('conv-001');
     expect(started.mode).toBe('shanty');
     expect(started.status).toBe('active');
-    expect(started.syntheticMessage).toContain('shanty');
+    expect(started.syntheticMessage).toContain('qualifying a new customer opportunity');
     expect(started.createdAt).toBeTruthy();
   });
 

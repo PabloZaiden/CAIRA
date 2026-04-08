@@ -18,11 +18,11 @@ describe('loadConfig', () => {
     expect(config.host).toBe('0.0.0.0');
     expect(config.azureEndpoint).toBe('https://test.ai.azure.com');
     expect(config.model).toBe('gpt-5.2-chat');
-    expect(config.agentName).toBe('caira-pirate-agent');
+    expect(config.agentName).toBe('caira-account-team-agent');
     expect(config.captainInstructions).toContain('discrete specialist');
-    expect(config.shantyInstructions).toContain('shanty');
-    expect(config.treasureInstructions).toContain('treasure');
-    expect(config.crewInstructions).toContain('crew');
+    expect(config.shantyInstructions).toContain('opportunity discovery');
+    expect(config.treasureInstructions).toContain('account planning');
+    expect(config.crewInstructions).toContain('account team staffing');
     expect(config.applicationInsightsConnectionString).toBeUndefined();
     expect(config.logLevel).toBe('debug');
     expect(config.skipAuth).toBe(false);

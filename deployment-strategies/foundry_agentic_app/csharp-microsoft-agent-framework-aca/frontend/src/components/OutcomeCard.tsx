@@ -5,13 +5,31 @@ interface OutcomeCardProps {
 }
 
 const MODE_LABELS: Record<string, string> = {
-  resolve_shanty: 'Sea Shanty Battle Result',
-  resolve_treasure: 'Treasure Hunt Result',
-  resolve_crew: 'Crew Assignment'
+  resolve_shanty: 'Discovery Summary',
+  resolve_treasure: 'Account Plan Summary',
+  resolve_crew: 'Staffing Recommendation'
+};
+
+const FIELD_LABELS: Record<string, Record<string, string>> = {
+  resolve_shanty: {
+    winner: 'Disposition',
+    rounds: 'Signals reviewed',
+    best_verse: 'Key insight'
+  },
+  resolve_treasure: {
+    found: 'Advance',
+    treasure_name: 'Focus area',
+    location: 'Next milestone'
+  },
+  resolve_crew: {
+    rank: 'Coverage level',
+    role: 'Recommended role',
+    ship_name: 'Team name'
+  }
 };
 
 export function OutcomeCard({ outcome }: OutcomeCardProps) {
-  const title = MODE_LABELS[outcome.tool] ?? 'Adventure Resolved';
+  const title = MODE_LABELS[outcome.tool] ?? 'Activity Summary';
 
   return (
     <div
@@ -22,7 +40,9 @@ export function OutcomeCard({ outcome }: OutcomeCardProps) {
       <dl className='flex flex-col gap-1.5' data-testid='outcome-details'>
         {Object.entries(outcome.result).map(([key, value]) => (
           <div key={key} className='flex justify-between gap-4 text-sm'>
-            <dt className='font-medium capitalize text-zinc-400'>{key.replace(/_/g, ' ')}</dt>
+            <dt className='font-medium capitalize text-zinc-400'>
+              {FIELD_LABELS[outcome.tool]?.[key] ?? key.replace(/_/g, ' ')}
+            </dt>
             <dd className='text-right text-zinc-200'>{String(value)}</dd>
           </div>
         ))}

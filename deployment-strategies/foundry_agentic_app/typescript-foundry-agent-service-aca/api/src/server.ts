@@ -1,7 +1,7 @@
 /**
  * API container — standalone server entry point.
  *
- * Starts the pirate-themed business API on the configured port.
+ * Starts the fictional sales/account-team sample API on the configured port.
  * Handles graceful shutdown on SIGTERM/SIGINT.
  *
  * Usage:

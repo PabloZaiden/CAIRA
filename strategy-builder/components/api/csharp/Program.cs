@@ -1,7 +1,7 @@
 /// <summary>
 /// API container entry point — ASP.NET Core Minimal API.
 ///
-/// Starts the pirate-themed business API on the configured port.
+/// Starts the fictional sales/account-team sample API on the configured port.
 /// Handles graceful shutdown via IHostApplicationLifetime.
 /// </summary>
 

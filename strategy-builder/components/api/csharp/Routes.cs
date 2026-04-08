@@ -1,5 +1,5 @@
 /// <summary>
-/// ASP.NET Core Minimal API route definitions for the pirate-themed business API.
+/// ASP.NET Core Minimal API route definitions for the fictional sales/account-team sample API.
 ///
 /// Maps business endpoints to agent container operations:
 ///   POST /api/pirate/shanty              -> create conv, return syntheticMessage
@@ -29,9 +29,9 @@ public static class Routes
 
     private static readonly Dictionary<string, string> SyntheticMessages = new()
     {
-        ["shanty"] = "Sing me a sea shanty and challenge me to a verse duel! Let us trade shanty verses back and forth.",
-        ["treasure"] = "I seek buried treasure! Guide me on a treasure hunting adventure with choices and discoveries.",
-        ["crew"] = "I want to join your pirate crew! Interview me and assign me a rank and role aboard your ship.",
+        ["shanty"] = "I am qualifying a new customer opportunity. Lead a short discovery conversation, ask targeted questions, and conclude with a concise qualification summary.",
+        ["treasure"] = "I need an account plan for an active customer. Guide me through priorities, risks, and next steps, then conclude with a concise planning summary.",
+        ["crew"] = "I need to staff an account team for a customer engagement. Interview me for the needed context and conclude with a clear staffing recommendation.",
     };
 
     // ---------- Route registration ----------

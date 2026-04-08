@@ -6,23 +6,23 @@ public static class KnowledgeBase
 {
     private static readonly IReadOnlyList<KnowledgeEntry> Shanties =
     [
-        new("shanty-stormcaller", "Stormcaller Refrain", "A rowing shanty with a thunder-and-tide rhythm that works well for dramatic openings.", ["storm", "rhythm", "opening", "chorus"]),
-        new("shanty-bell", "Bell of the Watch", "A call-and-response chant sailors use when changing watches or challenging rivals.", ["watch", "call", "response", "challenge"]),
-        new("shanty-harbor", "Harbor Lantern Song", "A lighter tune about returning to port, useful when praising a clever final verse.", ["harbor", "lantern", "praise", "return"])
+        new("shanty-stormcaller", "Qualification Signals Checklist", "Use budget, urgency, business pain, and decision process as the core discovery signals for a first qualification pass.", ["qualification", "budget", "urgency", "decision", "discovery"]),
+        new("shanty-bell", "Discovery Question Sequence", "A short pattern that starts with business goals, then blockers, then success measures to keep early conversations focused.", ["questions", "goals", "blockers", "success", "sequence"]),
+        new("shanty-harbor", "Opportunity Framing Notes", "Summaries land best when they restate the customer need, the likely fit, and the clearest next step.", ["summary", "fit", "need", "next-step", "opportunity"])
     ];
 
     private static readonly IReadOnlyList<KnowledgeEntry> Treasures =
     [
-        new("treasure-ruby", "Ruby Crown", "A jeweled crown rumored to rest in the Cavern of Echoes beneath a split reef.", ["ruby", "crown", "cavern", "reef"]),
-        new("treasure-atlas", "Navigator Atlas", "A weathered atlas hidden in a shipwreck chapel and prized by captains seeking lost currents.", ["atlas", "shipwreck", "currents", "map"]),
-        new("treasure-idol", "Whalebone Idol", "A carved idol guarded by tide pools and cliff paths on a fogbound island.", ["idol", "island", "fog", "cliff"])
+        new("treasure-ruby", "Account Priority Map", "Anchor the plan on business outcomes, active stakeholders, delivery risks, and the next committed milestone.", ["account", "priority", "stakeholders", "risk", "milestone"]),
+        new("treasure-atlas", "Engagement Motion Guide", "Choose among executive alignment, technical validation, or adoption recovery based on the account signal the user provides.", ["engagement", "executive", "technical", "adoption", "motion"]),
+        new("treasure-idol", "Risk Review Prompts", "Surface timeline risk, unclear ownership, low sponsor engagement, and missing success criteria before recommending a plan.", ["risk", "timeline", "ownership", "sponsor", "success"])
     ];
 
     private static readonly IReadOnlyList<KnowledgeEntry> CrewRoles =
     [
-        new("crew-quartermaster", "Quartermaster", "Keeps supplies, settles disputes, and favors recruits with practical judgment and discipline.", ["quartermaster", "supplies", "discipline", "judgment"]),
-        new("crew-navigator", "Navigator", "Charts routes, reads stars, and suits recruits who stay calm and think ahead.", ["navigator", "stars", "planning", "calm"]),
-        new("crew-lookout", "Lookout", "Spots hazards early and fits alert recruits with quick reactions and sharp eyes.", ["lookout", "alert", "hazards", "quick"])
+        new("crew-quartermaster", "Strategic Account Lead", "Owns executive alignment, multi-team coordination, and the overall engagement plan for complex accounts.", ["lead", "executive", "coordination", "engagement", "strategy"]),
+        new("crew-navigator", "Solution Specialist", "Handles product fit, technical storytelling, and proof planning when the account needs deeper solution confidence.", ["solution", "technical", "fit", "proof", "planning"]),
+        new("crew-lookout", "Customer Success Partner", "Focuses on adoption signals, operational blockers, and expansion readiness after the initial plan is in motion.", ["success", "adoption", "operations", "expansion", "readiness"])
     ];
 
     public static IReadOnlyList<KnowledgeEntry> LookupShanty(string query) => Lookup(Shanties, query);

@@ -5,9 +5,9 @@ import { OutcomeCard } from './OutcomeCard.tsx';
 
 /** Map specialist tool names to human-readable labels. */
 const SPECIALIST_LABELS: Record<string, string> = {
-  shanty_specialist: 'The shanty specialist',
-  treasure_specialist: 'The treasure specialist',
-  crew_specialist: 'The crew specialist'
+  shanty_specialist: 'The discovery specialist',
+  treasure_specialist: 'The account planning specialist',
+  crew_specialist: 'The staffing specialist'
 };
 
 interface ChatAreaProps {
@@ -43,7 +43,7 @@ export function ChatArea({ messages, streamingContent, isLoading, error, outcome
     <div className='flex flex-1 flex-col overflow-y-auto p-5' data-testid='chat-area'>
       {messages.length === 0 && !isLoading && !streamingContent && (
         <div className='flex flex-1 items-center justify-center text-zinc-500 italic' data-testid='chat-area-empty'>
-          Ahoy! Pick an activity to begin your adventure.
+          Pick an activity to begin a sales/account-team scenario.
         </div>
       )}
 
@@ -57,7 +57,7 @@ export function ChatArea({ messages, streamingContent, isLoading, error, outcome
             className='max-w-[75%] self-start rounded-lg rounded-bl-sm bg-zinc-800 px-4 py-3 opacity-90'
             data-testid='streaming-message'
           >
-            <div className='mb-1 text-[0.7rem] font-medium tracking-wide text-indigo-400 uppercase'>Captain</div>
+            <div className='mb-1 text-[0.7rem] font-medium tracking-wide text-indigo-400 uppercase'>Coordinator</div>
             <div className='whitespace-pre-wrap text-[0.95rem] leading-relaxed text-zinc-200'>{streamingContent}</div>
           </div>
         )}
@@ -68,7 +68,7 @@ export function ChatArea({ messages, streamingContent, isLoading, error, outcome
           <div className='py-2 text-sm text-zinc-500 italic' data-testid='chat-area-loading'>
             {activeSpecialist
               ? `${SPECIALIST_LABELS[activeSpecialist] ?? activeSpecialist} is working...`
-              : 'The captain is thinking...'}
+              : 'The coordinator is thinking...'}
           </div>
         )}
 

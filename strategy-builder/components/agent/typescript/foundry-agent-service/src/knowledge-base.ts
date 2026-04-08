@@ -8,63 +8,63 @@ export interface KnowledgeEntry {
 const SHANTY_ENTRIES: readonly KnowledgeEntry[] = [
   {
     id: 'shanty-stormcaller',
-    title: 'Stormcaller Refrain',
-    summary: 'A rowing shanty with a thunder-and-tide rhythm that works well for dramatic openings.',
-    tags: ['storm', 'rhythm', 'opening', 'chorus']
+    title: 'Qualification Signals Checklist',
+    summary: 'Use budget, urgency, business pain, and decision process as the core discovery signals for a first qualification pass.',
+    tags: ['qualification', 'budget', 'urgency', 'decision', 'discovery']
   },
   {
     id: 'shanty-bell',
-    title: 'Bell of the Watch',
-    summary: 'A call-and-response chant sailors use when changing watches or challenging rivals.',
-    tags: ['watch', 'call', 'response', 'challenge']
+    title: 'Discovery Question Sequence',
+    summary: 'A short pattern that starts with business goals, then blockers, then success measures to keep early conversations focused.',
+    tags: ['questions', 'goals', 'blockers', 'success', 'sequence']
   },
   {
     id: 'shanty-harbor',
-    title: 'Harbor Lantern Song',
-    summary: 'A lighter tune about returning to port, useful when praising a clever final verse.',
-    tags: ['harbor', 'lantern', 'praise', 'return']
+    title: 'Opportunity Framing Notes',
+    summary: 'Summaries land best when they restate the customer need, the likely fit, and the clearest next step.',
+    tags: ['summary', 'fit', 'need', 'next-step', 'opportunity']
   }
 ] as const;
 
 const TREASURE_ENTRIES: readonly KnowledgeEntry[] = [
   {
     id: 'treasure-ruby',
-    title: 'Ruby Crown',
-    summary: 'A jeweled crown rumored to rest in the Cavern of Echoes beneath a split reef.',
-    tags: ['ruby', 'crown', 'cavern', 'reef']
+    title: 'Account Priority Map',
+    summary: 'Anchor the plan on business outcomes, active stakeholders, delivery risks, and the next committed milestone.',
+    tags: ['account', 'priority', 'stakeholders', 'risk', 'milestone']
   },
   {
     id: 'treasure-atlas',
-    title: 'Navigator Atlas',
-    summary: 'A weathered atlas hidden in a shipwreck chapel and prized by captains seeking lost currents.',
-    tags: ['atlas', 'shipwreck', 'currents', 'map']
+    title: 'Engagement Motion Guide',
+    summary: 'Choose among executive alignment, technical validation, or adoption recovery based on the account signal the user provides.',
+    tags: ['engagement', 'executive', 'technical', 'adoption', 'motion']
   },
   {
     id: 'treasure-idol',
-    title: 'Whalebone Idol',
-    summary: 'A carved idol guarded by tide pools and cliff paths on a fogbound island.',
-    tags: ['idol', 'island', 'fog', 'cliff']
+    title: 'Risk Review Prompts',
+    summary: 'Surface timeline risk, unclear ownership, low sponsor engagement, and missing success criteria before recommending a plan.',
+    tags: ['risk', 'timeline', 'ownership', 'sponsor', 'success']
   }
 ] as const;
 
 const CREW_ENTRIES: readonly KnowledgeEntry[] = [
   {
     id: 'crew-quartermaster',
-    title: 'Quartermaster',
-    summary: 'Keeps supplies, settles disputes, and favors recruits with practical judgment and discipline.',
-    tags: ['quartermaster', 'supplies', 'discipline', 'judgment']
+    title: 'Strategic Account Lead',
+    summary: 'Owns executive alignment, multi-team coordination, and the overall engagement plan for complex accounts.',
+    tags: ['lead', 'executive', 'coordination', 'engagement', 'strategy']
   },
   {
     id: 'crew-navigator',
-    title: 'Navigator',
-    summary: 'Charts routes, reads stars, and suits recruits who stay calm and think ahead.',
-    tags: ['navigator', 'stars', 'planning', 'calm']
+    title: 'Solution Specialist',
+    summary: 'Handles product fit, technical storytelling, and proof planning when the account needs deeper solution confidence.',
+    tags: ['solution', 'technical', 'fit', 'proof', 'planning']
   },
   {
     id: 'crew-lookout',
-    title: 'Lookout',
-    summary: 'Spots hazards early and fits alert recruits with quick reactions and sharp eyes.',
-    tags: ['lookout', 'alert', 'hazards', 'quick']
+    title: 'Customer Success Partner',
+    summary: 'Focuses on adoption signals, operational blockers, and expansion readiness after the initial plan is in motion.',
+    tags: ['success', 'adoption', 'operations', 'expansion', 'readiness']
   }
 ] as const;
 

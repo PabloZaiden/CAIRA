@@ -19,11 +19,11 @@ describe('loadConfig', () => {
     expect(config.azureEndpoint).toBe('https://test.openai.azure.com');
     expect(config.apiVersion).toBe('2025-03-01-preview');
     expect(config.model).toBe('gpt-5.2-chat');
-    expect(config.agentName).toBe('CAIRA Pirate Agent');
+    expect(config.agentName).toBe('CAIRA Account Team Agent');
     expect(config.captainInstructions).toContain('discrete specialist');
-    expect(config.shantyInstructions).toContain('shanty');
-    expect(config.treasureInstructions).toContain('treasure');
-    expect(config.crewInstructions).toContain('crew');
+    expect(config.shantyInstructions).toContain('opportunity discovery');
+    expect(config.treasureInstructions).toContain('account planning');
+    expect(config.crewInstructions).toContain('account team staffing');
     expect(config.applicationInsightsConnectionString).toBeUndefined();
     expect(config.logLevel).toBe('info');
     expect(config.skipAuth).toBe(false);

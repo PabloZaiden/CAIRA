@@ -35,6 +35,10 @@ public class ConfigTests : IDisposable
         "SHANTY_INSTRUCTIONS",
         "TREASURE_INSTRUCTIONS",
         "CREW_INSTRUCTIONS",
+        "INBOUND_AUTH_TENANT_ID",
+        "INBOUND_AUTH_ALLOWED_AUDIENCES",
+        "INBOUND_AUTH_ALLOWED_CALLER_APP_IDS",
+        "INBOUND_AUTH_AUTHORITY_HOST",
         "LOG_LEVEL",
         "SKIP_AUTH",
     ];
@@ -60,6 +64,8 @@ public class ConfigTests : IDisposable
     private static void SetRequired()
     {
         Environment.SetEnvironmentVariable("AZURE_OPENAI_ENDPOINT", "https://test.openai.azure.com");
+        Environment.SetEnvironmentVariable("INBOUND_AUTH_TENANT_ID", "tenant-123");
+        Environment.SetEnvironmentVariable("INBOUND_AUTH_ALLOWED_AUDIENCES", "api://caira-agent");
     }
 
     // ---- Default values ----
@@ -75,13 +81,17 @@ public class ConfigTests : IDisposable
         Assert.Equal("https://test.openai.azure.com", config.AzureEndpoint);
         Assert.Equal("2025-03-01-preview", config.ApiVersion);
         Assert.Equal("gpt-5.2-chat", config.Model);
-        Assert.Equal("CAIRA Pirate Agent", config.AgentName);
-        Assert.Contains("Captain", config.CaptainInstructions);
-        Assert.Contains("shanty", config.ShantyInstructions, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("treasure", config.TreasureInstructions, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("crew", config.CrewInstructions, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("CAIRA Account Team Agent", config.AgentName);
+        Assert.Contains("discrete specialist", config.CaptainInstructions, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("opportunity discovery", config.ShantyInstructions, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("account planning", config.TreasureInstructions, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("account team staffing", config.CrewInstructions, StringComparison.OrdinalIgnoreCase);
         Assert.Equal("Debug", config.LogLevel);
         Assert.False(config.SkipAuth);
+        Assert.Equal("tenant-123", config.InboundAuthTenantId);
+        Assert.Equal(new[] { "api://caira-agent" }, config.InboundAuthAllowedAudiences);
+        Assert.Empty(config.InboundAuthAllowedCallerAppIds);
+        Assert.Equal("https://login.microsoftonline.com", config.InboundAuthAuthorityHost);
     }
 
     // ---- Required vars ----
@@ -108,6 +118,10 @@ public class ConfigTests : IDisposable
         Environment.SetEnvironmentVariable("SHANTY_INSTRUCTIONS", "Custom shanty prompt.");
         Environment.SetEnvironmentVariable("TREASURE_INSTRUCTIONS", "Custom treasure prompt.");
         Environment.SetEnvironmentVariable("CREW_INSTRUCTIONS", "Custom crew prompt.");
+        Environment.SetEnvironmentVariable("INBOUND_AUTH_TENANT_ID", "tenant-123");
+        Environment.SetEnvironmentVariable("INBOUND_AUTH_ALLOWED_AUDIENCES", "api://caira-agent,api://caira-agent/.default");
+        Environment.SetEnvironmentVariable("INBOUND_AUTH_ALLOWED_CALLER_APP_IDS", "api-client-1,api-client-2");
+        Environment.SetEnvironmentVariable("INBOUND_AUTH_AUTHORITY_HOST", "https://login.microsoftonline.us/");
         Environment.SetEnvironmentVariable("LOG_LEVEL", "info");
         Environment.SetEnvironmentVariable("SKIP_AUTH", "true");
 
@@ -124,6 +138,10 @@ public class ConfigTests : IDisposable
         Assert.Equal("Custom crew prompt.", config.CrewInstructions);
         Assert.Equal("info", config.LogLevel);
         Assert.True(config.SkipAuth);
+        Assert.Equal("tenant-123", config.InboundAuthTenantId);
+        Assert.Equal(new[] { "api://caira-agent", "api://caira-agent/.default" }, config.InboundAuthAllowedAudiences);
+        Assert.Equal(new[] { "api-client-1", "api-client-2" }, config.InboundAuthAllowedCallerAppIds);
+        Assert.Equal("https://login.microsoftonline.us", config.InboundAuthAuthorityHost);
     }
 
     // ---- URL normalisation ----
@@ -177,6 +195,19 @@ public class ConfigTests : IDisposable
         SetRequired();
         var config = AgentConfig.Load();
         Assert.False(config.SkipAuth);
+    }
+
+    [Fact]
+    public void Load_RequiresInboundAuthSettingsWhenSkipAuthDisabled()
+    {
+        SetRequired();
+
+        var noTenant = Assert.Throws<InvalidOperationException>(() => AgentConfig.Load());
+        Assert.Contains("INBOUND_AUTH_TENANT_ID", noTenant.Message);
+
+        Environment.SetEnvironmentVariable("INBOUND_AUTH_TENANT_ID", "tenant-123");
+        var noAudience = Assert.Throws<InvalidOperationException>(() => AgentConfig.Load());
+        Assert.Contains("INBOUND_AUTH_ALLOWED_AUDIENCES", noAudience.Message);
     }
 
     // ---- PORT parsing ----
