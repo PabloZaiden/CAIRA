@@ -2,6 +2,10 @@ terraform {
   required_version = ">= 1.13, < 2.0"
 
   required_providers {
+    azuread = {
+      source  = "hashicorp/azuread"
+      version = "~> 3.5"
+    }
     azurerm = {
       source  = "hashicorp/azurerm"
       version = "~> 4.40"
@@ -33,3 +37,5 @@ provider "azurerm" {
   }
   partner_id = var.enable_telemetry ? "acce1e78-7dd1-4c7f-9b6b-37aa6ed60979" : null
 }
+
+provider "azuread" {}

@@ -1,14 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import type { Config } from '../src/config.ts';
+import type { IncomingTokenValidator } from '../src/auth.ts';
 
 const initialise = vi.fn();
 const checkHealth = vi.fn();
+const createConversation = vi.fn();
 
 vi.mock('../src/foundry-client.ts', () => ({
   FoundryClient: vi.fn().mockImplementation(() => ({
     initialise,
-    checkHealth
+    checkHealth,
+    createConversation
   }))
 }));
 
@@ -26,13 +29,24 @@ const baseConfig: Config = {
   crewInstructions: 'crew',
   applicationInsightsConnectionString: undefined,
   logLevel: 'fatal',
-  skipAuth: true
+  skipAuth: true,
+  inboundAuthTenantId: undefined,
+  inboundAuthAllowedAudiences: [],
+  inboundAuthAllowedCallerAppIds: [],
+  inboundAuthAuthorityHost: 'https://login.microsoftonline.com'
 };
 
 describe('buildApp', () => {
   beforeEach(() => {
     initialise.mockReset();
+    initialise.mockResolvedValue(undefined);
     checkHealth.mockReset();
+    createConversation.mockReset();
+    createConversation.mockResolvedValue({
+      id: 'conv-001',
+      createdAt: '2025-01-01T00:00:00.000Z',
+      updatedAt: '2025-01-01T00:00:00.000Z'
+    });
     process.env['AGENT_INIT_TIMEOUT_MS'] = '10';
     checkHealth.mockResolvedValue({
       status: 'degraded',
@@ -48,7 +62,7 @@ describe('buildApp', () => {
     initialise.mockImplementation(() => new Promise(() => {}));
 
     const app = (await Promise.race([
-      buildApp(baseConfig),
+      buildApp({ config: baseConfig }),
       new Promise<never>((_resolve, reject) => {
         setTimeout(() => reject(new Error('buildApp timed out')), 500);
       })
@@ -60,6 +74,81 @@ describe('buildApp', () => {
       status: 'degraded',
       checks: [{ name: 'azure-ai-foundry', status: 'unhealthy' }]
     });
+
+    await app.close();
+  });
+
+  it('rejects protected requests without a bearer token when auth is enabled', async () => {
+    const app = await buildApp({
+      config: {
+        ...baseConfig,
+        skipAuth: false,
+        inboundAuthTenantId: 'tenant-123',
+        inboundAuthAllowedAudiences: ['api://caira-agent']
+      },
+      incomingTokenValidator: { validateAccessToken: vi.fn() }
+    });
+
+    const response = await app.inject({ method: 'POST', url: '/conversations' });
+    expect(response.statusCode).toBe(401);
+    expect(response.json()).toEqual({
+      code: 'unauthorized',
+      message: 'Missing or invalid Authorization header'
+    });
+
+    await app.close();
+  });
+
+  it('rejects invalid bearer tokens when auth is enabled', async () => {
+    const incomingTokenValidator: IncomingTokenValidator = {
+      validateAccessToken: vi.fn().mockRejectedValue(new Error('bad token'))
+    };
+
+    const app = await buildApp({
+      config: {
+        ...baseConfig,
+        skipAuth: false,
+        inboundAuthTenantId: 'tenant-123',
+        inboundAuthAllowedAudiences: ['api://caira-agent']
+      },
+      incomingTokenValidator
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/conversations',
+      headers: { authorization: 'Bearer wrong-token' }
+    });
+    expect(response.statusCode).toBe(401);
+    expect(response.json()).toEqual({
+      code: 'unauthorized',
+      message: 'Invalid or unauthorized bearer token'
+    });
+
+    await app.close();
+  });
+
+  it('allows valid bearer tokens when auth is enabled', async () => {
+    const incomingTokenValidator: IncomingTokenValidator = {
+      validateAccessToken: vi.fn().mockResolvedValue(undefined)
+    };
+
+    const app = await buildApp({
+      config: {
+        ...baseConfig,
+        skipAuth: false,
+        inboundAuthTenantId: 'tenant-123',
+        inboundAuthAllowedAudiences: ['api://caira-agent']
+      },
+      incomingTokenValidator
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/conversations',
+      headers: { authorization: 'Bearer valid-token' }
+    });
+    expect(response.statusCode).toBe(201);
 
     await app.close();
   });

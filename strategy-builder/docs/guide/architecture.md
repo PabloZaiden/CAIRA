@@ -49,7 +49,7 @@ User message ──────▶  Captain Agent (sole talker)      │
                     │    ├── tool ──▶ shanty_specialist │──▶ LLM ──▶ resolve_shanty()
                     │    ├── tool ──▶ treasure_specialist│──▶ LLM ──▶ resolve_treasure()
                     │    ├── tool ──▶ crew_specialist   │──▶ LLM ──▶ resolve_crew()
-                    │    └── (can also respond directly as a pirate captain)
+                    │    └── (can also respond directly when no specialist call is needed)
                     └─────────────────────────────────┘
 ```
 
@@ -69,7 +69,7 @@ User message ──────▶  Triage Agent                     │
                     │    ├── handoff ──▶ Shanty         │──▶ LLM ──▶ resolve_shanty()
                     │    ├── handoff ──▶ Treasure       │──▶ LLM ──▶ resolve_treasure()
                     │    ├── handoff ──▶ Crew           │──▶ LLM ──▶ resolve_crew()
-                    │    └── (fallback: general pirate) │
+                    │    └── (fallback: general assistant) │
                     └─────────────────────────────────┘
 ```
 
@@ -78,9 +78,9 @@ User message ──────▶  Triage Agent                     │
 
 **Common to both variants:**
 
-- **Shanty agent** — boisterous shanty master who challenges the user to a lyrical verse duel at sea. All original content (no copyrighted IP).
-- **Treasure agent** — treasure hunting adventure with choices (caves, islands, ancient maps)
-- **Crew agent** — grizzled first mate who interviews the user and assigns a pirate rank/role
+- **Shanty agent** — opportunity discovery specialist in the fictional sales/account-team sample
+- **Treasure agent** — account planning specialist in the fictional sales/account-team sample
+- **Crew agent** — account-team staffing specialist in the fictional sales/account-team sample
 
 Each specialist agent has an **activity-specific resolution tool** (`resolve_shanty`, `resolve_treasure`, `resolve_crew`) with domain-specific parameters. When the activity reaches its natural conclusion, the agent calls its resolution tool, which emits an `activity.resolved` SSE event with structured outcome data.
 
@@ -88,9 +88,9 @@ Each specialist agent has an **activity-specific resolution tool** (`resolve_sha
 
 **Starting a new activity (business operation):**
 
-1. User picks an activity (Sea Shanty Battle / Treasure / Crew) in the **frontend** activity picker
+1. User picks an activity (Opportunity Discovery / Account Planning / Team Staffing) in the **frontend** activity picker
 1. Frontend calls the corresponding API business operation (e.g., `POST /api/pirate/shanty`)
-1. API container creates a conversation on the **agent container** (`POST /conversations`) and sends a synthetic first user message (e.g., "Sing me a shanty and let's have a verse duel!")
+1. API container creates a conversation on the **agent container** (`POST /conversations`) and sends a synthetic first user message aligned to the fictional sales/account-team scenario
 1. Agent container routes via its orchestration pattern (captain agent-tools for OpenAI, triage handoff for Foundry) to the specialist, generates an opening response
 1. API returns the conversation ID + opening response to the frontend
 
@@ -295,7 +295,7 @@ The agent variants implement the same API contract but use different Azure AI Fo
 | **API style**        | Agent CRUD + Responses API (stateless `POST /responses`)                                                           | Responses API (stateless `POST /responses`)                                                        | Responses API (stateless `POST /responses`)                        |
 | **State model**      | Client-side (conversation map in memory, chained via `previousResponseId`)                                         | Client-side (conversation map in memory, chained via `previousResponseId`)                         | Client-side (conversation map, `previousResponseId`)               |
 | **Conversation =**   | Map entry (client-managed)                                                                                         | Map entry (client-managed)                                                                         | Map entry (client-managed)                                         |
-| **Multi-agent**      | Triage agent + connected agents (`ToolUtility.createConnectedAgentTool`) + resolution FunctionTools -- server-side | Captain agent + agent-as-tool (`.asTool()`) + resolution FunctionTools -- client-side SDK run loop | Captain agent + specialist tools + resolution tools                |
+| **Multi-agent**      | Triage agent + connected agents (`ToolUtility.createConnectedAgentTool`) + resolution FunctionTools -- server-side | Captain agent + agent-as-tool (`.asTool()`) + resolution FunctionTools -- client-side SDK run loop | Mode-selected workflows with one specialist executor per mode      |
 | **Streaming events** | `response.output_text.delta`, `response.completed`                                                                 | `response.output_text.delta`, `response.completed`                                                 | `response.output_text.delta`, `response.completed`                 |
 | **Auth env var**     | `AZURE_AI_PROJECT_ENDPOINT`                                                                                        | `AZURE_OPENAI_ENDPOINT` (direct resource or APIM gateway root URL)                                 | `AZURE_OPENAI_ENDPOINT` (direct resource or APIM gateway root URL) |
 | **Token scope**      | Implicit via `AIProjectClient` + `getOpenAIClient()`                                                               | `https://cognitiveservices.azure.com/.default`                                                     | `https://cognitiveservices.azure.com/.default`                     |

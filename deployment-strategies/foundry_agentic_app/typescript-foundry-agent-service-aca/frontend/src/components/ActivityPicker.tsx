@@ -8,9 +8,9 @@ interface ActivityPickerProps {
 }
 
 const ACTIVITIES: { mode: AdventureMode; label: string; description: string }[] = [
-  { mode: 'shanty', label: 'Sea Shanty Battle', description: 'Trade verses in a lyrical duel' },
-  { mode: 'treasure', label: 'Seek Treasure', description: 'Hunt for buried pirate treasure' },
-  { mode: 'crew', label: 'Join the Crew', description: 'Interview for a pirate role' }
+  { mode: 'shanty', label: 'Opportunity Discovery', description: 'Qualify a new customer opportunity' },
+  { mode: 'treasure', label: 'Account Planning', description: 'Shape the next account-team engagement plan' },
+  { mode: 'crew', label: 'Team Staffing', description: 'Assign the right role and coverage plan' }
 ];
 
 export function ActivityPicker({ onStart, disabled = false, loadingMode = null }: ActivityPickerProps) {

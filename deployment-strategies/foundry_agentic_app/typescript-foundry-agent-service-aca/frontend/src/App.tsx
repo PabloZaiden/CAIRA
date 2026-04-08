@@ -59,7 +59,7 @@ export function App() {
   return (
     <div className='flex h-screen flex-col bg-zinc-950' data-testid='app'>
       <header className='flex items-center justify-between border-b border-zinc-800 bg-zinc-900 px-5 py-3'>
-        <h1 className='text-lg font-semibold tracking-wide text-zinc-100'>Agentic Pirates</h1>
+        <h1 className='text-lg font-semibold tracking-wide text-zinc-100'>Account Team Workspace</h1>
         <StreamToggle streaming={streaming} onChange={setStreaming} />
       </header>
       {adventureError && (
@@ -107,7 +107,7 @@ export function App() {
               className='flex flex-1 items-center justify-center p-10 text-center text-zinc-500 italic'
               data-testid='no-selection'
             >
-              Pick an activity from the sidebar to start your pirate adventure!
+              Pick an activity from the sidebar to start a sales/account-team scenario.
             </div>
           )}
         </main>

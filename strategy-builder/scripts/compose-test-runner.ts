@@ -89,12 +89,13 @@ export async function runComposeTests(options: ComposeTestOptions): Promise<Comp
   }
 
   // 0. Regenerate deployment strategies from components to ensure no drift
-  const repoRoot = resolve(import.meta.dirname ?? '.', '..');
+  const strategyBuilderRoot = resolve(import.meta.dirname ?? '.', '..');
+  const workspaceRoot = resolve(strategyBuilderRoot, '..');
   if (!options.skipRegenerate) {
     log('Regenerating deployment strategies from components...');
     const samplesDir = DEPLOYMENT_STRATEGIES_ROOT;
     try {
-      await generate({ repoRoot, samplesDir, clean: true });
+      await generate({ repoRoot: strategyBuilderRoot, samplesDir, clean: true });
       log('Deployment strategies regenerated successfully.');
     } catch (err) {
       return {
@@ -129,7 +130,7 @@ export async function runComposeTests(options: ComposeTestOptions): Promise<Comp
   }
 
   // Generate mock overlay for testing (skip when mockMode is explicitly false — L6 uses real Azure)
-  const overlayPath = options.mockMode === false ? null : await generateTestOverlay(strategyDir, repoRoot);
+  const overlayPath = options.mockMode === false ? null : await generateTestOverlay(strategyDir, workspaceRoot);
   const composeFiles = getComposeFiles(strategyDir, overlayPath);
 
   // Mock mode: explicit option > default to true when overlay is present
@@ -152,6 +153,15 @@ export async function runComposeTests(options: ComposeTestOptions): Promise<Comp
       ['compose', ...composeFiles, '-p', projectName, 'up', '-d', '--build'],
       { cwd: strategyDir, timeoutMs: 300_000 } // 5 min for build
     );
+
+    if (!upResult.success) {
+      return {
+        passed: false,
+        durationMs: Date.now() - start,
+        testOutput: upResult.stdout,
+        error: `Compose up failed (exit ${String(upResult.exitCode)}): ${upResult.stderr || 'no stderr output'}`
+      };
+    }
 
     if (upResult.stderr && !upResult.stderr.includes('Started') && !upResult.stderr.includes('Running')) {
       // Docker compose outputs progress to stderr, so only treat as error if it looks like one
@@ -222,6 +232,7 @@ export async function runComposeTests(options: ComposeTestOptions): Promise<Comp
       cwd: e2eDir,
       timeoutMs: 120_000,
       env: {
+        ...process.env,
         E2E_BASE_URL: effectiveBaseUrl,
         ...(mockMode ? { E2E_MOCK_MODE: 'true' } : {})
       }

@@ -3,7 +3,7 @@ import { useState } from 'react';
 interface MessageInputProps {
   readonly onSend: (message: string) => void;
   readonly disabled?: boolean | undefined;
-  /** When true, shows "Adventure complete" instead of the input. */
+  /** When true, shows "Activity complete" instead of the input. */
   readonly resolved?: boolean | undefined;
 }
 
@@ -31,7 +31,7 @@ export function MessageInput({ onSend, disabled = false, resolved = false }: Mes
         className='flex items-center justify-center border-t border-zinc-800 bg-zinc-900 px-5 py-4 text-sm text-zinc-500 italic'
         data-testid='message-input-resolved'
       >
-        Adventure complete
+        Activity complete
       </div>
     );
   }
@@ -47,7 +47,7 @@ export function MessageInput({ onSend, disabled = false, resolved = false }: Mes
         value={text}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder='Send a message to the captain...'
+        placeholder='Send a message to the specialist...'
         disabled={disabled}
         rows={2}
         data-testid='message-input-textarea'

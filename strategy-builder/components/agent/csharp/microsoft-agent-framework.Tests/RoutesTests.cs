@@ -33,6 +33,21 @@ namespace CairaAgent.Tests;
 
 public class RoutesTests : IDisposable
 {
+    private sealed class FakeIncomingTokenValidator : IIncomingTokenValidator
+    {
+        public string AllowedToken { get; init; } = "test-token";
+
+        public Task ValidateAccessTokenAsync(string token, CancellationToken cancellationToken = default)
+        {
+            if (!string.Equals(token, AllowedToken, StringComparison.Ordinal))
+            {
+                throw new UnauthorizedTokenException("bad token");
+            }
+
+            return Task.CompletedTask;
+        }
+    }
+
     private readonly Mock<ConversationStore> _mockStore;
     private readonly Mock<WorkflowRunner> _mockRunner;
     private readonly HttpClient _httpClient;
@@ -52,7 +67,7 @@ public class RoutesTests : IDisposable
 
         var app = builder.Build();
         var config = CreateTestConfig();
-        Routes.MapRoutes(app, _mockStore.Object, _mockRunner.Object, config);
+        Routes.MapRoutes(app, _mockStore.Object, _mockRunner.Object, config, new NoOpIncomingTokenValidator());
         app.StartAsync().GetAwaiter().GetResult();
 
         _app = app;
@@ -427,12 +442,15 @@ public class RoutesTests : IDisposable
     /// Helper to create a separate app with auth enabled (SkipAuth = false).
     /// Used by auth tests that need different config from the default test fixture.
     /// </summary>
-    private static (WebApplication app, HttpClient client, Mock<ConversationStore> store, Mock<WorkflowRunner> runner) CreateAuthApp()
+    private static (WebApplication app, HttpClient client, Mock<ConversationStore> store, Mock<WorkflowRunner> runner) CreateAuthApp(
+        IIncomingTokenValidator? incomingTokenValidator = null)
     {
         var config = new AgentConfig
         {
             AzureEndpoint = "https://test.openai.azure.com",
             SkipAuth = false,
+            InboundAuthTenantId = "tenant-123",
+            InboundAuthAllowedAudiences = ["api://caira-agent"],
         };
         var mockStore = new Mock<ConversationStore>();
         var mockRunner = CreateMockRunner();
@@ -444,7 +462,7 @@ public class RoutesTests : IDisposable
         builder.WebHost.UseTestServer();
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
         var app = builder.Build();
-        Routes.MapRoutes(app, mockStore.Object, mockRunner.Object, config);
+        Routes.MapRoutes(app, mockStore.Object, mockRunner.Object, config, incomingTokenValidator ?? new FakeIncomingTokenValidator());
         app.StartAsync().GetAwaiter().GetResult();
 
         return (app, app.GetTestClient(), mockStore, mockRunner);
@@ -500,6 +518,27 @@ public class RoutesTests : IDisposable
             request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "test-token");
             var response = await client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        }
+        finally
+        {
+            await app.StopAsync();
+            await app.DisposeAsync();
+        }
+    }
+
+    [Fact]
+    public async Task Auth_Returns401WhenBearerTokenIsInvalid()
+    {
+        var (app, client, _, _) = CreateAuthApp(new FakeIncomingTokenValidator { AllowedToken = "expected-token" });
+        try
+        {
+            var request = new HttpRequestMessage(HttpMethod.Post, "/conversations");
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "wrong-token");
+            var response = await client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+            Assert.Equal("unauthorized", body.GetProperty("code").GetString());
+            Assert.Equal("Invalid or unauthorized bearer token", body.GetProperty("message").GetString());
         }
         finally
         {

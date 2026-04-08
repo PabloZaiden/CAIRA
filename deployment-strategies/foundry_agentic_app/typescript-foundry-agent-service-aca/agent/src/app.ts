@@ -8,10 +8,11 @@
 
 import Fastify from 'fastify';
 import type { FastifyInstance } from 'fastify';
+import { createIncomingTokenValidator, extractBearerToken } from './auth.ts';
+import type { IncomingTokenValidator } from './auth.ts';
 import { FoundryClient } from './foundry-client.ts';
 import type { Config } from './config.ts';
 import { registerRoutes } from './routes.ts';
-import type { ErrorResponse } from './types.ts';
 import { extractTraceContext, setupTelemetry } from './telemetry.ts';
 
 const DEFAULT_CLIENT_INITIALISATION_TIMEOUT_MS = 60_000;
@@ -67,7 +68,13 @@ async function initialiseFoundryClientWithTimeout(
   }
 }
 
-export async function buildApp(config: Config): Promise<FastifyInstance> {
+export interface BuildAppOptions {
+  readonly config: Config;
+  readonly incomingTokenValidator?: IncomingTokenValidator | undefined;
+}
+
+export async function buildApp(options: BuildAppOptions): Promise<FastifyInstance> {
+  const { config } = options;
   setupTelemetry(config.applicationInsightsConnectionString, 'caira-agent-foundry');
 
   const app = Fastify({
@@ -76,28 +83,40 @@ export async function buildApp(config: Config): Promise<FastifyInstance> {
     }
   });
 
-  // ---- Auth hook ----
-  // The agent container receives bearer tokens from the API container.
-  // When SKIP_AUTH=true (local dev / tests), we skip validation entirely.
   if (!config.skipAuth) {
+    const incomingTokenValidator =
+      options.incomingTokenValidator ??
+      createIncomingTokenValidator({
+        tenantId: config.inboundAuthTenantId ?? '',
+        authorityHost: config.inboundAuthAuthorityHost,
+        allowedAudiences: config.inboundAuthAllowedAudiences,
+        allowedCallerAppIds: config.inboundAuthAllowedCallerAppIds
+      });
+
     app.addHook('onRequest', async (request, reply) => {
       const extracted = extractTraceContext(request.headers as Record<string, string | string[] | undefined>);
       void extracted;
-      // Health, metrics, and identity endpoints are public
-      if (request.url === '/health' || request.url === '/metrics' || request.url === '/identity') {
+      const path = request.url.split('?', 1)[0];
+      if (path === '/health' || path === '/metrics' || path === '/identity') {
         return;
       }
 
-      const authHeader = request.headers['authorization'];
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        const body: ErrorResponse = {
+      const bearerToken = extractBearerToken(request.headers['authorization']);
+      if (!bearerToken) {
+        return reply.status(401).send({
           code: 'unauthorized',
           message: 'Missing or invalid Authorization header'
-        };
-        await reply.status(401).send(body);
+        });
       }
-      // In production, we'd validate the JWT token here.
-      // For now, we just check that a bearer token is present.
+
+      try {
+        await incomingTokenValidator.validateAccessToken(bearerToken);
+      } catch {
+        return reply.status(401).send({
+          code: 'unauthorized',
+          message: 'Invalid or unauthorized bearer token'
+        });
+      }
     });
   }
 

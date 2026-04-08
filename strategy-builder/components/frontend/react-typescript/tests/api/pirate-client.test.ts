@@ -53,7 +53,8 @@ const ADVENTURE_STARTED: AdventureStarted = {
   id: 'adv-new',
   mode: 'shanty',
   status: 'active',
-  syntheticMessage: 'Sing me a sea shanty and challenge me to a verse duel!',
+  syntheticMessage:
+    'I am qualifying a new customer opportunity. Lead a short discovery conversation, ask targeted questions, and conclude with a concise qualification summary.',
   createdAt: '2026-01-01T00:00:00Z'
 };
 

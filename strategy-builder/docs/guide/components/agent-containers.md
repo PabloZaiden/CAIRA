@@ -4,7 +4,7 @@ The agent layer has three interchangeable implementations. All conform to the sa
 
 ## Common architecture
 
-Both variants share the same file structure and architectural pattern:
+All three variants share the same high-level contract and a similar file layout:
 
 ```text
 components/agent/typescript/<variant>/
@@ -30,12 +30,22 @@ components/agent/typescript/<variant>/
 
 - **`app.ts` is the testable unit.** It creates a Fastify instance without starting a listener, so tests can inject it directly via `app.inject()`.
 - **SDK client is injectable.** The `buildApp()` function accepts override options for the SDK client, allowing tests to inject mocks.
-- **Auth hook is conditional.** When `SKIP_AUTH=true`, bearer token validation is skipped. In production, requests without a non-empty `Authorization: Bearer <token>` header are rejected with 401.
+- **Auth hook is conditional.** When `SKIP_AUTH=true`, inbound validation is bypassed for local mock/dev flows. Otherwise the containers validate Entra-issued bearer tokens for issuer, audience, expiry, and optional caller application IDs.
 - **No build step.** Runs directly via `node src/server.ts`.
+
+### Sample domain
+
+The current sample domain is a fictional **sales / account-team** scenario with three activities:
+
+- `shanty` -> opportunity discovery / qualification
+- `treasure` -> account planning / engagement
+- `crew` -> account-team staffing
+
+Those internal mode IDs remain in the HTTP contract for compatibility, but the user-facing prompts and UX are being reframed around the business scenario.
 
 ### Multi-agent architecture
 
-The two agent variants use **different orchestration patterns** to coordinate three specialist agents:
+The implementations use **different orchestration patterns** to coordinate the three specialists:
 
 **OpenAI Agent SDK — Captain + Agent-as-Tool:**
 
@@ -48,37 +58,44 @@ The two agent variants use **different orchestration patterns** to coordinate th
 
 - **Triage agent** — receives every message, examines conversation context, and hands off to the appropriate specialist via connected agent tools.
 - **Re-triage every turn:** Each message starts with the triage agent (not sticky routing). The triage agent sees the full conversation history and decides which specialist should handle the response.
-- **Fallback** — if triage can't match an activity, responds as a general helpful pirate.
+- **Fallback** — if triage can't match an activity, responds as a general assistant within the fictional sample domain.
 
-**Common to both variants:**
+**Microsoft Agent Framework — Workflow per mode:**
 
-- **Shanty agent** — boisterous shanty master who challenges the user to lyrical verse duels at sea. All original content (no copyrighted IP).
-- **Treasure agent** — treasure hunting adventure with choices (caves, islands, ancient maps)
-- **Crew agent** — grizzled first mate who interviews the user and assigns a pirate rank/role
+- **No captain or triage runtime agent.** The C# implementation does not currently create a conversational captain and does not re-triage every turn.
+- **Mode is selected from conversation metadata.** The workflow runner chooses one prebuilt workflow per mode (`shanty`, `treasure`, `crew`) when the conversation is created or resumed.
+- **Each workflow has one specialist executor.** The specialist talks directly to the user, uses local knowledge and resolution tools, and resumes through workflow checkpoints across turns.
+- **Shared instructions are still applied.** `CAPTAIN_INSTRUCTIONS` exists as a shared instruction block for consistency with the other variants, but it is not a separate orchestration agent in the C# runtime.
+
+**Common to all variants:**
+
+- **Shanty agent** — opportunity discovery specialist
+- **Treasure agent** — account planning specialist
+- **Crew agent** — account-team staffing specialist
 
 ### Resolution tools
 
 Each specialist agent defines an **activity-specific resolution tool** with domain-specific parameters:
 
-| Activity          | Tool               | Parameters                                                                 |
-|-------------------|--------------------|----------------------------------------------------------------------------|
-| Sea Shanty Battle | `resolve_shanty`   | `winner: "user"\|"pirate"\|"draw"`, `rounds: number`, `best_verse: string` |
-| Treasure Hunt     | `resolve_treasure` | `found: boolean`, `treasure_name: string`, `location: string`              |
-| Join the Crew     | `resolve_crew`     | `rank: string`, `role: string`, `ship_name: string`                        |
+| Activity              | Tool               | Parameters                                                                 |
+|-----------------------|--------------------|----------------------------------------------------------------------------|
+| Opportunity discovery | `resolve_shanty`   | `winner: "user"\|"pirate"\|"draw"`, `rounds: number`, `best_verse: string` |
+| Account planning      | `resolve_treasure` | `found: boolean`, `treasure_name: string`, `location: string`              |
+| Account-team staffing | `resolve_crew`     | `rank: string`, `role: string`, `ship_name: string`                        |
 
 When a specialist determines an activity is complete, it calls its resolution tool. The local handler captures the structured result and the streaming layer emits an `activity.resolved` SSE event. Conversations remain open after resolution.
 
 **How multi-agent works per framework:**
 
-| Aspect                  | OpenAI Agent SDK                                                  | Foundry Agent Service                                     |
-|-------------------------|-------------------------------------------------------------------|-----------------------------------------------------------|
-| **Orchestration agent** | Captain agent (single conversational agent)                       | Triage agent (silent router)                              |
-| **Mechanism**           | Agent-as-tool (`.asTool()`) + resolution FunctionTools            | Connected agents (`ToolUtility.createConnectedAgentTool`) |
-| **Orchestration**       | Client-side (SDK run loop invokes specialist tools transparently) | Server-side (Azure AI Foundry handles delegation)         |
-| **Streaming**           | Emits `tool.called`/`tool.done` SSE events for specialist tools   | Completes normally after server-side orchestration        |
-| **Client code impact**  | None — existing `sendMessageStream()` works unchanged             | None — run just takes longer and completes normally       |
+| Aspect                  | OpenAI Agent SDK                                                  | Foundry Agent Service                                     | Microsoft Agent Framework                                             |
+|-------------------------|-------------------------------------------------------------------|-----------------------------------------------------------|-----------------------------------------------------------------------|
+| **Orchestration agent** | Captain agent (single conversational agent)                       | Triage agent (silent router)                              | None; one workflow is selected per mode                               |
+| **Mechanism**           | Agent-as-tool (`.asTool()`) + resolution FunctionTools            | Connected agents (`ToolUtility.createConnectedAgentTool`) | One specialist executor + local tools inside a per-mode workflow      |
+| **Orchestration**       | Client-side (SDK run loop invokes specialist tools transparently) | Server-side (Azure AI Foundry handles delegation)         | Server-side workflow runner resumes the selected mode-specific graph  |
+| **Streaming**           | Emits `tool.called`/`tool.done` SSE events for specialist tools   | Completes normally after server-side orchestration        | Streams specialist output and workflow events from the selected graph |
+| **Client code impact**  | None — existing `sendMessageStream()` works unchanged             | None — run just takes longer and completes normally       | None — same HTTP contract, but routing is metadata-driven per mode    |
 
-**Prompt configuration:** Each specialist agent has its own system prompt. Prompts are hardcoded defaults in each variant, overridable via environment variables (see configuration tables below).
+**Prompt configuration:** Each specialist agent has its own system prompt. Prompts are hardcoded defaults in each variant, overridable via environment variables (see configuration tables below). In the C# variant, the shared `CAPTAIN_INSTRUCTIONS` block is prepended to each specialist prompt; it does not instantiate a separate captain runtime agent.
 
 ### Endpoints
 
@@ -124,19 +141,23 @@ The Foundry variant uses `@azure/ai-projects` v2 SDK for agent management and th
 
 ### Configuration
 
-| Variable                    | Required | Default              | Description                            |
-|-----------------------------|----------|----------------------|----------------------------------------|
-| `AZURE_AI_PROJECT_ENDPOINT` | Yes      | --                   | Azure AI Foundry project endpoint      |
-| `PORT`                      | No       | `3000`               | Server port                            |
-| `HOST`                      | No       | `0.0.0.0`            | Server host                            |
-| `AGENT_MODEL`               | No       | `gpt-5.2-chat`       | Model deployment name                  |
-| `AGENT_NAME`                | No       | `caira-pirate-agent` | Agent display name                     |
-| `TRIAGE_INSTRUCTIONS`       | No       | (built-in)           | System prompt for captain/triage agent |
-| `SHANTY_INSTRUCTIONS`       | No       | (built-in)           | System prompt for shanty battle agent  |
-| `TREASURE_INSTRUCTIONS`     | No       | (built-in)           | System prompt for treasure hunt agent  |
-| `CREW_INSTRUCTIONS`         | No       | (built-in)           | System prompt for crew interview agent |
-| `LOG_LEVEL`                 | No       | `info`               | Pino log level                         |
-| `SKIP_AUTH`                 | No       | `false`              | Skip bearer token validation           |
+| Variable                              | Required               | Default                             | Description                               |
+|---------------------------------------|------------------------|-------------------------------------|-------------------------------------------|
+| `AZURE_AI_PROJECT_ENDPOINT`           | Yes                    | --                                  | Azure AI Foundry project endpoint         |
+| `PORT`                                | No                     | `3000`                              | Server port                               |
+| `HOST`                                | No                     | `0.0.0.0`                           | Server host                               |
+| `AGENT_MODEL`                         | No                     | `gpt-5.2-chat`                      | Model deployment name                     |
+| `AGENT_NAME`                          | No                     | `caira-account-team-agent`          | Agent display name                        |
+| `TRIAGE_INSTRUCTIONS`                 | No                     | (built-in)                          | Shared system prompt for the triage agent |
+| `SHANTY_INSTRUCTIONS`                 | No                     | (built-in)                          | Opportunity discovery specialist prompt   |
+| `TREASURE_INSTRUCTIONS`               | No                     | (built-in)                          | Account planning specialist prompt        |
+| `CREW_INSTRUCTIONS`                   | No                     | (built-in)                          | Account-team staffing specialist prompt   |
+| `LOG_LEVEL`                           | No                     | `info`                              | Pino log level                            |
+| `SKIP_AUTH`                           | No                     | `false`                             | Skip bearer token validation              |
+| `INBOUND_AUTH_TENANT_ID`              | When `SKIP_AUTH=false` | --                                  | Entra tenant used to derive valid issuers |
+| `INBOUND_AUTH_ALLOWED_AUDIENCES`      | When `SKIP_AUTH=false` | --                                  | Comma-separated accepted audiences        |
+| `INBOUND_AUTH_ALLOWED_CALLER_APP_IDS` | No                     | --                                  | Optional caller application allowlist     |
+| `INBOUND_AUTH_AUTHORITY_HOST`         | No                     | `https://login.microsoftonline.com` | Authority host override                   |
 
 ### Dependencies
 
@@ -175,20 +196,24 @@ The OpenAI variant uses **client-side state** with the Responses API:
 
 ### Configuration
 
-| Variable                   | Required | Default              | Description                                        |
-|----------------------------|----------|----------------------|----------------------------------------------------|
-| `AZURE_OPENAI_ENDPOINT`    | Yes      | --                   | Azure OpenAI endpoint URL or APIM gateway root URL |
-| `PORT`                     | No       | `3000`               | Server port                                        |
-| `HOST`                     | No       | `0.0.0.0`            | Server host                                        |
-| `AZURE_OPENAI_API_VERSION` | No       | `2025-03-01-preview` | API version                                        |
-| `AGENT_MODEL`              | No       | `gpt-5.2-chat`       | Model deployment name                              |
-| `AGENT_NAME`               | No       | `CAIRA Pirate Agent` | Agent display name                                 |
-| `CAPTAIN_INSTRUCTIONS`     | No       | (built-in)           | System prompt for captain agent                    |
-| `SHANTY_INSTRUCTIONS`      | No       | (built-in)           | System prompt for shanty battle agent              |
-| `TREASURE_INSTRUCTIONS`    | No       | (built-in)           | System prompt for treasure hunt agent              |
-| `CREW_INSTRUCTIONS`        | No       | (built-in)           | System prompt for crew interview agent             |
-| `LOG_LEVEL`                | No       | `info`               | Pino log level                                     |
-| `SKIP_AUTH`                | No       | `false`              | Skip bearer token validation                       |
+| Variable                              | Required               | Default                             | Description                                        |
+|---------------------------------------|------------------------|-------------------------------------|----------------------------------------------------|
+| `AZURE_OPENAI_ENDPOINT`               | Yes                    | --                                  | Azure OpenAI endpoint URL or APIM gateway root URL |
+| `PORT`                                | No                     | `3000`                              | Server port                                        |
+| `HOST`                                | No                     | `0.0.0.0`                           | Server host                                        |
+| `AZURE_OPENAI_API_VERSION`            | No                     | `2025-03-01-preview`                | API version                                        |
+| `AGENT_MODEL`                         | No                     | `gpt-5.2-chat`                      | Model deployment name                              |
+| `AGENT_NAME`                          | No                     | `CAIRA Account Team Agent`          | Agent display name                                 |
+| `CAPTAIN_INSTRUCTIONS`                | No                     | (built-in)                          | Shared system prompt for the captain agent         |
+| `SHANTY_INSTRUCTIONS`                 | No                     | (built-in)                          | Opportunity discovery specialist prompt            |
+| `TREASURE_INSTRUCTIONS`               | No                     | (built-in)                          | Account planning specialist prompt                 |
+| `CREW_INSTRUCTIONS`                   | No                     | (built-in)                          | Account-team staffing specialist prompt            |
+| `LOG_LEVEL`                           | No                     | `info`                              | Pino log level                                     |
+| `SKIP_AUTH`                           | No                     | `false`                             | Skip bearer token validation                       |
+| `INBOUND_AUTH_TENANT_ID`              | When `SKIP_AUTH=false` | --                                  | Entra tenant used to derive valid issuers          |
+| `INBOUND_AUTH_ALLOWED_AUDIENCES`      | When `SKIP_AUTH=false` | --                                  | Comma-separated accepted audiences                 |
+| `INBOUND_AUTH_ALLOWED_CALLER_APP_IDS` | No                     | --                                  | Optional caller application allowlist              |
+| `INBOUND_AUTH_AUTHORITY_HOST`         | No                     | `https://login.microsoftonline.com` | Authority host override                            |
 
 ### Dependencies
 
@@ -214,33 +239,39 @@ npm install && npm run test
 
 **Directory:** `components/agent/csharp/microsoft-agent-framework/`
 **SDK:** `Microsoft.Agents.AI.OpenAI` + `Azure.AI.OpenAI`
-**API style:** Responses API (captain + agent-as-tool, same pattern as OpenAI Agent SDK)
+**API style:** Responses API with metadata-driven workflow selection
 
 ### How it works
 
-The C# variant uses the **Microsoft Agent Framework** (`Microsoft.Agents.AI.OpenAI`) with the Responses API, following the same captain + agent-as-tool pattern as the OpenAI Agent SDK variant:
+The C# variant uses the **Microsoft Agent Framework** (`Microsoft.Agents.AI.OpenAI`) with **one workflow per activity mode**, not the same captain/triage orchestration used by the TypeScript variants:
 
-1. **Initialization:** Creates an `AzureOpenAIClient` with `DefaultAzureCredential`, wraps it in the Microsoft Agent Framework's `OpenAIChatClient` for each agent (captain + 3 specialists).
+1. **Initialization:** Creates an `AzureOpenAIClient` with `DefaultAzureCredential`, then builds three specialist executors and binds each one into its own workflow.
 1. **Create conversation:** Generates a local ID and creates a conversation record in memory. No server call.
-1. **Send message:** Invokes the captain agent with conversation history. The captain calls specialist agent-tools and resolution tools via a manual tool-call loop. For streaming, emits SSE events as chunks arrive.
+1. **Send message:** Reads the conversation's `metadata.mode`, resumes the matching workflow, and lets that specialist call local knowledge and resolution tools. For streaming, emits SSE events as chunks and workflow events arrive.
 1. **List/get conversations:** From a local `ConcurrentDictionary`.
+
+This makes the C# variant conceptually similar to the others at the **HTTP contract** and **specialist/tool** layers, but not identical at the orchestration layer.
 
 ### Configuration
 
-| Variable                   | Required | Default              | Description                                        |
-|----------------------------|----------|----------------------|----------------------------------------------------|
-| `AZURE_OPENAI_ENDPOINT`    | Yes      | --                   | Azure OpenAI endpoint URL or APIM gateway root URL |
-| `PORT`                     | No       | `3000`               | Server port                                        |
-| `HOST`                     | No       | `0.0.0.0`            | Server host                                        |
-| `AZURE_OPENAI_API_VERSION` | No       | `2025-03-01-preview` | API version                                        |
-| `AGENT_MODEL`              | No       | `gpt-5.2-chat`       | Model deployment name                              |
-| `AGENT_NAME`               | No       | `CAIRA Pirate Agent` | Agent display name                                 |
-| `CAPTAIN_INSTRUCTIONS`     | No       | (built-in)           | System prompt for captain agent                    |
-| `SHANTY_INSTRUCTIONS`      | No       | (built-in)           | Shanty battle specialist prompt                    |
-| `TREASURE_INSTRUCTIONS`    | No       | (built-in)           | Treasure hunt specialist prompt                    |
-| `CREW_INSTRUCTIONS`        | No       | (built-in)           | Crew interview specialist prompt                   |
-| `LOG_LEVEL`                | No       | `Debug`              | ASP.NET log level                                  |
-| `SKIP_AUTH`                | No       | `false`              | Skip bearer token validation                       |
+| Variable                              | Required               | Default                             | Description                                        |
+|---------------------------------------|------------------------|-------------------------------------|----------------------------------------------------|
+| `AZURE_OPENAI_ENDPOINT`               | Yes                    | --                                  | Azure OpenAI endpoint URL or APIM gateway root URL |
+| `PORT`                                | No                     | `3000`                              | Server port                                        |
+| `HOST`                                | No                     | `0.0.0.0`                           | Server host                                        |
+| `AZURE_OPENAI_API_VERSION`            | No                     | `2025-03-01-preview`                | API version                                        |
+| `AGENT_MODEL`                         | No                     | `gpt-5.2-chat`                      | Model deployment name                              |
+| `AGENT_NAME`                          | No                     | `CAIRA Account Team Agent`          | Agent display name                                 |
+| `CAPTAIN_INSTRUCTIONS`                | No                     | (built-in)                          | Shared instruction block prepended to specialists  |
+| `SHANTY_INSTRUCTIONS`                 | No                     | (built-in)                          | Opportunity discovery specialist prompt            |
+| `TREASURE_INSTRUCTIONS`               | No                     | (built-in)                          | Account planning specialist prompt                 |
+| `CREW_INSTRUCTIONS`                   | No                     | (built-in)                          | Account-team staffing specialist prompt            |
+| `LOG_LEVEL`                           | No                     | `Debug`                             | ASP.NET log level                                  |
+| `SKIP_AUTH`                           | No                     | `false`                             | Skip bearer token validation                       |
+| `INBOUND_AUTH_TENANT_ID`              | When `SKIP_AUTH=false` | --                                  | Entra tenant used to derive valid issuers          |
+| `INBOUND_AUTH_ALLOWED_AUDIENCES`      | When `SKIP_AUTH=false` | --                                  | Comma-separated accepted audiences                 |
+| `INBOUND_AUTH_ALLOWED_CALLER_APP_IDS` | No                     | --                                  | Optional caller application allowlist              |
+| `INBOUND_AUTH_AUTHORITY_HOST`         | No                     | `https://login.microsoftonline.com` | Authority host override                            |
 
 ### Dependencies
 

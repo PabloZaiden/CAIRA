@@ -50,7 +50,7 @@ Treat capability-host connectivity, private networking, and extra projects as ad
 
 Do not include `testing_overlay.tf`, `testing_variables.tf`, `testing_outputs.tf`, or related internal validation assets in the recommended architecture scope unless the user explicitly asks for testing or validation infrastructure.
 
-Do not treat pirate-domain sample content as reusable business logic. Only reuse the architecture, composition, deployment, and observability patterns.
+Do not treat CAIRA sample-domain prompts, labels, or fictional business content as reusable business logic. Only reuse the architecture, composition, deployment, and observability patterns.
 
 When recommending a subset of CAIRA, explain which slices are included and which are intentionally excluded so the user does not import extra components they do not need.
 

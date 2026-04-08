@@ -10,9 +10,11 @@
 
 import Fastify from 'fastify';
 import type { FastifyInstance } from 'fastify';
-import { DefaultAzureCredential } from '@azure/identity';
 import { AgentClient } from './agent-client.ts';
 import type { AgentClientOptions } from './agent-client.ts';
+import { createIncomingTokenValidator, extractBearerToken } from './auth.ts';
+import { createAzureCredential } from './azure-credential.ts';
+import type { IncomingTokenValidator } from './auth.ts';
 import type { Config } from './config.ts';
 import { registerRoutes } from './routes.ts';
 import { extractTraceContext, setupTelemetry } from './telemetry.ts';
@@ -22,6 +24,8 @@ export interface BuildAppOptions {
   readonly config: Config;
   /** Override agent client options (for testing) */
   readonly agentClientOptions?: Partial<AgentClientOptions> | undefined;
+  /** Override inbound token validation (for testing) */
+  readonly incomingTokenValidator?: IncomingTokenValidator | undefined;
 }
 
 export async function buildApp(options: BuildAppOptions): Promise<FastifyInstance> {
@@ -36,6 +40,15 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   });
 
   if (!config.skipAuth) {
+    const incomingTokenValidator =
+      options.incomingTokenValidator ??
+      createIncomingTokenValidator({
+        tenantId: config.inboundAuthTenantId ?? '',
+        authorityHost: config.inboundAuthAuthorityHost,
+        allowedAudiences: config.inboundAuthAllowedAudiences,
+        allowedCallerAppIds: config.inboundAuthAllowedCallerAppIds
+      });
+
     app.addHook('onRequest', async (request, reply) => {
       const extracted = extractTraceContext(request.headers as Record<string, string | string[] | undefined>);
       void extracted;
@@ -44,15 +57,20 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
         return;
       }
 
-      const authHeader = request.headers['authorization'];
-      if (
-        typeof authHeader !== 'string' ||
-        !authHeader.startsWith('Bearer ') ||
-        authHeader.length <= 'Bearer '.length
-      ) {
+      const bearerToken = extractBearerToken(request.headers['authorization']);
+      if (!bearerToken) {
         return reply.status(401).send({
           code: 'unauthorized',
           message: 'Missing or invalid Authorization header'
+        });
+      }
+
+      try {
+        await incomingTokenValidator.validateAccessToken(bearerToken);
+      } catch {
+        return reply.status(401).send({
+          code: 'unauthorized',
+          message: 'Invalid or unauthorized bearer token'
         });
       }
     });
@@ -67,15 +85,18 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     ...options.agentClientOptions
   };
 
-  // If not skipping auth and no custom getToken, use DefaultAzureCredential
+  // If not skipping auth and no custom getToken, use the runtime-appropriate Azure credential.
   if (!agentClientOpts.skipAuth && !agentClientOpts.getToken && agentClientOpts.tokenScope) {
-    const credential = new DefaultAzureCredential();
+    const credential = createAzureCredential();
     const scope = agentClientOpts.tokenScope;
 
     const clientWithToken: AgentClientOptions = {
       ...agentClientOpts,
       getToken: async () => {
         const tokenResponse = await credential.getToken(scope);
+        if (!tokenResponse) {
+          throw new Error(`Failed to acquire Azure access token for scope ${scope}`);
+        }
         return tokenResponse.token;
       }
     };

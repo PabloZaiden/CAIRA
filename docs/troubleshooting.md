@@ -86,12 +86,30 @@ For detailed troubleshooting of specific issues, see the sections below.
 - Verify that your Azure account has the necessary roles to create and manage resources within the target subscription. Typically, you should have at least the "Contributor" and "User Access Administrator" roles assigned at the subscription or resource group level.
 
 - Check that your Terraform service principal (if using one) also has the required permissions.
+- For the hardened CAIRA deployment strategies, also confirm that the deployment identity has the necessary **tenant-side Entra permissions** to:
+  - create application registrations
+  - create service principals for those applications
+  - create the frontend -> API and API -> agent app-role assignments
 
 - You can use the following command to check your role assignments:
 
     ```shell
     az role assignment list --assignee "<your_assignee>"
     ```
+
+- If Terraform fails with `403 Authorization_RequestDenied` while creating `azuread_service_principal` or `azuread_app_role_assignment`, the blocker is usually Entra directory permission rather than Azure subscription RBAC.
+
+### 3a. Azure deployment reaches ACA but `/api/health/deep` fails with `AADSTS500011`
+
+**Issue:** The Azure deployment creates or updates the Container Apps, but the frontend cannot acquire a token for the API audience and `/api/health/deep` returns an `AADSTS500011` / `invalid_resource` error.
+
+**Cause:** The API or agent application registration exists, but the corresponding **service principal** was never created in the tenant. This often happens when the deployment identity can create app registrations but lacks permission to create service principals or app-role assignments.
+
+**Solution:**
+
+- Re-run the deployment using an identity that can complete the Entra Graph operations required by the Terraform `azuread` resources.
+- Confirm that the failed apply did not stop at `azuread_service_principal` or `azuread_app_role_assignment`.
+- After the service principal exists, re-run the strategy deployment or image rollout so the frontend and API can request tokens for the intended `api://<client-id>` audiences.
 
 ### 4. Incorrect Environment Setup
 

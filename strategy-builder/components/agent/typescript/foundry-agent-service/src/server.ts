@@ -17,7 +17,7 @@ async function main(): Promise<void> {
   process.env['AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED'] = 'true';
 
   const config = loadConfig();
-  const app = await buildApp(config);
+  const app = await buildApp({ config });
 
   // Graceful shutdown
   const shutdown = async (signal: string): Promise<void> => {

@@ -28,7 +28,8 @@ public static class Routes
         WebApplication app,
         ConversationStore store,
         WorkflowRunner runner,
-        AgentConfig config)
+        AgentConfig config,
+        IIncomingTokenValidator incomingTokenValidator)
     {
         // Track all requests
         app.Use(async (context, next) =>
@@ -50,14 +51,26 @@ public static class Routes
                 }
 
                 var authHeader = context.Request.Headers.Authorization.ToString();
-                if (string.IsNullOrWhiteSpace(authHeader) ||
-                    !authHeader.StartsWith("Bearer ") ||
-                    authHeader.Length <= "Bearer ".Length)
+                var token = AuthHelpers.ExtractBearerToken(authHeader);
+                if (string.IsNullOrWhiteSpace(token))
                 {
                     Interlocked.Increment(ref _errorsTotal);
                     context.Response.StatusCode = 401;
                     await context.Response.WriteAsJsonAsync(
                         new ErrorResponse("unauthorized", "Missing or invalid Authorization header"));
+                    return;
+                }
+
+                try
+                {
+                    await incomingTokenValidator.ValidateAccessTokenAsync(token, context.RequestAborted);
+                }
+                catch
+                {
+                    Interlocked.Increment(ref _errorsTotal);
+                    context.Response.StatusCode = 401;
+                    await context.Response.WriteAsJsonAsync(
+                        new ErrorResponse("unauthorized", "Invalid or unauthorized bearer token"));
                     return;
                 }
 

@@ -13,8 +13,8 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { OpenAIClient } from './openai-client.ts';
 import type { ErrorResponse } from './types.ts';
-import { DefaultAzureCredential } from '@azure/identity';
 import { randomUUID } from 'node:crypto';
+import { createAzureCredential } from './azure-credential.ts';
 
 // ---------- Trace ID helper ----------
 
@@ -108,7 +108,7 @@ export function registerRoutes(app: FastifyInstance, openaiClient: OpenAIClient)
   (app as unknown as Record<symbol, Metrics>)[METRICS_KEY] = metrics;
 
   // Reuse a single credential for the /identity endpoint (T10)
-  const sharedCredential = new DefaultAzureCredential();
+  const sharedCredential = createAzureCredential();
 
   // Track all requests
   app.addHook('onRequest', async () => {
@@ -293,13 +293,17 @@ export function registerRoutes(app: FastifyInstance, openaiClient: OpenAIClient)
 
   // ---- GET /identity ----
   // Diagnostic endpoint — always attempts real credential validation regardless
-  // of SKIP_AUTH. Works with any credential source that DefaultAzureCredential
+  // of SKIP_AUTH. Works with any credential source that the runtime-selected
+  // Azure credential can use.
   // supports: az CLI, managed identity, environment variables, etc.
   app.get('/identity', async (req, reply) => {
     try {
       const tokenResponse = await sharedCredential.getToken('https://management.azure.com/.default', {
         abortSignal: AbortSignal.timeout(5000)
       });
+      if (!tokenResponse) {
+        throw new Error('Failed to acquire Azure management token');
+      }
 
       const claims = decodeJwtPayload(tokenResponse.token);
       await reply.send({

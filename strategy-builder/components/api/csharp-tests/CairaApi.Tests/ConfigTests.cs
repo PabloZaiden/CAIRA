@@ -26,6 +26,10 @@ public class ConfigTests : IDisposable
         "PORT",
         "HOST",
         "AGENT_TOKEN_SCOPE",
+        "INBOUND_AUTH_TENANT_ID",
+        "INBOUND_AUTH_ALLOWED_AUDIENCES",
+        "INBOUND_AUTH_ALLOWED_CALLER_APP_IDS",
+        "INBOUND_AUTH_AUTHORITY_HOST",
         "LOG_LEVEL",
         "SKIP_AUTH",
     ];
@@ -72,17 +76,22 @@ public class ConfigTests : IDisposable
     // ---- Defaults ----
 
     [Fact]
-    public void FromEnvironment_WithOnlyRequired_ReturnsDefaults()
+    public void FromEnvironment_WithAuthBypass_ReturnsDefaults()
     {
         Environment.SetEnvironmentVariable("AGENT_SERVICE_URL", "http://localhost:3000");
+        Environment.SetEnvironmentVariable("SKIP_AUTH", "true");
         var config = ApiConfig.FromEnvironment();
 
         Assert.Equal("http://localhost:3000", config.AgentServiceUrl);
         Assert.Equal(4000, config.Port);
         Assert.Equal("0.0.0.0", config.Host);
         Assert.Equal("Debug", config.LogLevel);
-        Assert.False(config.SkipAuth);
+        Assert.True(config.SkipAuth);
         Assert.Null(config.AgentTokenScope);
+        Assert.Null(config.InboundAuthTenantId);
+        Assert.Empty(config.InboundAuthAllowedAudiences);
+        Assert.Empty(config.InboundAuthAllowedCallerAppIds);
+        Assert.Equal("https://login.microsoftonline.com", config.InboundAuthAuthorityHost);
     }
 
     // ---- All optional fields ----
@@ -94,8 +103,12 @@ public class ConfigTests : IDisposable
         Environment.SetEnvironmentVariable("PORT", "5000");
         Environment.SetEnvironmentVariable("HOST", "127.0.0.1");
         Environment.SetEnvironmentVariable("AGENT_TOKEN_SCOPE", "api://test-scope/.default");
+        Environment.SetEnvironmentVariable("INBOUND_AUTH_TENANT_ID", "tenant-123");
+        Environment.SetEnvironmentVariable("INBOUND_AUTH_ALLOWED_AUDIENCES", "api://caira-api/.default,api://caira-api");
+        Environment.SetEnvironmentVariable("INBOUND_AUTH_ALLOWED_CALLER_APP_IDS", "bff-app-1,bff-app-2");
+        Environment.SetEnvironmentVariable("INBOUND_AUTH_AUTHORITY_HOST", "https://login.microsoftonline.us/");
         Environment.SetEnvironmentVariable("LOG_LEVEL", "Warning");
-        Environment.SetEnvironmentVariable("SKIP_AUTH", "true");
+        Environment.SetEnvironmentVariable("SKIP_AUTH", "false");
 
         var config = ApiConfig.FromEnvironment();
 
@@ -103,8 +116,29 @@ public class ConfigTests : IDisposable
         Assert.Equal(5000, config.Port);
         Assert.Equal("127.0.0.1", config.Host);
         Assert.Equal("api://test-scope/.default", config.AgentTokenScope);
+        Assert.Equal("tenant-123", config.InboundAuthTenantId);
+        Assert.Equal(new[] { "api://caira-api/.default", "api://caira-api" }, config.InboundAuthAllowedAudiences);
+        Assert.Equal(new[] { "bff-app-1", "bff-app-2" }, config.InboundAuthAllowedCallerAppIds);
+        Assert.Equal("https://login.microsoftonline.us", config.InboundAuthAuthorityHost);
         Assert.Equal("Warning", config.LogLevel);
-        Assert.True(config.SkipAuth);
+        Assert.False(config.SkipAuth);
+    }
+
+    [Fact]
+    public void FromEnvironment_RequiresAuthSettingsWhenSkipAuthDisabled()
+    {
+        Environment.SetEnvironmentVariable("AGENT_SERVICE_URL", "http://localhost:3000");
+
+        var noScope = Assert.Throws<InvalidOperationException>(() => ApiConfig.FromEnvironment());
+        Assert.Contains("AGENT_TOKEN_SCOPE", noScope.Message);
+
+        Environment.SetEnvironmentVariable("AGENT_TOKEN_SCOPE", "api://agent/.default");
+        var noTenant = Assert.Throws<InvalidOperationException>(() => ApiConfig.FromEnvironment());
+        Assert.Contains("INBOUND_AUTH_TENANT_ID", noTenant.Message);
+
+        Environment.SetEnvironmentVariable("INBOUND_AUTH_TENANT_ID", "tenant-123");
+        var noAudience = Assert.Throws<InvalidOperationException>(() => ApiConfig.FromEnvironment());
+        Assert.Contains("INBOUND_AUTH_ALLOWED_AUDIENCES", noAudience.Message);
     }
 
     // ---- URL trailing slash stripping ----
@@ -113,6 +147,7 @@ public class ConfigTests : IDisposable
     public void FromEnvironment_StripsTrailingSlash()
     {
         Environment.SetEnvironmentVariable("AGENT_SERVICE_URL", "http://localhost:3000/");
+        Environment.SetEnvironmentVariable("SKIP_AUTH", "true");
         var config = ApiConfig.FromEnvironment();
         Assert.Equal("http://localhost:3000", config.AgentServiceUrl);
     }
@@ -121,6 +156,7 @@ public class ConfigTests : IDisposable
     public void FromEnvironment_StripsMultipleTrailingSlashes()
     {
         Environment.SetEnvironmentVariable("AGENT_SERVICE_URL", "http://localhost:3000///");
+        Environment.SetEnvironmentVariable("SKIP_AUTH", "true");
         var config = ApiConfig.FromEnvironment();
         Assert.Equal("http://localhost:3000", config.AgentServiceUrl);
     }
@@ -131,6 +167,7 @@ public class ConfigTests : IDisposable
     public void FromEnvironment_ParsesPortAsInteger()
     {
         Environment.SetEnvironmentVariable("AGENT_SERVICE_URL", "http://localhost:3000");
+        Environment.SetEnvironmentVariable("SKIP_AUTH", "true");
         Environment.SetEnvironmentVariable("PORT", "8080");
         var config = ApiConfig.FromEnvironment();
         Assert.Equal(8080, config.Port);
@@ -140,6 +177,7 @@ public class ConfigTests : IDisposable
     public void FromEnvironment_DefaultsPortTo4000WhenNotSet()
     {
         Environment.SetEnvironmentVariable("AGENT_SERVICE_URL", "http://localhost:3000");
+        Environment.SetEnvironmentVariable("SKIP_AUTH", "true");
         var config = ApiConfig.FromEnvironment();
         Assert.Equal(4000, config.Port);
     }
@@ -148,6 +186,7 @@ public class ConfigTests : IDisposable
     public void FromEnvironment_DefaultsPortTo4000WhenInvalid()
     {
         Environment.SetEnvironmentVariable("AGENT_SERVICE_URL", "http://localhost:3000");
+        Environment.SetEnvironmentVariable("SKIP_AUTH", "true");
         Environment.SetEnvironmentVariable("PORT", "not-a-number");
         var config = ApiConfig.FromEnvironment();
         Assert.Equal(4000, config.Port);
@@ -165,11 +204,11 @@ public class ConfigTests : IDisposable
     }
 
     [Fact]
-    public void FromEnvironment_SkipAuth_FalseWhenNotSet()
+    public void FromEnvironment_SkipAuth_FalseWhenNotSet_RequiresAuthSettings()
     {
         Environment.SetEnvironmentVariable("AGENT_SERVICE_URL", "http://localhost:3000");
-        var config = ApiConfig.FromEnvironment();
-        Assert.False(config.SkipAuth);
+        var ex = Assert.Throws<InvalidOperationException>(() => ApiConfig.FromEnvironment());
+        Assert.Contains("AGENT_TOKEN_SCOPE", ex.Message);
     }
 
     [Theory]
@@ -183,7 +222,7 @@ public class ConfigTests : IDisposable
     {
         Environment.SetEnvironmentVariable("AGENT_SERVICE_URL", "http://localhost:3000");
         Environment.SetEnvironmentVariable("SKIP_AUTH", value);
-        var config = ApiConfig.FromEnvironment();
-        Assert.False(config.SkipAuth);
+        var ex = Assert.Throws<InvalidOperationException>(() => ApiConfig.FromEnvironment());
+        Assert.Contains("AGENT_TOKEN_SCOPE", ex.Message);
     }
 }

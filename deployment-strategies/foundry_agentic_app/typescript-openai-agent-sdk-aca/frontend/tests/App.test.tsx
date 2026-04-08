@@ -99,7 +99,7 @@ describe('App', () => {
   it('renders header and activity picker', async () => {
     render(<App />);
 
-    expect(screen.getByText('Agentic Pirates')).toBeInTheDocument();
+    expect(screen.getByText('Account Team Workspace')).toBeInTheDocument();
     expect(screen.getByTestId('activity-picker')).toBeInTheDocument();
     expect(screen.getByTestId('no-selection')).toBeInTheDocument();
   });

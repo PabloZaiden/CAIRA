@@ -4,7 +4,7 @@
 **Port:** 8080 (production/Docker), 5173 (Vite dev server)
 **Contract:** `contracts/backend-api.openapi.yaml` (as a consumer)
 
-The frontend is a **React/TypeScript chat UI** with a pirate theme and an **activity picker**. Users choose a pirate activity (Sea Shanty Battle, Treasure Hunt, Join the Crew), which starts a new conversation via a business operation. The chat UI then displays the agent's opening response and allows continued conversation. When an activity resolves (via `activity.resolved` SSE event), the frontend displays an outcome card/banner. A runtime **stream toggle** lets users switch between SSE streaming and JSON request/response mode. During streaming, specialist-specific loading indicators show which agent-tool is active (e.g., "The shanty specialist is working...").
+The frontend is a **React/TypeScript chat UI** with an **activity picker**. The current sample domain is a fictional sales/account-team scenario, while some internal client/route names remain pirate-shaped for compatibility. Users choose an activity (Opportunity Discovery, Account Planning, Team Staffing), which starts a new conversation via a business operation. The chat UI then displays the agent's opening response and allows continued conversation. When an activity resolves (via `activity.resolved` SSE event), the frontend displays an outcome card/banner. A runtime **stream toggle** lets users switch between SSE streaming and JSON request/response mode. During streaming, specialist-specific loading indicators show which agent-tool is active.
 
 ## Architecture
 
@@ -81,16 +81,16 @@ A class-based HTTP client (`src/api/pirate-client.ts`) that wraps the business A
 
 ### React components
 
-| Component          | Props                                                            | Responsibility                                                                                                                  |
-|--------------------|------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
-| `App`              | --                                                               | Root: wires hooks to components, manages layout, renders activity picker, streaming toggle                                      |
-| `ActivityPicker`   | onStartShanty, onSeekTreasure, onEnlistInCrew, loadingMode       | Three-button picker for choosing a pirate activity; shows spinner + "Starting..." during load                                   |
-| `ConversationList` | conversations, selected, onSelect                                | Sidebar with adventure list, shows mode badge (shanty/treasure/crew) and relative time (e.g., "2 min ago")                      |
-| `ChatArea`         | messages, isStreaming, streamingContent, error, activeSpecialist | Displays messages with auto-scroll, specialist-specific loading text (e.g., "The shanty specialist is working..."), error state |
-| `OutcomeCard`      | outcome, mode                                                    | Displays resolution outcome as a styled card/banner in the chat area                                                            |
-| `MessageInput`     | onSend, disabled, resolved                                       | Text input with send button, Enter key submission; shows "Adventure complete" when resolved                                     |
-| `MessageBubble`    | message                                                          | Single message: different styles for user (right-aligned) vs assistant (left-aligned)                                           |
-| `StreamToggle`     | streaming, onChange                                              | Header toggle switch for runtime streaming/JSON mode switching                                                                  |
+| Component          | Props                                                            | Responsibility                                                                                |
+|--------------------|------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|
+| `App`              | --                                                               | Root: wires hooks to components, manages layout, renders activity picker, streaming toggle    |
+| `ActivityPicker`   | onStartShanty, onSeekTreasure, onEnlistInCrew, loadingMode       | Three-button picker for choosing a sample activity; shows spinner + "Starting..." during load |
+| `ConversationList` | conversations, selected, onSelect                                | Sidebar with adventure list, shows mode badge and relative time (e.g., "2 min ago")           |
+| `ChatArea`         | messages, isStreaming, streamingContent, error, activeSpecialist | Displays messages with auto-scroll, specialist-specific loading text, and error state         |
+| `OutcomeCard`      | outcome, mode                                                    | Displays resolution outcome as a styled card/banner in the chat area                          |
+| `MessageInput`     | onSend, disabled, resolved                                       | Text input with send button, Enter key submission; shows "Activity complete" when resolved    |
+| `MessageBubble`    | message                                                          | Single message: different styles for user (right-aligned) vs assistant (left-aligned)         |
+| `StreamToggle`     | streaming, onChange                                              | Header toggle switch for runtime streaming/JSON mode switching                                |
 
 ### React hooks
 
@@ -102,14 +102,15 @@ A class-based HTTP client (`src/api/pirate-client.ts`) that wraps the business A
 
 ## Configuration
 
-| Variable              | Required | Default                | Description                                                                                                                          |
-|-----------------------|----------|------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
-| `API_BASE_URL`        | Yes      | `http://api:4000`      | URL of the business API (used by BFF proxy at runtime)                                                                               |
-| `VITE_API_BASE_URL`   | No       | `""` (same origin)     | API base URL at build time (only used in `npm run dev` mode)                                                                         |
-| `VITE_USE_STREAMING`  | No       | `true`                 | Initial default for the streaming toggle. Set to `"false"` to default to JSON mode. Can be changed at runtime via the header toggle. |
-| `PORT`                | No       | `8080`                 | Port the BFF server listens on                                                                                                       |
-| `HOST`                | No       | `0.0.0.0`              | Host the BFF server binds to                                                                                                         |
-| `INTER_SERVICE_TOKEN` | No       | `caira-internal-token` | Bearer token injected by the BFF on proxied `/api/*` requests                                                                        |
+| Variable             | Required | Default                    | Description                                                                                                                          |
+|----------------------|----------|----------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
+| `API_BASE_URL`       | Yes      | `http://api:4000`          | URL of the business API (used by BFF proxy at runtime)                                                                               |
+| `VITE_API_BASE_URL`  | No       | `""` (same origin)         | API base URL at build time (only used in `npm run dev` mode)                                                                         |
+| `VITE_USE_STREAMING` | No       | `true`                     | Initial default for the streaming toggle. Set to `"false"` to default to JSON mode. Can be changed at runtime via the header toggle. |
+| `PORT`               | No       | `8080`                     | Port the BFF server listens on                                                                                                       |
+| `HOST`               | No       | `0.0.0.0`                  | Host the BFF server binds to                                                                                                         |
+| `API_TOKEN_SCOPE`    | No       | `api://caira-api/.default` | OAuth scope requested by the BFF for API calls (value varies by deployment)                                                          |
+| `SKIP_AUTH`          | No       | `false`                    | Explicit local/dev auth bypass for proxied API calls                                                                                 |
 
 In development, Vite proxies `/api` requests to `localhost:4000`:
 

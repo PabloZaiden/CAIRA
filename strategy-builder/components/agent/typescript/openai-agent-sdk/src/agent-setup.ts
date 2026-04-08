@@ -3,7 +3,7 @@
  *
  * This file is the "read this first" entry point for developers. It shows:
  *
- *   1. How to connect the SDK to Azure OpenAI via DefaultAzureCredential
+ *   1. How to connect the SDK to Azure OpenAI via the runtime-appropriate Azure credential
  *   2. How to create agents with system instructions
  *   3. How to attach local knowledge tools and resolution tools to specialists
  *   4. How to pick a discrete specialist agent per conversation mode
@@ -20,10 +20,11 @@
 
 import { Agent, tool, setTracingDisabled, setDefaultOpenAIClient } from '@openai/agents';
 import { AzureOpenAI } from 'openai';
-import { DefaultAzureCredential, getBearerTokenProvider } from '@azure/identity';
+import { getBearerTokenProvider } from '@azure/identity';
 import { z } from 'zod';
 import type { Config } from './config.ts';
 import type { Logger } from './openai-client.ts';
+import { createAzureCredential } from './azure-credential.ts';
 import { lookupCrewKnowledge, lookupShantyKnowledge, lookupTreasureKnowledge } from './knowledge-base.ts';
 
 // ---------------------------------------------------------------------------
@@ -164,7 +165,7 @@ function createKnowledgeTools(log: Logger) {
  *
  * Authentication modes:
  *   - HTTP endpoint + skipAuth (local dev / CI): uses a static dummy token
- *   - HTTPS endpoint (production): uses DefaultAzureCredential for real
+ *   - HTTPS endpoint (production): uses the runtime-appropriate Azure credential for real
  *     Azure AD tokens via the cognitiveservices scope
  */
 export async function setupAzureClient(config: Config): Promise<void> {
@@ -174,7 +175,7 @@ export async function setupAzureClient(config: Config): Promise<void> {
   if (isHttpEndpoint && config.skipAuth) {
     tokenProvider = () => Promise.resolve('dummy');
   } else {
-    const credential = new DefaultAzureCredential();
+    const credential = createAzureCredential();
     tokenProvider = getBearerTokenProvider(credential, 'https://cognitiveservices.azure.com/.default');
   }
 

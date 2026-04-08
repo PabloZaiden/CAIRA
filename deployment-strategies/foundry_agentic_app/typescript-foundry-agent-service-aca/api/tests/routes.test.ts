@@ -203,6 +203,10 @@ beforeAll(async () => {
       host: '127.0.0.1',
       agentServiceUrl: agentBaseUrl,
       agentTokenScope: undefined,
+      inboundAuthTenantId: undefined,
+      inboundAuthAllowedAudiences: [],
+      inboundAuthAllowedCallerAppIds: [],
+      inboundAuthAuthorityHost: 'https://login.microsoftonline.com',
       applicationInsightsConnectionString: undefined,
       logLevel: 'silent',
       skipAuth: true
@@ -217,12 +221,23 @@ beforeAll(async () => {
       host: '127.0.0.1',
       agentServiceUrl: agentBaseUrl,
       agentTokenScope: undefined,
+      inboundAuthTenantId: undefined,
+      inboundAuthAllowedAudiences: [],
+      inboundAuthAllowedCallerAppIds: [],
+      inboundAuthAuthorityHost: 'https://login.microsoftonline.com',
       applicationInsightsConnectionString: undefined,
       logLevel: 'silent',
       skipAuth: false
     },
     agentClientOptions: {
       getToken: async () => 'test-agent-token'
+    },
+    incomingTokenValidator: {
+      validateAccessToken: async (token: string) => {
+        if (token !== 'bff-token') {
+          throw new Error('invalid token');
+        }
+      }
     }
   });
 
@@ -355,6 +370,17 @@ describe('API auth middleware', () => {
     });
     expect(withAuth.status).toBe(200);
   });
+
+  it('rejects invalid bearer tokens', async () => {
+    const invalid = await apiRequestWithAuth('GET', '/api/pirate/adventures', undefined, {
+      Authorization: 'Bearer wrong-token'
+    });
+    expect(invalid.status).toBe(401);
+    expect(invalid.data).toEqual({
+      code: 'unauthorized',
+      message: 'Invalid or unauthorized bearer token'
+    });
+  });
 });
 
 // ---------- Business operations ----------
@@ -373,7 +399,7 @@ describe('POST /api/pirate/shanty', () => {
     expect(started.id).toBe('conv-001');
     expect(started.mode).toBe('shanty');
     expect(started.status).toBe('active');
-    expect(started.syntheticMessage).toContain('shanty');
+    expect(started.syntheticMessage).toContain('qualifying a new customer opportunity');
     expect(started.createdAt).toBeTruthy();
   });
 

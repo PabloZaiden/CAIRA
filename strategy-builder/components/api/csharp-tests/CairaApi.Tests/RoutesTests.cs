@@ -22,6 +22,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Xunit;
 
 namespace CairaApi.Tests;
@@ -157,7 +158,23 @@ public class RoutesTests : IClassFixture<RoutesTests.ApiFactory>, IDisposable
         var downstreamAuth = authFactory.AgentHandler.Requests[^1].Headers.Authorization;
         Assert.NotNull(downstreamAuth);
         Assert.Equal("Bearer", downstreamAuth!.Scheme);
-        Assert.Equal("caira-internal-token", downstreamAuth.Parameter);
+        Assert.Equal("test-agent-token", downstreamAuth.Parameter);
+    }
+
+    [Fact]
+    public async Task AuthMiddleware_RejectsInvalidBearerTokens()
+    {
+        using var authFactory = new AuthApiFactory();
+        using var client = authFactory.CreateClient();
+
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/pirate/adventures");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "wrong-token");
+        var response = await client.SendAsync(request);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Equal("unauthorized", body.GetProperty("code").GetString());
+        Assert.Equal("Invalid or unauthorized bearer token", body.GetProperty("message").GetString());
     }
 
     // ========================================================================
@@ -495,13 +512,39 @@ public class RoutesTests : IClassFixture<RoutesTests.ApiFactory>, IDisposable
     {
         public QueuedMockHandler AgentHandler { get; } = new();
 
+        private sealed class FakeIncomingTokenValidator : IIncomingTokenValidator
+        {
+            public Task ValidateAccessTokenAsync(string token, CancellationToken cancellationToken = default)
+            {
+                if (token != "bff-token")
+                {
+                    throw new UnauthorizedTokenException("bad token");
+                }
+
+                return Task.CompletedTask;
+            }
+        }
+
+        private sealed class FakeAccessTokenProvider : IAccessTokenProvider
+        {
+            public Task<string> GetAccessTokenAsync(string scope, CancellationToken cancellationToken = default)
+                => Task.FromResult("test-agent-token");
+        }
+
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             Environment.SetEnvironmentVariable("AGENT_SERVICE_URL", "http://mock-agent:3000");
+            Environment.SetEnvironmentVariable("AGENT_TOKEN_SCOPE", "api://agent/.default");
+            Environment.SetEnvironmentVariable("INBOUND_AUTH_TENANT_ID", "tenant-123");
+            Environment.SetEnvironmentVariable("INBOUND_AUTH_ALLOWED_AUDIENCES", "api://caira-api");
             Environment.SetEnvironmentVariable("SKIP_AUTH", "false");
 
             builder.ConfigureServices(services =>
             {
+                services.RemoveAll<IIncomingTokenValidator>();
+                services.RemoveAll<IAccessTokenProvider>();
+                services.AddSingleton<IIncomingTokenValidator, FakeIncomingTokenValidator>();
+                services.AddSingleton<IAccessTokenProvider, FakeAccessTokenProvider>();
                 services.AddHttpClient<AgentHttpClient>()
                     .ConfigurePrimaryHttpMessageHandler(() => AgentHandler);
             });

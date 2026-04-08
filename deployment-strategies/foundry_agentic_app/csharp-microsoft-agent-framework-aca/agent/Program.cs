@@ -38,6 +38,8 @@ builder.Logging.SetMinimumLevel(config.LogLevel.ToLowerInvariant() switch
 builder.Services.AddSingleton(config);
 builder.Services.AddSingleton<ConversationStore>();
 builder.Services.AddSingleton(new ActivitySource("caira-agent-csharp"));
+builder.Services.AddSingleton<IIncomingTokenValidator>(
+    config.SkipAuth ? new NoOpIncomingTokenValidator() : new EntraIncomingTokenValidator(config));
 
 var app = builder.Build();
 
@@ -78,7 +80,12 @@ runner ??= new WorkflowRunner(
     app.Services.GetRequiredService<ActivitySource>());
 
 // Register routes
-Routes.MapRoutes(app, app.Services.GetRequiredService<ConversationStore>(), runner, config);
+Routes.MapRoutes(
+    app,
+    app.Services.GetRequiredService<ConversationStore>(),
+    runner,
+    config,
+    app.Services.GetRequiredService<IIncomingTokenValidator>());
 
 // Start server
 app.Urls.Clear();

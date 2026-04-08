@@ -72,15 +72,15 @@ The `/conversations/{conversationId}/messages` endpoint supports both streaming 
 
 ## Business API (`backend-api.openapi.yaml`)
 
-The pirate-themed public API that the frontend calls. Exposes business operations (sea shanty battle, treasure hunt, crew enlistment) that create conversations on the agent and return a mode-specific `syntheticMessage` for the frontend to send as the first parley.
+The public business API that the frontend calls. The current sample domain is a fictional sales/account-team scenario, while the existing route and mode identifiers remain pirate-shaped for compatibility. These endpoints create conversations on the agent and return a mode-specific `syntheticMessage` for the frontend to send as the first parley.
 
 > **WS-12 rework:** These endpoints replace the previous `recruit`, `crew`, `crew/{crewId}/parley`, and `treasure` endpoints.
 
 | Endpoint                                  | Method | Description                                  | Maps to agent API                   |
 |-------------------------------------------|--------|----------------------------------------------|-------------------------------------|
-| `POST /api/pirate/shanty`                 | POST   | Start a sea shanty battle                    | `POST /conversations`               |
-| `POST /api/pirate/treasure`               | POST   | Start a treasure hunt                        | `POST /conversations`               |
-| `POST /api/pirate/crew/enlist`            | POST   | Enlist in the crew (interview)               | `POST /conversations`               |
+| `POST /api/pirate/shanty`                 | POST   | Start an opportunity discovery flow          | `POST /conversations`               |
+| `POST /api/pirate/treasure`               | POST   | Start an account planning flow               | `POST /conversations`               |
+| `POST /api/pirate/crew/enlist`            | POST   | Start an account-team staffing flow          | `POST /conversations`               |
 | `GET /api/pirate/adventures`              | GET    | List all adventures (with mode + status)     | `GET /conversations`                |
 | `GET /api/pirate/adventures/{id}`         | GET    | Get adventure detail with messages + outcome | `GET /conversations/{id}`           |
 | `POST /api/pirate/adventures/{id}/parley` | POST   | Continue chatting (SSE stream)               | `POST /conversations/{id}/messages` |
@@ -89,7 +89,7 @@ The pirate-themed public API that the frontend calls. Exposes business operation
 
 ### Business operation flow
 
-Each business operation (shanty, treasure, crew/enlist) follows the same pattern:
+Each business operation (`shanty`, `treasure`, `crew/enlist`) follows the same pattern:
 
 1. **Create conversation:** API calls `POST /conversations` on the agent and stores adventure metadata
 1. **Return to frontend:** API returns `{ id, mode, status, syntheticMessage, createdAt }`
@@ -105,7 +105,7 @@ Each business operation (shanty, treasure, crew/enlist) follows the same pattern
   "id": "conv_abc123",
   "mode": "shanty",
   "status": "active",
-  "syntheticMessage": "Sing me a sea shanty and challenge me to a verse duel! Let us trade shanty verses back and forth.",
+  "syntheticMessage": "I am qualifying a new customer opportunity. Lead a short discovery conversation, ask targeted questions, and conclude with a concise qualification summary.",
   "createdAt": "2026-02-14T..."
 }
 ```
@@ -118,7 +118,7 @@ Each business operation (shanty, treasure, crew/enlist) follows the same pattern
   "status": "resolved",
   "outcome": {
     "result": "win",
-    "summary": "Won the Sea Shanty Battle in 4 rounds"
+    "summary": "Qualified the opportunity after reviewing 4 signals"
   },
   "messages": [...]
 }
@@ -126,7 +126,7 @@ Each business operation (shanty, treasure, crew/enlist) follows the same pattern
 
 ### Authentication
 
-The business API is **not exposed to the public network** — it is only accessible from the BFF (Backend for Frontend) server. When `SKIP_AUTH=false` (default), the API requires a non-empty `Authorization: Bearer <token>` header on business endpoints, and the BFF injects that header for all `/api/*` requests. The API uses the same bearer pattern when calling the agent container.
+The business API is **not exposed to the public network** — it is only accessible from the BFF (Backend for Frontend) server. When `SKIP_AUTH=false` (default), the API validates Entra-issued bearer tokens on business endpoints for signature/JWKS, issuer, audience, expiry, and optional caller app IDs. The BFF requests a token for `API_TOKEN_SCOPE`, and the API requests a token for `AGENT_TOKEN_SCOPE` when calling the agent container.
 
 ## SSE event format
 

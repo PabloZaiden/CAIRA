@@ -10,7 +10,7 @@ module "agent_app" {
   resource_group_name          = local.resource_group_name
   container_app_environment_id = module.container_apps_environment.id
   image                        = local.resolved_agent_image
-  target_port                  = 3000
+  target_port                  = local.resolved_agent_port
   transport                    = "http"
   enable_registry_auth         = var.enable_registry_auth
   registry_server              = module.container_registry.login_server

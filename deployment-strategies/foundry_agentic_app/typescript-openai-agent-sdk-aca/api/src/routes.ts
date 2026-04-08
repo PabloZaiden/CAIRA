@@ -1,5 +1,5 @@
 /**
- * Fastify route definitions for the pirate-themed business API.
+ * Fastify route definitions for the fictional sales/account-team sample API.
  *
  * Maps business endpoints to agent container operations:
  *   POST /api/pirate/shanty              -> create conv + send synthetic first msg
@@ -16,8 +16,8 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { AgentClient } from './agent-client.ts';
 import { mapAgentStatus } from './agent-client.ts';
-import { DefaultAzureCredential } from '@azure/identity';
 import { randomUUID } from 'node:crypto';
+import { createAzureCredential } from './azure-credential.ts';
 import type {
   Adventure,
   AdventureDetail,
@@ -59,9 +59,11 @@ export function resetAdventureStore(): void {
 // ---------- Synthetic first messages ----------
 
 const SYNTHETIC_MESSAGES: Record<AdventureMode, string> = {
-  shanty: 'Sing me a sea shanty and challenge me to a verse duel! Let us trade shanty verses back and forth.',
-  treasure: 'I seek buried treasure! Guide me on a treasure hunting adventure with choices and discoveries.',
-  crew: 'I want to join your pirate crew! Interview me and assign me a rank and role aboard your ship.'
+  shanty:
+    'I am qualifying a new customer opportunity. Lead a short discovery conversation, ask targeted questions, and conclude with a concise qualification summary.',
+  treasure:
+    'I need an account plan for an active customer. Guide me through priorities, risks, and next steps, then conclude with a concise planning summary.',
+  crew: 'I need to staff an account team for a customer engagement. Interview me for the needed context and conclude with a clear staffing recommendation.'
 };
 
 // ---------- Helpers ----------
@@ -587,14 +589,18 @@ export function registerRoutes(app: FastifyInstance, agentClient: AgentClient): 
 
   // ---- GET /identity ----
   // Diagnostic endpoint — always attempts real credential validation regardless
-  // of SKIP_AUTH. Works with any credential source that DefaultAzureCredential
+  // of SKIP_AUTH. Works with any credential source that the runtime-selected
+  // Azure credential can use.
   // supports: az CLI, managed identity, environment variables, etc.
   app.get('/identity', async (req, reply) => {
     try {
-      const credential = new DefaultAzureCredential();
+      const credential = createAzureCredential();
       const tokenResponse = await credential.getToken('https://management.azure.com/.default', {
         abortSignal: AbortSignal.timeout(5000)
       });
+      if (!tokenResponse) {
+        throw new Error('Failed to acquire Azure management token');
+      }
 
       const claims = decodeJwtPayload(tokenResponse.token);
       await reply.send({
