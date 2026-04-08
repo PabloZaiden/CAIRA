@@ -58,7 +58,7 @@ The agent containers use the same validation pattern and configuration shape for
 ### Local development versus Azure
 
 - **Local sample/dev path** can set `SKIP_AUTH=true` to bypass inbound token validation for mock and compose-based flows.
-- **Local credentialed path** uses Azure CLI credentials or other `DefaultAzureCredential` sources so the sample can request real tokens while still running outside Azure.
+- **Local credentialed path** uses Azure CLI-backed or other runtime-appropriate Azure credentials so the sample can request real tokens while still running outside Azure.
 - **Azure deployment path** uses managed identity for outbound token acquisition and expects the configured audiences and callers to match the deployed app identities.
 - **Azure deployment prerequisite** for the hardened inter-service path is tenant permission to create the Entra application registrations, service principals, and app-role assignments that back the API and agent audiences.
 

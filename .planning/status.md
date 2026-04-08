@@ -169,6 +169,7 @@
     - `docs/security_posture.md` now documents the tenant-scoped Entra prerequisite and the exact `403 Authorization_RequestDenied` -> `AADSTS500011` failure chain
     - `docs/troubleshooting.md` now includes a dedicated `AADSTS500011` troubleshooting path for partially deployed ACA strategies
     - `docs/developer.md` now warns contributors that subscription RBAC alone is insufficient for the hardened Azure auth path
+  - A final documentation consistency sweep removed the last stale security-posture wording that still implied the old `DefaultAzureCredential`-specific local path; the docs now consistently describe a runtime-appropriate Azure credential flow across local and Azure environments.
 
 ## Immediate next step
 
