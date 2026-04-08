@@ -11,7 +11,7 @@ For most users, the primary CAIRA entrypoint is the installed CAIRA skill. Insta
 
 ## Contributor path: devcontainer
 
-The repository devcontainer is the fastest way to get a working CAIRA environment because it is prepared for both the infrastructure workflows and the strategy-builder workflows.
+The repository devcontainer is the fastest way to get a working CAIRA environment because it is prepared for both the infrastructure workflows and the strategy-builder workflows. The default contributor definition now lives at `.devcontainer/devcontainer.json` and uses Docker-in-Docker.
 
 ## Contributor local machine setup
 

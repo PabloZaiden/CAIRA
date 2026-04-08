@@ -165,7 +165,7 @@ export async function validateContainer(options: ValidateContainerOptions): Prom
 
 /**
  * Build candidate URLs to reach the container health endpoint across host
- * and docker-outside-of-docker environments.
+ * and nested-Docker devcontainer environments.
  */
 async function getContainerHealthUrls(
   containerId: string,
@@ -236,7 +236,7 @@ async function getDockerBridgeGateway(): Promise<string | undefined> {
 /**
  * Poll all candidate URLs concurrently and return the first one that becomes healthy.
  * This avoids committing to a single network path when Docker networking differs
- * by environment (native host vs docker-outside-of-docker).
+ * by environment (native host vs nested-Docker devcontainer).
  */
 async function pollHealthAcrossUrls(
   urls: string[],
