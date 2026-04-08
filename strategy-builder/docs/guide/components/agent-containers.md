@@ -77,21 +77,21 @@ The implementations use **different orchestration patterns** to coordinate the t
 
 Each specialist agent defines an **activity-specific resolution tool** with domain-specific parameters:
 
-| Activity                | Tool               | Parameters                                                                 |
-|-------------------------|--------------------|----------------------------------------------------------------------------|
-| Opportunity discovery   | `resolve_shanty`   | `winner: "user"\|"pirate"\|"draw"`, `rounds: number`, `best_verse: string` |
-| Account planning        | `resolve_treasure` | `found: boolean`, `treasure_name: string`, `location: string`              |
-| Account-team staffing   | `resolve_crew`     | `rank: string`, `role: string`, `ship_name: string`                        |
+| Activity              | Tool               | Parameters                                                                 |
+|-----------------------|--------------------|----------------------------------------------------------------------------|
+| Opportunity discovery | `resolve_shanty`   | `winner: "user"\|"pirate"\|"draw"`, `rounds: number`, `best_verse: string` |
+| Account planning      | `resolve_treasure` | `found: boolean`, `treasure_name: string`, `location: string`              |
+| Account-team staffing | `resolve_crew`     | `rank: string`, `role: string`, `ship_name: string`                        |
 
 When a specialist determines an activity is complete, it calls its resolution tool. The local handler captures the structured result and the streaming layer emits an `activity.resolved` SSE event. Conversations remain open after resolution.
 
 **How multi-agent works per framework:**
 
-| Aspect                  | OpenAI Agent SDK                                                  | Foundry Agent Service                                     | Microsoft Agent Framework                                              |
-|-------------------------|-------------------------------------------------------------------|-----------------------------------------------------------|------------------------------------------------------------------------|
+| Aspect                  | OpenAI Agent SDK                                                  | Foundry Agent Service                                     | Microsoft Agent Framework                                             |
+|-------------------------|-------------------------------------------------------------------|-----------------------------------------------------------|-----------------------------------------------------------------------|
 | **Orchestration agent** | Captain agent (single conversational agent)                       | Triage agent (silent router)                              | None; one workflow is selected per mode                               |
 | **Mechanism**           | Agent-as-tool (`.asTool()`) + resolution FunctionTools            | Connected agents (`ToolUtility.createConnectedAgentTool`) | One specialist executor + local tools inside a per-mode workflow      |
-| **Orchestration**       | Client-side (SDK run loop invokes specialist tools transparently) | Server-side (Azure AI Foundry handles delegation)         | Server-side workflow runner resumes the selected mode-specific graph   |
+| **Orchestration**       | Client-side (SDK run loop invokes specialist tools transparently) | Server-side (Azure AI Foundry handles delegation)         | Server-side workflow runner resumes the selected mode-specific graph  |
 | **Streaming**           | Emits `tool.called`/`tool.done` SSE events for specialist tools   | Completes normally after server-side orchestration        | Streams specialist output and workflow events from the selected graph |
 | **Client code impact**  | None — existing `sendMessageStream()` works unchanged             | None — run just takes longer and completes normally       | None — same HTTP contract, but routing is metadata-driven per mode    |
 
@@ -141,23 +141,23 @@ The Foundry variant uses `@azure/ai-projects` v2 SDK for agent management and th
 
 ### Configuration
 
-| Variable                    | Required | Default              | Description                            |
-|-----------------------------|----------|----------------------|----------------------------------------|
-| `AZURE_AI_PROJECT_ENDPOINT` | Yes      | --                   | Azure AI Foundry project endpoint      |
-| `PORT`                      | No       | `3000`               | Server port                            |
-| `HOST`                      | No       | `0.0.0.0`            | Server host                            |
-| `AGENT_MODEL`               | No       | `gpt-5.2-chat`       | Model deployment name                  |
-| `AGENT_NAME`                | No       | `caira-account-team-agent` | Agent display name               |
-| `TRIAGE_INSTRUCTIONS`       | No       | (built-in)                | Shared system prompt for the triage agent |
-| `SHANTY_INSTRUCTIONS`       | No       | (built-in)                | Opportunity discovery specialist prompt   |
-| `TREASURE_INSTRUCTIONS`     | No       | (built-in)                | Account planning specialist prompt        |
-| `CREW_INSTRUCTIONS`         | No       | (built-in)                | Account-team staffing specialist prompt   |
-| `LOG_LEVEL`                 | No       | `info`               | Pino log level                         |
-| `SKIP_AUTH`                 | No       | `false`              | Skip bearer token validation           |
-| `INBOUND_AUTH_TENANT_ID`    | When `SKIP_AUTH=false` | --     | Entra tenant used to derive valid issuers |
-| `INBOUND_AUTH_ALLOWED_AUDIENCES` | When `SKIP_AUTH=false` | -- | Comma-separated accepted audiences      |
-| `INBOUND_AUTH_ALLOWED_CALLER_APP_IDS` | No | --              | Optional caller application allowlist  |
-| `INBOUND_AUTH_AUTHORITY_HOST` | No      | `https://login.microsoftonline.com` | Authority host override |
+| Variable                              | Required               | Default                             | Description                               |
+|---------------------------------------|------------------------|-------------------------------------|-------------------------------------------|
+| `AZURE_AI_PROJECT_ENDPOINT`           | Yes                    | --                                  | Azure AI Foundry project endpoint         |
+| `PORT`                                | No                     | `3000`                              | Server port                               |
+| `HOST`                                | No                     | `0.0.0.0`                           | Server host                               |
+| `AGENT_MODEL`                         | No                     | `gpt-5.2-chat`                      | Model deployment name                     |
+| `AGENT_NAME`                          | No                     | `caira-account-team-agent`          | Agent display name                        |
+| `TRIAGE_INSTRUCTIONS`                 | No                     | (built-in)                          | Shared system prompt for the triage agent |
+| `SHANTY_INSTRUCTIONS`                 | No                     | (built-in)                          | Opportunity discovery specialist prompt   |
+| `TREASURE_INSTRUCTIONS`               | No                     | (built-in)                          | Account planning specialist prompt        |
+| `CREW_INSTRUCTIONS`                   | No                     | (built-in)                          | Account-team staffing specialist prompt   |
+| `LOG_LEVEL`                           | No                     | `info`                              | Pino log level                            |
+| `SKIP_AUTH`                           | No                     | `false`                             | Skip bearer token validation              |
+| `INBOUND_AUTH_TENANT_ID`              | When `SKIP_AUTH=false` | --                                  | Entra tenant used to derive valid issuers |
+| `INBOUND_AUTH_ALLOWED_AUDIENCES`      | When `SKIP_AUTH=false` | --                                  | Comma-separated accepted audiences        |
+| `INBOUND_AUTH_ALLOWED_CALLER_APP_IDS` | No                     | --                                  | Optional caller application allowlist     |
+| `INBOUND_AUTH_AUTHORITY_HOST`         | No                     | `https://login.microsoftonline.com` | Authority host override                   |
 
 ### Dependencies
 
@@ -196,24 +196,24 @@ The OpenAI variant uses **client-side state** with the Responses API:
 
 ### Configuration
 
-| Variable                   | Required | Default              | Description                                        |
-|----------------------------|----------|----------------------|----------------------------------------------------|
-| `AZURE_OPENAI_ENDPOINT`    | Yes      | --                   | Azure OpenAI endpoint URL or APIM gateway root URL |
-| `PORT`                     | No       | `3000`               | Server port                                        |
-| `HOST`                     | No       | `0.0.0.0`            | Server host                                        |
-| `AZURE_OPENAI_API_VERSION` | No       | `2025-03-01-preview` | API version                                        |
-| `AGENT_MODEL`              | No       | `gpt-5.2-chat`       | Model deployment name                              |
-| `AGENT_NAME`               | No       | `CAIRA Account Team Agent` | Agent display name                            |
-| `CAPTAIN_INSTRUCTIONS`     | No       | (built-in)                | Shared system prompt for the captain agent     |
-| `SHANTY_INSTRUCTIONS`      | No       | (built-in)                | Opportunity discovery specialist prompt        |
-| `TREASURE_INSTRUCTIONS`    | No       | (built-in)                | Account planning specialist prompt             |
-| `CREW_INSTRUCTIONS`        | No       | (built-in)                | Account-team staffing specialist prompt        |
-| `LOG_LEVEL`                | No       | `info`               | Pino log level                                     |
-| `SKIP_AUTH`                | No       | `false`              | Skip bearer token validation                       |
-| `INBOUND_AUTH_TENANT_ID`   | When `SKIP_AUTH=false` | --      | Entra tenant used to derive valid issuers          |
-| `INBOUND_AUTH_ALLOWED_AUDIENCES` | When `SKIP_AUTH=false` | -- | Comma-separated accepted audiences            |
-| `INBOUND_AUTH_ALLOWED_CALLER_APP_IDS` | No | --              | Optional caller application allowlist              |
-| `INBOUND_AUTH_AUTHORITY_HOST` | No    | `https://login.microsoftonline.com` | Authority host override               |
+| Variable                              | Required               | Default                             | Description                                        |
+|---------------------------------------|------------------------|-------------------------------------|----------------------------------------------------|
+| `AZURE_OPENAI_ENDPOINT`               | Yes                    | --                                  | Azure OpenAI endpoint URL or APIM gateway root URL |
+| `PORT`                                | No                     | `3000`                              | Server port                                        |
+| `HOST`                                | No                     | `0.0.0.0`                           | Server host                                        |
+| `AZURE_OPENAI_API_VERSION`            | No                     | `2025-03-01-preview`                | API version                                        |
+| `AGENT_MODEL`                         | No                     | `gpt-5.2-chat`                      | Model deployment name                              |
+| `AGENT_NAME`                          | No                     | `CAIRA Account Team Agent`          | Agent display name                                 |
+| `CAPTAIN_INSTRUCTIONS`                | No                     | (built-in)                          | Shared system prompt for the captain agent         |
+| `SHANTY_INSTRUCTIONS`                 | No                     | (built-in)                          | Opportunity discovery specialist prompt            |
+| `TREASURE_INSTRUCTIONS`               | No                     | (built-in)                          | Account planning specialist prompt                 |
+| `CREW_INSTRUCTIONS`                   | No                     | (built-in)                          | Account-team staffing specialist prompt            |
+| `LOG_LEVEL`                           | No                     | `info`                              | Pino log level                                     |
+| `SKIP_AUTH`                           | No                     | `false`                             | Skip bearer token validation                       |
+| `INBOUND_AUTH_TENANT_ID`              | When `SKIP_AUTH=false` | --                                  | Entra tenant used to derive valid issuers          |
+| `INBOUND_AUTH_ALLOWED_AUDIENCES`      | When `SKIP_AUTH=false` | --                                  | Comma-separated accepted audiences                 |
+| `INBOUND_AUTH_ALLOWED_CALLER_APP_IDS` | No                     | --                                  | Optional caller application allowlist              |
+| `INBOUND_AUTH_AUTHORITY_HOST`         | No                     | `https://login.microsoftonline.com` | Authority host override                            |
 
 ### Dependencies
 
@@ -254,24 +254,24 @@ This makes the C# variant conceptually similar to the others at the **HTTP contr
 
 ### Configuration
 
-| Variable                   | Required | Default              | Description                                        |
-|----------------------------|----------|----------------------|----------------------------------------------------|
-| `AZURE_OPENAI_ENDPOINT`    | Yes      | --                   | Azure OpenAI endpoint URL or APIM gateway root URL |
-| `PORT`                     | No       | `3000`               | Server port                                        |
-| `HOST`                     | No       | `0.0.0.0`            | Server host                                        |
-| `AZURE_OPENAI_API_VERSION` | No       | `2025-03-01-preview` | API version                                        |
-| `AGENT_MODEL`              | No       | `gpt-5.2-chat`       | Model deployment name                              |
-| `AGENT_NAME`               | No       | `CAIRA Account Team Agent` | Agent display name                           |
-| `CAPTAIN_INSTRUCTIONS`     | No       | (built-in)           | Shared instruction block prepended to specialists  |
-| `SHANTY_INSTRUCTIONS`      | No       | (built-in)           | Opportunity discovery specialist prompt            |
-| `TREASURE_INSTRUCTIONS`    | No       | (built-in)           | Account planning specialist prompt                 |
-| `CREW_INSTRUCTIONS`        | No       | (built-in)           | Account-team staffing specialist prompt            |
-| `LOG_LEVEL`                | No       | `Debug`              | ASP.NET log level                                  |
-| `SKIP_AUTH`                | No       | `false`              | Skip bearer token validation                       |
-| `INBOUND_AUTH_TENANT_ID`   | When `SKIP_AUTH=false` | --      | Entra tenant used to derive valid issuers |
-| `INBOUND_AUTH_ALLOWED_AUDIENCES` | When `SKIP_AUTH=false` | -- | Comma-separated accepted audiences          |
-| `INBOUND_AUTH_ALLOWED_CALLER_APP_IDS` | No | --              | Optional caller application allowlist              |
-| `INBOUND_AUTH_AUTHORITY_HOST` | No    | `https://login.microsoftonline.com` | Authority host override               |
+| Variable                              | Required               | Default                             | Description                                        |
+|---------------------------------------|------------------------|-------------------------------------|----------------------------------------------------|
+| `AZURE_OPENAI_ENDPOINT`               | Yes                    | --                                  | Azure OpenAI endpoint URL or APIM gateway root URL |
+| `PORT`                                | No                     | `3000`                              | Server port                                        |
+| `HOST`                                | No                     | `0.0.0.0`                           | Server host                                        |
+| `AZURE_OPENAI_API_VERSION`            | No                     | `2025-03-01-preview`                | API version                                        |
+| `AGENT_MODEL`                         | No                     | `gpt-5.2-chat`                      | Model deployment name                              |
+| `AGENT_NAME`                          | No                     | `CAIRA Account Team Agent`          | Agent display name                                 |
+| `CAPTAIN_INSTRUCTIONS`                | No                     | (built-in)                          | Shared instruction block prepended to specialists  |
+| `SHANTY_INSTRUCTIONS`                 | No                     | (built-in)                          | Opportunity discovery specialist prompt            |
+| `TREASURE_INSTRUCTIONS`               | No                     | (built-in)                          | Account planning specialist prompt                 |
+| `CREW_INSTRUCTIONS`                   | No                     | (built-in)                          | Account-team staffing specialist prompt            |
+| `LOG_LEVEL`                           | No                     | `Debug`                             | ASP.NET log level                                  |
+| `SKIP_AUTH`                           | No                     | `false`                             | Skip bearer token validation                       |
+| `INBOUND_AUTH_TENANT_ID`              | When `SKIP_AUTH=false` | --                                  | Entra tenant used to derive valid issuers          |
+| `INBOUND_AUTH_ALLOWED_AUDIENCES`      | When `SKIP_AUTH=false` | --                                  | Comma-separated accepted audiences                 |
+| `INBOUND_AUTH_ALLOWED_CALLER_APP_IDS` | No                     | --                                  | Optional caller application allowlist              |
+| `INBOUND_AUTH_AUTHORITY_HOST`         | No                     | `https://login.microsoftonline.com` | Authority host override                            |
 
 ### Dependencies
 

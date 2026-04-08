@@ -122,12 +122,12 @@ the policies you need before using it in a real environment.
 
 ## Services
 
-| Service             | Port | Health Check | Description                                                               |
-|---------------------|------|--------------|---------------------------------------------------------------------------|
-| Credentials Sidecar | 8079 | `/health`    | Serves Azure CLI tokens to containers via IDENTITY_ENDPOINT               |
-| Frontend            | 8080 | `/health`    | React SPA + BFF (proxies /api to API service)                             |
-| API                 | 4000 | `/health`    | Business API (routes, conversation management)                            |
-| Agent               | 3000 | `/health`    | Agent container using Microsoft Agent Framework mode-specific workflows   |
+| Service             | Port | Health Check | Description                                                             |
+|---------------------|------|--------------|-------------------------------------------------------------------------|
+| Credentials Sidecar | 8079 | `/health`    | Serves Azure CLI tokens to containers via IDENTITY_ENDPOINT             |
+| Frontend            | 8080 | `/health`    | React SPA + BFF (proxies /api to API service)                           |
+| API                 | 4000 | `/health`    | Business API (routes, conversation management)                          |
+| Agent               | 3000 | `/health`    | Agent container using Microsoft Agent Framework mode-specific workflows |
 
 ## Project Structure
 

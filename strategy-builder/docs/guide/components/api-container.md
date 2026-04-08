@@ -63,18 +63,18 @@ The `AgentClient` class is the HTTP client that talks to the agent container:
 
 > **WS-12 rework:** These endpoints replace the previous `recruit`, `crew`, `crew/{crewId}/parley`, and `treasure` endpoints.
 
-| Endpoint                                  | Method | Maps to agent API                                 | Description                                                                                  |
-|-------------------------------------------|--------|---------------------------------------------------|----------------------------------------------------------------------------------------------|
-| `POST /api/pirate/shanty`                 | POST   | `POST /conversations`                             | Start an opportunity discovery flow (creates conversation and returns `syntheticMessage`)    |
-| `POST /api/pirate/treasure`               | POST   | `POST /conversations`                             | Start an account planning flow (creates conversation and returns `syntheticMessage`)         |
-| `POST /api/pirate/crew/enlist`            | POST   | `POST /conversations`                             | Start an account-team staffing flow (creates conversation and returns `syntheticMessage`)    |
-| `GET /api/pirate/adventures`              | GET    | `GET /conversations`                              | List all adventures (with `mode` + `status` fields)                                          |
-| `GET /api/pirate/adventures/{id}`         | GET    | `GET /conversations/{id}`                         | Get adventure detail with messages, `status`, and `outcome`                                  |
-| `POST /api/pirate/adventures/{id}/parley` | POST   | `POST /conversations/{id}/messages`               | Continue chatting (SSE stream; parses for `activity.resolved`)                               |
-| `GET /api/pirate/stats`                   | GET    | Computed from `GET /conversations`                | Activity stats per mode; includes resolution counts                                          |
-| `GET /health`                             | GET    | Also calls agent `/health`                        | Health check (self + agent dependency)                                                       |
-| `GET /health/deep`                        | GET    | Calls agent `GET /conversations?offset=0&limit=1` | Deep health check for authenticated API→agent connectivity                                   |
-| `GET /identity`                           | GET    | --                                                | Credential validation (returns identity claims from `DefaultAzureCredential`)                |
+| Endpoint                                  | Method | Maps to agent API                                 | Description                                                                               |
+|-------------------------------------------|--------|---------------------------------------------------|-------------------------------------------------------------------------------------------|
+| `POST /api/pirate/shanty`                 | POST   | `POST /conversations`                             | Start an opportunity discovery flow (creates conversation and returns `syntheticMessage`) |
+| `POST /api/pirate/treasure`               | POST   | `POST /conversations`                             | Start an account planning flow (creates conversation and returns `syntheticMessage`)      |
+| `POST /api/pirate/crew/enlist`            | POST   | `POST /conversations`                             | Start an account-team staffing flow (creates conversation and returns `syntheticMessage`) |
+| `GET /api/pirate/adventures`              | GET    | `GET /conversations`                              | List all adventures (with `mode` + `status` fields)                                       |
+| `GET /api/pirate/adventures/{id}`         | GET    | `GET /conversations/{id}`                         | Get adventure detail with messages, `status`, and `outcome`                               |
+| `POST /api/pirate/adventures/{id}/parley` | POST   | `POST /conversations/{id}/messages`               | Continue chatting (SSE stream; parses for `activity.resolved`)                            |
+| `GET /api/pirate/stats`                   | GET    | Computed from `GET /conversations`                | Activity stats per mode; includes resolution counts                                       |
+| `GET /health`                             | GET    | Also calls agent `/health`                        | Health check (self + agent dependency)                                                    |
+| `GET /health/deep`                        | GET    | Calls agent `GET /conversations?offset=0&limit=1` | Deep health check for authenticated API→agent connectivity                                |
+| `GET /identity`                           | GET    | --                                                | Credential validation (returns identity claims from `DefaultAzureCredential`)             |
 
 ### Health check
 
@@ -94,18 +94,18 @@ If the agent is unreachable, the API reports `degraded` (not `unhealthy`). The `
 
 ## Configuration
 
-| Variable            | Required | Default                                        | Description                                                     |
-|---------------------|----------|------------------------------------------------|-----------------------------------------------------------------|
-| `AGENT_SERVICE_URL` | Yes      | --                                             | Base URL of the agent container (e.g., `http://localhost:3000`) |
-| `PORT`              | No       | `4000`                                         | Server port                                                     |
-| `HOST`              | No       | `0.0.0.0`                                      | Server host                                                     |
-| `AGENT_TOKEN_SCOPE` | No       | `https://cognitiveservices.azure.com/.default` | OAuth scope for agent tokens                                    |
-| `LOG_LEVEL`         | No       | `info`                                         | Pino log level                                                  |
-| `SKIP_AUTH`         | No       | `false`                                        | Explicit local/dev auth bypass                                  |
-| `INBOUND_AUTH_TENANT_ID` | When `SKIP_AUTH=false` | --                              | Entra tenant used to derive valid issuers                       |
-| `INBOUND_AUTH_ALLOWED_AUDIENCES` | When `SKIP_AUTH=false` | --                         | Comma-separated accepted audiences                              |
-| `INBOUND_AUTH_ALLOWED_CALLER_APP_IDS` | No | --                                       | Optional caller application allowlist                           |
-| `INBOUND_AUTH_AUTHORITY_HOST` | No | `https://login.microsoftonline.com`             | Authority host override                                         |
+| Variable                              | Required               | Default                                        | Description                                                     |
+|---------------------------------------|------------------------|------------------------------------------------|-----------------------------------------------------------------|
+| `AGENT_SERVICE_URL`                   | Yes                    | --                                             | Base URL of the agent container (e.g., `http://localhost:3000`) |
+| `PORT`                                | No                     | `4000`                                         | Server port                                                     |
+| `HOST`                                | No                     | `0.0.0.0`                                      | Server host                                                     |
+| `AGENT_TOKEN_SCOPE`                   | No                     | `https://cognitiveservices.azure.com/.default` | OAuth scope for agent tokens                                    |
+| `LOG_LEVEL`                           | No                     | `info`                                         | Pino log level                                                  |
+| `SKIP_AUTH`                           | No                     | `false`                                        | Explicit local/dev auth bypass                                  |
+| `INBOUND_AUTH_TENANT_ID`              | When `SKIP_AUTH=false` | --                                             | Entra tenant used to derive valid issuers                       |
+| `INBOUND_AUTH_ALLOWED_AUDIENCES`      | When `SKIP_AUTH=false` | --                                             | Comma-separated accepted audiences                              |
+| `INBOUND_AUTH_ALLOWED_CALLER_APP_IDS` | No                     | --                                             | Optional caller application allowlist                           |
+| `INBOUND_AUTH_AUTHORITY_HOST`         | No                     | `https://login.microsoftonline.com`            | Authority host override                                         |
 
 ## Dependencies
 

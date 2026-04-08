@@ -63,15 +63,15 @@ If any of those are unknown, do not default to a full end-to-end CAIRA clone.
 
 Use this matrix to avoid overbuilding:
 
-| Component | Determine if needed | Reuse-first questions | Typical CAIRA sources |
-| --- | --- | --- | --- |
-| Frontend | Does the user need a user-facing web app at all? | Existing SPA? Existing BFF? Existing auth/session model? | `deployment-strategies/.../frontend/`, `strategy-builder/components/frontend/react-typescript/` |
-| API | Is a business API needed between UI/callers and the agent? | Existing REST API? Existing gateway? Existing conversation/state layer? | `deployment-strategies/.../api/`, `strategy-builder/components/api/` |
-| Agent container | Does the user need a new agent runtime, or only prompt/tool changes in an existing one? | Existing agent service? Existing Foundry/OpenAI endpoint? Existing container host? | `deployment-strategies/.../agent/`, `strategy-builder/components/agent/` |
-| Capability host | Is the user specifically using a Foundry Agent Service capability-host pattern? | Existing capability host or MCP-style host already present? | `deployment-strategies/.../infra/`, `strategy-builder/infra/reference-architectures/` |
-| Observability | Do they need telemetry hookup only, or a whole platform slice? | Existing App Insights? Existing OTEL collector? Existing dashboards/alerts? | strategy READMEs, infra modules, app component env/config |
-| APIM / AI gateway | Do they need governance, policy, or gateway-based endpoint exposure? | Existing APIM instance? Existing AI gateway conventions? | strategy `infra/`, APIM outputs/docs |
-| Private networking | Do they need private endpoints/network isolation now? | Existing VNet, DNS, hub-spoke, or private endpoint standards? | reference architecture + infra modules |
+| Component          | Determine if needed                                                                     | Reuse-first questions                                                              | Typical CAIRA sources                                                                           |
+|--------------------|-----------------------------------------------------------------------------------------|------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
+| Frontend           | Does the user need a user-facing web app at all?                                        | Existing SPA? Existing BFF? Existing auth/session model?                           | `deployment-strategies/.../frontend/`, `strategy-builder/components/frontend/react-typescript/` |
+| API                | Is a business API needed between UI/callers and the agent?                              | Existing REST API? Existing gateway? Existing conversation/state layer?            | `deployment-strategies/.../api/`, `strategy-builder/components/api/`                            |
+| Agent container    | Does the user need a new agent runtime, or only prompt/tool changes in an existing one? | Existing agent service? Existing Foundry/OpenAI endpoint? Existing container host? | `deployment-strategies/.../agent/`, `strategy-builder/components/agent/`                        |
+| Capability host    | Is the user specifically using a Foundry Agent Service capability-host pattern?         | Existing capability host or MCP-style host already present?                        | `deployment-strategies/.../infra/`, `strategy-builder/infra/reference-architectures/`           |
+| Observability      | Do they need telemetry hookup only, or a whole platform slice?                          | Existing App Insights? Existing OTEL collector? Existing dashboards/alerts?        | strategy READMEs, infra modules, app component env/config                                       |
+| APIM / AI gateway  | Do they need governance, policy, or gateway-based endpoint exposure?                    | Existing APIM instance? Existing AI gateway conventions?                           | strategy `infra/`, APIM outputs/docs                                                            |
+| Private networking | Do they need private endpoints/network isolation now?                                   | Existing VNet, DNS, hub-spoke, or private endpoint standards?                      | reference architecture + infra modules                                                          |
 
 ## Copy mode vs reference mode
 
@@ -275,7 +275,7 @@ Then:
 - Repository root: <https://github.com/pablozaiden/CAIRA>
 - Default discovery ref: `main` unless the user explicitly asks to browse another ref.
 - Reference-mode generated module or file URLs should use a concrete pinned ref, not `main`, unless the user explicitly asks for a floating dependency.
-- Latest release tag API (for pinned `reference` mode dependencies): <https://api.github.com/repos/pablozaiden/CAIRA/releases/latest>
+- Latest release page (for pinned `reference` mode dependencies): <https://github.com/pablozaiden/CAIRA/releases/latest>
 - Deployment strategies listing API: `GET /repos/pablozaiden/CAIRA/contents/deployment-strategies?ref=main`
 - Docs listing API: `GET /repos/pablozaiden/CAIRA/contents/docs?ref=main`
 - Reference architectures listing API: `GET /repos/pablozaiden/CAIRA/contents/strategy-builder/infra/reference-architectures?ref=main`
