@@ -34,9 +34,9 @@ export async function runCommand(
   options?: {
     cwd?: string | undefined;
     timeoutMs?: number | undefined;
-    env?: Record<string, string> | undefined;
+    env?: NodeJS.ProcessEnv | undefined;
   }
-): Promise<{ stdout: string; stderr: string }> {
+): Promise<{ success: boolean; exitCode: number; stdout: string; stderr: string }> {
   try {
     const result = await execFileAsync(cmd, args, {
       cwd: options?.cwd,
@@ -44,10 +44,12 @@ export async function runCommand(
       maxBuffer: 10 * 1024 * 1024, // 10 MB
       env: options?.env ? { ...process.env, ...options.env } : undefined
     });
-    return { stdout: result.stdout, stderr: result.stderr };
+    return { success: true, exitCode: 0, stdout: result.stdout, stderr: result.stderr };
   } catch (err: unknown) {
-    const error = err as { stdout?: string; stderr?: string; message?: string };
+    const error = err as { stdout?: string; stderr?: string; message?: string; code?: number | string | undefined };
     return {
+      success: false,
+      exitCode: typeof error.code === 'number' ? error.code : 1,
       stdout: error.stdout ?? '',
       stderr: error.stderr ?? error.message ?? String(err)
     };

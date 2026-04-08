@@ -288,13 +288,13 @@ async function interactiveLogin(): Promise<void> {
   log(`Credentials will be stored in the '${VOLUME_NAME}' Docker volume.`);
   log('');
 
-  await ensureVolume();
+  await ensureAzurecliVolume();
 
   const result = await runAzCommand(['login', '--use-device-code'], true);
 
   if (result.exitCode === 0) {
     // Fix ownership so the azcred sidecar (uid 65532) can read credentials.
-    await fixVolumePermissions();
+    await fixAzurecliPermissions();
     log('');
     log('Login successful! The azurecli volume is ready.');
     log('You can now run: docker compose up --build');
@@ -395,7 +395,7 @@ async function main(): Promise<void> {
   }
 
   if (args.includes('--interactive')) {
-    await ensureVolume();
+    await ensureAzurecliVolume();
     await interactiveLogin();
     return;
   }
