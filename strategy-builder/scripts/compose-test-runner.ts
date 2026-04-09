@@ -90,7 +90,6 @@ export async function runComposeTests(options: ComposeTestOptions): Promise<Comp
 
   // 0. Regenerate deployment strategies from components to ensure no drift
   const strategyBuilderRoot = resolve(import.meta.dirname ?? '.', '..');
-  const workspaceRoot = resolve(strategyBuilderRoot, '..');
   if (!options.skipRegenerate) {
     log('Regenerating deployment strategies from components...');
     const samplesDir = DEPLOYMENT_STRATEGIES_ROOT;
@@ -130,7 +129,7 @@ export async function runComposeTests(options: ComposeTestOptions): Promise<Comp
   }
 
   // Generate mock overlay for testing (skip when mockMode is explicitly false — L6 uses real Azure)
-  const overlayPath = options.mockMode === false ? null : await generateTestOverlay(strategyDir, workspaceRoot);
+  const overlayPath = options.mockMode === false ? null : await generateTestOverlay(strategyDir, strategyBuilderRoot);
   const composeFiles = getComposeFiles(strategyDir, overlayPath);
 
   // Mock mode: explicit option > default to true when overlay is present

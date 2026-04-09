@@ -221,7 +221,7 @@ export function detectAgentVariant(samplePathOrName: string): string | null {
  *
  * Returns the path to the generated overlay file, or null if no mock is available.
  */
-export async function generateTestOverlay(sampleDir: string, repoRoot: string): Promise<string | null> {
+export async function generateTestOverlay(sampleDir: string, strategyBuilderRoot: string): Promise<string | null> {
   const sampleName = basename(sampleDir);
   const variant = detectAgentVariant(sampleDir);
 
@@ -235,7 +235,7 @@ export async function generateTestOverlay(sampleDir: string, repoRoot: string): 
     log(`No mock mapping found for variant "${variant}" — running without mock overlay`);
     return null;
   }
-  const mockBuildContext = resolve(repoRoot, 'testing', 'mocks', mock.mockDir);
+  const mockBuildContext = resolve(strategyBuilderRoot, 'testing', 'mocks', mock.mockDir);
 
   if (!existsSync(mockBuildContext)) {
     log(`Mock directory not found: ${mockBuildContext} — running without mock overlay`);
@@ -280,6 +280,10 @@ services:
     depends_on:
       azcred:
         condition: service_started
+
+  frontend:
+    environment:
+      SKIP_AUTH: "true"
 
 `;
 
