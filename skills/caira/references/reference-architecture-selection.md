@@ -8,11 +8,11 @@ Start from `deployment-strategies/` and `docs/` first. Use the raw reference-arc
 
 1. Resolve the discovery `ref`: default to `main` for browsing CAIRA. If the user later chooses `reference` mode for generated dependencies, pin those generated references to a specific release tag or commit instead of `main`.
 1. List generated deployment strategies and relevant docs first:
-   - `GET https://api.github.com/repos/pablozaiden/CAIRA/contents/deployment-strategies?ref=main`
-   - `GET https://api.github.com/repos/pablozaiden/CAIRA/contents/docs?ref=main`
+   - `GET https://api.github.com/repos/microsoft/CAIRA/contents/deployment-strategies?ref=main`
+   - `GET https://api.github.com/repos/microsoft/CAIRA/contents/docs?ref=main`
 1. Use the discovered deployment strategies and docs to identify the closest end-to-end fit before drilling into raw infra.
 1. List architectures dynamically when the generated strategies/docs are not enough:
-   - `GET https://api.github.com/repos/pablozaiden/CAIRA/contents/strategy-builder/infra/reference-architectures?ref=main`
+   - `GET https://api.github.com/repos/microsoft/CAIRA/contents/strategy-builder/infra/reference-architectures?ref=main`
 1. For each discovered architecture directory directly under `strategy-builder/infra/reference-architectures/`:
     - List files in that directory via contents API.
     - Read `README.md` and `*.tf` from returned `download_url` values.

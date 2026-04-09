@@ -8,12 +8,12 @@ Use `main` as the default discovery ref when browsing CAIRA. If the user chooses
 
 ## Canonical discovery endpoints
 
-- Deployment strategies: `https://api.github.com/repos/pablozaiden/CAIRA/contents/deployment-strategies?ref=main`
-- Docs: `https://api.github.com/repos/pablozaiden/CAIRA/contents/docs?ref=main`
-- Reference architectures: `https://api.github.com/repos/pablozaiden/CAIRA/contents/strategy-builder/infra/reference-architectures?ref=main`
-- Modules: `https://api.github.com/repos/pablozaiden/CAIRA/contents/strategy-builder/infra/modules?ref=main`
-- Infra testing: `https://api.github.com/repos/pablozaiden/CAIRA/contents/strategy-builder/infra/testing?ref=main`
-- Strategy builder: `https://api.github.com/repos/pablozaiden/CAIRA/contents/strategy-builder?ref=main`
+- Deployment strategies: `https://api.github.com/repos/microsoft/CAIRA/contents/deployment-strategies?ref=main`
+- Docs: `https://api.github.com/repos/microsoft/CAIRA/contents/docs?ref=main`
+- Reference architectures: `https://api.github.com/repos/microsoft/CAIRA/contents/strategy-builder/infra/reference-architectures?ref=main`
+- Modules: `https://api.github.com/repos/microsoft/CAIRA/contents/strategy-builder/infra/modules?ref=main`
+- Infra testing: `https://api.github.com/repos/microsoft/CAIRA/contents/strategy-builder/infra/testing?ref=main`
+- Strategy builder: `https://api.github.com/repos/microsoft/CAIRA/contents/strategy-builder?ref=main`
 
 ## File inspection pattern
 

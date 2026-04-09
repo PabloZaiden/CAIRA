@@ -11,6 +11,10 @@ This guide is for contributors working on the CAIRA repository itself. If you
 want to use CAIRA in your own solution, install the CAIRA skill and let your
 coding agent use this repository as reference material.
 
+If you are adding or changing components, variants, templates, or deployment
+strategies, start with [Extending CAIRA](contributing/extending_caira.md). Use
+this page as the scenario matrix and command reference.
+
 CAIRA spans infrastructure, generated deployments, and app-layer source code.
 The safest contributor workflow is:
 

@@ -33,13 +33,13 @@ cd /path/to/your-project
 Using Bun:
 
 ```bash
-bunx skills add github.com/pablozaiden/caira/skills
+bunx skills add github.com/microsoft/CAIRA/skills
 ```
 
 Using NPX:
 
 ```bash
-npx skills add github.com/pablozaiden/caira/skills
+npx skills add github.com/microsoft/CAIRA/skills
 ```
 
 After installation, restart your agent session and ask it to inspect CAIRA for your scenario. For example: `Use CAIRA to design an Azure AI solution with Foundry, an API, and a frontend.`
@@ -57,7 +57,7 @@ CAIRA is not Terraform-only and not infrastructure-only. The repository intentio
 
 ## Primary entrypoint: CAIRA skill
 
-1. Install the CAIRA skill with `bunx skills add github.com/pablozaiden/caira/skills` or `npx skills add github.com/pablozaiden/caira/skills`.
+1. Install the CAIRA skill with `bunx skills add github.com/microsoft/CAIRA/skills` or `npx skills add github.com/microsoft/CAIRA/skills`.
 1. Ask the agent to inspect the CAIRA reference architectures, modules, strategy-builder assets, deployment strategies, and docs that fit your scenario.
 1. Let the agent adapt those discovered CAIRA assets into a solution for your specific use case.
 1. Use the repository directly only when you need to contribute to CAIRA itself or inspect the source directly.
@@ -78,6 +78,7 @@ CAIRA is not Terraform-only and not infrastructure-only. The repository intentio
 | `task validate:pr`                                                                     | Run the fast pull-request validation suite                                                                             |
 | `task test`                                                                            | Run the full local validation suite                                                                                    |
 | `task strategy:generate`                                                               | Regenerate committed deployment strategies                                                                             |
+| `task strategy:validate:drift`                                                         | Confirm generated deployment strategies still match the source-of-truth assets                                         |
 | `task strategy:dev -- deployment-strategies/<reference-architecture>/<name>`           | Run one generated strategy locally with Docker Compose                                                                 |
 | `task strategy:dev:azure -- deployment-strategies/<reference-architecture>/<name>`     | Run one generated strategy locally against Azure                                                                       |
 | `task strategy:deploy -- deployment-strategies/<reference-architecture>/<name>`        | Deploy one generated deployment strategy to Azure                                                                      |
@@ -86,15 +87,27 @@ CAIRA is not Terraform-only and not infrastructure-only. The repository intentio
 
 Use `task strategy:deploy:reference` only for specialized maintenance work: deploying the shared baseline infrastructure or regenerating strategy `.env` files from it. Most contributors should ignore this command and use the standard strategy commands above.
 
+## Choose the right path
+
+| If you want to...                                                               | Start here                                     |
+|---------------------------------------------------------------------------------|------------------------------------------------|
+| Use CAIRA in your own solution                                                  | Quickstart above, then `skills/caira/SKILL.md` |
+| Extend CAIRA with new components, variants, templates, or deployment strategies | `docs/contributing/extending_caira.md`         |
+| Choose the right validation depth for your change                               | `docs/developer.md`                            |
+| Prepare or update a pull request                                                | `docs/contributing/pull_request_guide.md`      |
+
 ## Repository model
 
 ```text
 CAIRA/
-├── infra/
-│   ├── foundry_agentic_app/
-│   ├── modules/
-│   └── testing/
 ├── strategy-builder/
+│   ├── infra/
+│   │   ├── reference-architectures/
+│   │   │   └── foundry_agentic_app/
+│   │   ├── modules/
+│   │   └── testing/
+│   ├── components/
+│   └── scripts/
 ├── deployment-strategies/
 ├── docs/
 └── skills/
@@ -113,6 +126,7 @@ CAIRA/
 
 - Start with `skills/caira/SKILL.md` if you want to use CAIRA through a coding agent.
 - Start with `docs/README.md` for contributor and operator documentation.
+- Start with `docs/contributing/extending_caira.md` if you are adding or changing components, variants, templates, or deployment strategies.
 - Review `strategy-builder/infra/README.md` for the infrastructure layout.
 - Review `strategy-builder/README.md` for the app-layer and generator workflow.
 - Review the `deployment-strategies/*/README.md` files for generated strategy expectations.

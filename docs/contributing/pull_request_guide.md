@@ -9,6 +9,10 @@
 
 This guide is for contributors opening pull requests against the CAIRA repository. If you want to use CAIRA in your own solution, start with the CAIRA skill instead of the repository contribution workflow.
 
+If your change adds or alters components, variants, templates, generator logic,
+or deployment-strategy behavior, start with [Extending
+CAIRA](extending_caira.md) and use this page as the final PR checklist.
+
 ## Before you open a pull request
 
 Run the same fast validation suite that GitHub runs for pull requests:
@@ -46,6 +50,8 @@ Full deploy/destroy lifecycle coverage runs in the nightly workflow instead of o
 - [ ] `task validate:pr` passes locally
 - [ ] Documentation is updated when behavior or workflows changed
 - [ ] Generated deployment strategies were refreshed if generator inputs changed
+- [ ] Representative generated strategy was smoke-tested locally when strategy behavior changed
+- [ ] Azure-backed validation was run when deployed behavior, private networking, or capability-host scenarios changed
 - [ ] No secrets, credentials, or environment-specific data were committed
 
 ## Pull request titles

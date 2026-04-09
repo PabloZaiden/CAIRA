@@ -4,6 +4,11 @@ This guide explains how the strategy-builder area fits into CAIRA and how to wor
 
 This guide is for contributors changing CAIRA itself. Most users should install the CAIRA skill and let their coding agent inspect the strategy-builder assets as reference material.
 
+Start with `../../../docs/contributing/extending_caira.md` when you need the
+end-to-end contributor workflow for adding components, variants, templates, or
+deployment strategies. Use this guide for the strategy-builder-specific design,
+implementation, and testing details.
+
 ## What the strategy builder owns
 
 The strategy builder is the source of truth for:
@@ -21,14 +26,17 @@ Use the repository root Taskfile so the infrastructure and strategy-builder work
 
 ```bash
 task setup
-task validate:pr
 task strategy:generate
+task strategy:validate:drift
+task validate:pr
 task strategy:test:local
+task strategy:dev -- deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca
 task strategy:test:deployed -- deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca
 ```
 
 ## Guide contents
 
+- [Extension Workflow (repo-level)](../../../docs/contributing/extending_caira.md)
 - [Architecture](./architecture.md)
 - [Getting Started](./getting-started.md)
 - [API Contracts](./contracts.md)

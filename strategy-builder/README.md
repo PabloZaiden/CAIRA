@@ -4,6 +4,11 @@ The strategy builder is the application-layer source of truth for CAIRA. It cont
 
 Most users should install the CAIRA skill and let their coding agent inspect this tree as reference material. Work directly in `strategy-builder/` only when contributing to CAIRA itself.
 
+If you are extending CAIRA with new components, variants, templates, or
+deployment strategies, start with `../docs/contributing/extending_caira.md` for
+the end-to-end workflow. Use this README and `docs/guide/` for the
+strategy-builder-specific implementation details.
+
 ## What lives here
 
 - `components/` — agent, API, frontend, and strategy infrastructure building blocks
@@ -18,6 +23,8 @@ From the repository root, prefer the Taskfile wrappers:
 
 ```bash
 task strategy:generate
+task strategy:validate:drift
+task validate:pr
 task strategy:validate:pr
 task strategy:test:local
 task strategy:dev -- deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca

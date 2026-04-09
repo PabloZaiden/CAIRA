@@ -67,7 +67,7 @@ flowchart TB
 
 ### Fork the Repository
 
-1. Navigate to the [CAIRA repository](https://github.com/pablozaiden/CAIRA)
+1. Navigate to the [CAIRA repository](https://github.com/microsoft/CAIRA)
 1. Click "Fork" in the top-right corner
 1. Choose your GitHub account as the destination
 
@@ -79,7 +79,7 @@ git clone https://github.com/YOUR-USERNAME/CAIRA.git
 cd CAIRA
 
 # Add upstream remote
-git remote add upstream https://github.com/pablozaiden/CAIRA.git
+git remote add upstream https://github.com/microsoft/CAIRA.git
 
 # Verify remotes
 git remote -v
@@ -133,6 +133,10 @@ Use the [Developer Guide](../developer.md) to choose the right sequence for the
 change you made. Infrastructure changes, shared baseline changes, generator
 changes, workflow edits, docs-only updates, and private networking or
 capability-host validation do not all require the same depth.
+
+If you are adding or changing components, variants, templates, or deployment
+strategies, use [Extending CAIRA](extending_caira.md) for the end-to-end
+workflow and validation ladder.
 
 ## Commit Guidelines
 

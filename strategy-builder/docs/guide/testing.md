@@ -2,6 +2,11 @@
 
 Testing is central to this project. Since development is agent-driven, every piece of work must be machine-verifiable -- no "check visually" or "verify manually" steps.
 
+For the end-to-end contributor workflow that explains which validation depth to
+use, what the PR pipeline runs, and when to escalate to Azure-backed testing,
+start with `../../../docs/contributing/extending_caira.md` and
+`../../../docs/developer.md`.
+
 ## Philosophy
 
 1. **Layered validation** -- fail fast at the cheapest layer, escalate only when cheaper layers pass
@@ -236,14 +241,27 @@ The compose test runner (`scripts/compose-test-runner.ts`) orchestrates full-sta
 
 ### Usage
 
+For most contributors, start from the repository root:
+
+```bash
+# Same fast static suite used by pull requests
+task validate:pr
+
+# Broader local app-layer validation
+task strategy:test:local
+
+# Interactive local smoke test for one generated strategy
+task strategy:dev -- deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
+
+# Local stack against real Azure dependencies
+task strategy:dev:azure -- deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
+```
+
+Use the direct runners below when you need to target a specific layer or debug
+the compose harness itself:
+
 ```bash
 # Test a specific strategy variant (L5 mock mode)
-npm run test:compose -- deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
-
-# Test without mocks against real Azure (L6, auto-deploys CAIRA)
-npm run test:compose:azure -- deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
-
-# Or use the scripts directly:
 node scripts/compose-test-runner.ts \
   --strategy deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
 
@@ -291,6 +309,16 @@ In devcontainers / Codespaces, nested Docker networking can differ from a bare-m
 
 ## Running tests
 
+### Recommended contributor entrypoints (from the repository root)
+
+```bash
+task validate:pr
+task strategy:test:local
+task test
+task strategy:dev -- deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
+task strategy:test:deployed -- deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
+```
+
 ### Single component (fastest)
 
 ```bash
@@ -298,44 +326,22 @@ cd components/api/typescript
 npm run test         # ~2 seconds
 ```
 
-### All unit tests
+### Advanced targeted commands (from `strategy-builder/`)
 
 ```bash
-# From repo root
+# Run the early layers only
 node scripts/test-all.ts --layer L1,L2,L3
-```
 
-### Full local validation
+# Full local app-layer validation
+node scripts/test-all.ts
 
-```bash
-npm run test:full    # L1-L8 (everything)
-```
-
-### Compose integration tests
-
-```bash
-# Run E2E with mocks for a specific strategy
-npm run test:compose -- deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
-
-# Run E2E against real Azure (auto-deploys CAIRA)
-npm run test:compose:azure -- deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
-
-# Run all L5 tests via the master test runner
+# Run the compose layer only
 node scripts/test-all.ts --layer L5
-```
 
-### Specific layer
-
-```bash
+# Run one specific layer
 node scripts/test-all.ts --layer L2
-```
 
-### Testing infrastructure itself
-
-```bash
-# Each testing project has its own tests
-cd testing/contract-validator && npm install && npm run test
-cd testing/container-health && npm install && npm run test
-cd testing/mocks/ai-mock && npm install && npm run test
-cd testing/e2e && npm install && npm run test
+# Run one strategy through the compose test runner
+node scripts/compose-test-runner.ts \
+  --strategy deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
 ```

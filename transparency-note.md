@@ -108,13 +108,13 @@ Ensure appropriate human oversight for your system. The person responsible for t
 
 ## Learn more about CAIRA (Composable AI Reference Architecture)
 
-* **GitHub Repository:** [https://github.com/pablozaiden/CAIRA](https://github.com/pablozaiden/CAIRA)
+* **GitHub Repository:** [https://github.com/microsoft/CAIRA](https://github.com/microsoft/CAIRA)
 * **CAIRA Documentation:** [https://microsoft.github.io/CAIRA/](https://microsoft.github.io/CAIRA/)
 * **CAIRA Skill Source:** `skills/caira/SKILL.md` in the repository
 
 ## Contact us
 
-Give us feedback on this document by filing an issue in the [CAIRA GitHub repository](https://github.com/pablozaiden/CAIRA/issues).
+Give us feedback on this document by filing an issue in the [CAIRA GitHub repository](https://github.com/microsoft/CAIRA/issues).
 
 ## About this document
 
