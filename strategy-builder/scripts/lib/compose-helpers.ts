@@ -140,8 +140,8 @@ export async function discoverContainerIp(projectName: string, serviceName: stri
     containerName
   ]);
   const ip = result.stdout.trim();
-  // Validate it looks like an IPv4 address (reject empty or garbage strings)
-  if (!ip || !/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) {
+  // Validate it looks like a valid IPv4 address
+  if (!ip || !/^(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)$/.test(ip)) {
     return null;
   }
   return ip;

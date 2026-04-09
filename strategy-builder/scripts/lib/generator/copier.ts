@@ -5,20 +5,31 @@
 
 import { readdir, readFile, mkdir, writeFile, copyFile } from 'node:fs/promises';
 import type { Dirent } from 'node:fs';
-import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
+import { toPortablePath, pathIsInside } from './utils.ts';
 
 // ---------------------------------------------------------------------------
 // Configuration
 // ---------------------------------------------------------------------------
 
-/** Directories to skip during copy. */
-const SKIP_DIRS = new Set(['node_modules', 'dist', '.turbo', 'coverage', '.nyc_output', '.terraform', 'bin', 'obj']);
+/** Directories to skip during copy and drift validation. */
+const SKIP_DIRS = new Set([
+  'node_modules',
+  'dist',
+  '.turbo',
+  'coverage',
+  '.nyc_output',
+  '.vite',
+  '.terraform',
+  'bin',
+  'obj'
+]);
 
-/** Files to skip during copy. */
+/** Files to skip during copy and drift validation. */
 const SKIP_FILES = new Set(['package-lock.json', '.dockerignore', '.env', '.terraform.lock.hcl']);
 
-/** Files that need tsconfig extends path rewriting. */
-const TSCONFIG_FILES = new Set(['tsconfig.json', 'tsconfig.node.json', 'tsconfig.app.json']);
+/** Files that need tsconfig extends path rewriting (also used by self-containment checks). */
+export const TSCONFIG_FILES = new Set(['tsconfig.json', 'tsconfig.node.json', 'tsconfig.app.json']);
 
 export interface CopyOptions {
   /**
@@ -29,15 +40,6 @@ export interface CopyOptions {
   readonly sharedTerraformModulesRoot?: string | undefined;
   /** Absolute path to the vendored modules directory inside the generated strategy. */
   readonly vendoredTerraformModulesDir?: string | undefined;
-}
-
-function toPortablePath(value: string): string {
-  return value.replaceAll('\\', '/');
-}
-
-function pathIsInside(rootDir: string, candidatePath: string): boolean {
-  const rel = relative(rootDir, candidatePath);
-  return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel));
 }
 
 function toPortableRelativePath(fromPath: string, toPath: string): string {

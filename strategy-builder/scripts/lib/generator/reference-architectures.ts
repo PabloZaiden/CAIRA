@@ -7,6 +7,7 @@
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import type { DiscoveredReferenceArchitecture, ReferenceArchitectureManifest } from './types.ts';
+import { REFERENCE_ARCHITECTURE_ID_PATTERN } from './utils.ts';
 
 type ReferenceArchitectureValidationResult =
   | { readonly ok: true; readonly manifest: ReferenceArchitectureManifest }
@@ -23,6 +24,8 @@ function validateReferenceArchitectureManifest(raw: unknown): ReferenceArchitect
 
   if (typeof obj['id'] !== 'string' || obj['id'].length === 0) {
     errors.push('"id" must be a non-empty string');
+  } else if (!REFERENCE_ARCHITECTURE_ID_PATTERN.test(obj['id'])) {
+    errors.push(`"id" must be lowercase alphanumeric with hyphens or underscores (got "${obj['id']}")`);
   }
 
   if (typeof obj['displayName'] !== 'string' || obj['displayName'].length === 0) {
