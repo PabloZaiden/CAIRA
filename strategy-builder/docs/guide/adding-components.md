@@ -1,6 +1,12 @@
 # Adding New Components
 
-This guide explains how to add new agent frameworks, languages, compute targets, or other component types to the project.
+This guide explains how to add new agent frameworks, languages, compute
+targets, or other component types to the project.
+
+Use this page for component-level implementation details. For the end-to-end
+contributor workflow that covers regeneration, validation depth, local smoke
+tests, and PR expectations, start with
+`../../../docs/contributing/extending_caira.md`.
 
 ## The component model
 
@@ -168,19 +174,34 @@ docker run -p 3000:3000 -e <REQUIRED_ENV>=<value> -e SKIP_AUTH=true caira-agent-
 curl http://localhost:3000/health
 ```
 
-### 9. Regenerate deployment strategies
+### 9. Regenerate deployment strategies and run repo-level validation
 
-After adding a new component, regenerate the committed deployment strategies so the generator picks up the new combination:
+After adding a new component, regenerate the committed deployment strategies so
+the generator picks up the new combination:
 
 ```bash
-# Regenerate all deployment strategies (new valid combinations will be committed automatically)
-node scripts/generate-strategies.ts
+# From the repository root
+task strategy:generate
 
-# Verify no drift
-node scripts/validate-strategies.ts
+# Focused generation check
+task strategy:validate:drift
+
+# Fast repo-wide PR-equivalent suite
+task validate:pr
 ```
 
-The generator automatically discovers new components via their `component.json` manifest, builds the combination matrix, and produces a new sample if all required components exist (agent + API + frontend for the same language). No changes to the generator code are needed.
+If the change affects behavior, compose wiring, images, or runtime integration,
+also run:
+
+```bash
+task strategy:test:local
+task strategy:dev -- deployment-strategies/<reference-architecture>/<name>
+```
+
+The generator automatically discovers new components via their
+`component.json` manifest, builds the combination matrix, and produces a new
+sample if all required components exist (agent + API + frontend for the same
+language). No changes to the generator code are needed.
 
 ---
 
@@ -309,4 +330,6 @@ Build static files, serve via Fastify BFF on port 8080 (serves SPA + proxies `/a
 - [ ] Works with the credentials proxy sidecar (`IDENTITY_ENDPOINT` + `IMDS_ENDPOINT`) for Docker-based local dev
 - [ ] Deterministic mock available for testing without Azure
 - [ ] Deployment strategies regenerated (`task strategy:generate`)
-- [ ] Drift validator passes (`task strategy:validate:pr`)
+- [ ] Drift validator passes (`task strategy:validate:drift`)
+- [ ] Repo-level PR suite passes (`task validate:pr`)
+- [ ] Representative generated strategy smoke-tested locally when behavior or wiring changed

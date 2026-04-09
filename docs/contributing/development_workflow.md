@@ -134,6 +134,10 @@ change you made. Infrastructure changes, shared baseline changes, generator
 changes, workflow edits, docs-only updates, and private networking or
 capability-host validation do not all require the same depth.
 
+If you are adding or changing components, variants, templates, or deployment
+strategies, use [Extending CAIRA](extending_caira.md) for the end-to-end
+workflow and validation ladder.
+
 ## Commit Guidelines
 
 ### Signing Commits

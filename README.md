@@ -78,6 +78,7 @@ CAIRA is not Terraform-only and not infrastructure-only. The repository intentio
 | `task validate:pr`                                                                     | Run the fast pull-request validation suite                                                                             |
 | `task test`                                                                            | Run the full local validation suite                                                                                    |
 | `task strategy:generate`                                                               | Regenerate committed deployment strategies                                                                             |
+| `task strategy:validate:drift`                                                         | Confirm generated deployment strategies still match the source-of-truth assets                                         |
 | `task strategy:dev -- deployment-strategies/<reference-architecture>/<name>`           | Run one generated strategy locally with Docker Compose                                                                 |
 | `task strategy:dev:azure -- deployment-strategies/<reference-architecture>/<name>`     | Run one generated strategy locally against Azure                                                                       |
 | `task strategy:deploy -- deployment-strategies/<reference-architecture>/<name>`        | Deploy one generated deployment strategy to Azure                                                                      |
@@ -85,6 +86,15 @@ CAIRA is not Terraform-only and not infrastructure-only. The repository intentio
 | `task strategy:test:deployed -- deployment-strategies/<reference-architecture>/<name>` | Deploy, validate, and destroy one deployment strategy across the public, private, and private-capability-host profiles |
 
 Use `task strategy:deploy:reference` only for specialized maintenance work: deploying the shared baseline infrastructure or regenerating strategy `.env` files from it. Most contributors should ignore this command and use the standard strategy commands above.
+
+## Choose the right path
+
+| If you want to...                                                               | Start here                                     |
+|---------------------------------------------------------------------------------|------------------------------------------------|
+| Use CAIRA in your own solution                                                  | Quickstart above, then `skills/caira/SKILL.md` |
+| Extend CAIRA with new components, variants, templates, or deployment strategies | `docs/contributing/extending_caira.md`         |
+| Choose the right validation depth for your change                               | `docs/developer.md`                            |
+| Prepare or update a pull request                                                | `docs/contributing/pull_request_guide.md`      |
 
 ## Repository model
 
@@ -116,6 +126,7 @@ CAIRA/
 
 - Start with `skills/caira/SKILL.md` if you want to use CAIRA through a coding agent.
 - Start with `docs/README.md` for contributor and operator documentation.
+- Start with `docs/contributing/extending_caira.md` if you are adding or changing components, variants, templates, or deployment strategies.
 - Review `strategy-builder/infra/README.md` for the infrastructure layout.
 - Review `strategy-builder/README.md` for the app-layer and generator workflow.
 - Review the `deployment-strategies/*/README.md` files for generated strategy expectations.

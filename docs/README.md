@@ -10,15 +10,17 @@ For most users, the primary CAIRA entrypoint is the installed CAIRA skill. Insta
 
 ## Start here
 
-- Use the CAIRA skill defined in `skills/caira/SKILL.md` when you want CAIRA guidance for your own solution.
-- [Environment Setup](environment_setup.md) for contributors validating or extending CAIRA itself.
-- [Developer Guide](developer.md) for scenario-based contributor workflows,
-  task expectations, and GitHub Actions mapping.
-- [Troubleshooting](troubleshooting.md) for skill-guided and repository-based troubleshooting.
-- [Pull Request Guide](contributing/pull_request_guide.md) for contributors opening PRs.
-- [Development Workflow](contributing/development_workflow.md) for contributors changing CAIRA itself.
-- [Code Review Guidelines](contributing/code_review_guidelines.md) for contributor review expectations.
-- [Security Posture](security_posture.md) for product-level security guidance.
+| If you want to...                                                               | Start here                                                       |
+|---------------------------------------------------------------------------------|------------------------------------------------------------------|
+| Use CAIRA as reference material in your own solution                            | Repository root README and `skills/caira/SKILL.md`               |
+| Extend CAIRA with new components, variants, templates, or deployment strategies | [Extending CAIRA](contributing/extending_caira.md)               |
+| Choose the right command sequence for a specific change                         | [Developer Guide](developer.md)                                  |
+| Prepare a contributor machine or devcontainer workflow                          | [Environment Setup](environment_setup.md)                        |
+| Open or update a pull request                                                   | [Pull Request Guide](contributing/pull_request_guide.md)         |
+| Follow the full contributor branch-and-commit flow                              | [Development Workflow](contributing/development_workflow.md)     |
+| Review repository review expectations                                           | [Code Review Guidelines](contributing/code_review_guidelines.md) |
+| Troubleshoot local or documentation issues                                      | [Troubleshooting](troubleshooting.md)                            |
+| Understand product-level security guidance                                      | [Security Posture](security_posture.md)                          |
 
 ## Operating model
 
@@ -38,9 +40,10 @@ The repository validation story matches that model, and these docs double as ref
 
 ```bash
 task setup
+task strategy:generate
+task strategy:validate:drift
 task validate:pr
 task test
-task strategy:generate
 task strategy:dev -- deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca
 task strategy:deploy -- deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca
 task strategy:test:deployed -- deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca
@@ -58,3 +61,4 @@ Use `task strategy:deploy:reference` only when you are specifically working on t
 - Contributing guidance lives under `docs/contributing/`
 - Infrastructure-specific guidance starts in `strategy-builder/infra/README.md`
 - App-layer and generator guidance starts in `strategy-builder/README.md`
+- Component-level implementation details live under `strategy-builder/docs/guide/`
