@@ -190,9 +190,8 @@ async function main(): Promise<void> {
 
   // Generate mock overlay (only in mock mode)
   const strategyBuilderRoot = resolve(import.meta.dirname ?? '.', '..');
-  const workspaceRoot = resolve(strategyBuilderRoot, '..');
   if (useMock) {
-    overlayPath = await generateTestOverlay(sampleDir, workspaceRoot);
+    overlayPath = await generateTestOverlay(sampleDir, strategyBuilderRoot);
   }
   composeFiles = getComposeFiles(sampleDir, overlayPath);
   projectName = `caira-dev-${sampleName}`;

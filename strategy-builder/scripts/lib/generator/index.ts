@@ -5,12 +5,13 @@
 
 import type { Dirent } from 'node:fs';
 import { readFile, writeFile, mkdir, readdir, rm } from 'node:fs/promises';
-import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import { basename, dirname, join, relative, resolve } from 'node:path';
 import { discoverComponents } from './discovery.ts';
 import { discoverReferenceArchitectures } from './reference-architectures.ts';
 import { buildMatrix } from './matrix.ts';
-import { copyComponent } from './copier.ts';
+import { copyComponent, shouldIncludeDir, TSCONFIG_FILES } from './copier.ts';
 import { generateSampleFiles } from './files.ts';
+import { toPortablePath, pathIsInside } from './utils.ts';
 import type { SampleConfig } from './types.ts';
 
 // ---------------------------------------------------------------------------
@@ -44,20 +45,6 @@ export interface SampleDetail {
   /** Number of extra files copied (contracts, scripts, etc.). */
   readonly extraFilesCopied: number;
 }
-
-const SELF_CONTAINMENT_SKIP_DIRS = new Set([
-  'node_modules',
-  'dist',
-  '.turbo',
-  'coverage',
-  '.nyc_output',
-  '.vite',
-  '.terraform',
-  'bin',
-  'obj'
-]);
-
-const SELF_CONTAINMENT_TSCONFIG_FILES = new Set(['tsconfig.json', 'tsconfig.node.json', 'tsconfig.app.json']);
 
 // ---------------------------------------------------------------------------
 // Generate
@@ -249,7 +236,7 @@ async function collectSelfContainmentViolations(dir: string, strategyDir: string
   const entries: Dirent[] = await readdir(dir, { withFileTypes: true });
 
   for (const entry of entries) {
-    if (entry.isDirectory() && SELF_CONTAINMENT_SKIP_DIRS.has(entry.name)) {
+    if (entry.isDirectory() && !shouldIncludeDir(entry.name)) {
       continue;
     }
 
@@ -279,7 +266,7 @@ async function collectSelfContainmentViolations(dir: string, strategyDir: string
       violations.push(...collectComposeContextViolations(content, fullPath, strategyDir, relPath));
     }
 
-    if (SELF_CONTAINMENT_TSCONFIG_FILES.has(fileName)) {
+    if (TSCONFIG_FILES.has(fileName)) {
       violations.push(...collectTsconfigExtendsViolations(content, fullPath, strategyDir, relPath));
     }
   }
@@ -358,15 +345,6 @@ function stripEnclosingQuotes(value: string): string {
   }
 
   return value;
-}
-
-function pathIsInside(rootDir: string, candidatePath: string): boolean {
-  const rel = relative(rootDir, candidatePath);
-  return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel));
-}
-
-function toPortablePath(value: string): string {
-  return value.replaceAll('\\', '/');
 }
 
 // Re-export types and functions for convenience

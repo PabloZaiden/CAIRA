@@ -4,6 +4,7 @@
  */
 
 import type { DiscoveredComponent, DiscoveredReferenceArchitecture, SampleConfig } from './types.ts';
+import { STRATEGY_NAME_PATTERN } from './utils.ts';
 
 /** Information about a skipped combination, useful for diagnostics. */
 export interface SkippedCombination {
@@ -104,6 +105,16 @@ export function buildMatrix(
             language,
             referenceArchitectureId: referenceArchitecture.manifest.id,
             reason: `IaC component at ${iac.relPath} must declare "variant" or "strategySuffix"`
+          });
+          continue;
+        }
+
+        if (!STRATEGY_NAME_PATTERN.test(infraVariant)) {
+          skipped.push({
+            agentVariant: variant,
+            language,
+            referenceArchitectureId: referenceArchitecture.manifest.id,
+            reason: `IaC strategySuffix/variant "${infraVariant}" must be lowercase alphanumeric with hyphens`
           });
           continue;
         }

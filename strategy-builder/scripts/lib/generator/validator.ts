@@ -11,6 +11,7 @@ import type { Dirent } from 'node:fs';
 import { join, relative } from 'node:path';
 import { tmpdir } from 'node:os';
 import { generate } from './index.ts';
+import { shouldIncludeDir, shouldIncludeFile } from './copier.ts';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -110,7 +111,8 @@ export async function validateSamples(repoRoot: string): Promise<DriftResult> {
     const expectedContent = await readFile(join(tempSamplesDir, file), 'utf-8');
     const actualContent = await readFile(join(samplesDir, file), 'utf-8');
 
-    if (expectedContent !== actualContent) {
+    // Normalize line endings to avoid false positives on Windows checkouts
+    if (expectedContent.replace(/\r\n/g, '\n') !== actualContent.replace(/\r\n/g, '\n')) {
       diffs.push({ file, kind: 'content-mismatch' });
     }
   }
@@ -130,28 +132,9 @@ export async function validateSamples(repoRoot: string): Promise<DriftResult> {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Directories to skip when walking deployment-strategies/ on disk.  These are artefacts
- * created by npm install, builds, or tooling and are NOT part of the
- * generator output.  Must stay in sync with SKIP_DIRS in copier.ts.
- */
-const WALK_SKIP_DIRS = new Set([
-  'node_modules',
-  'dist',
-  '.turbo',
-  'coverage',
-  '.nyc_output',
-  '.vite',
-  '.terraform',
-  'bin',
-  'obj'
-]);
-
-/**
- * Files to skip when walking deployment-strategies/ on disk.  These are artefacts
- * created by npm install and are NOT part of the generator output.
- */
-const WALK_SKIP_FILES = new Set(['package-lock.json', '.env', '.terraform.lock.hcl']);
+// File and directory skip logic is shared with copier.ts via
+// shouldIncludeFile / shouldIncludeDir to prevent drift between the
+// generation and validation walk filters.
 
 /** Recursively collect all file paths relative to the given root. */
 async function collectFiles(root: string): Promise<string[]> {
@@ -169,15 +152,13 @@ async function walkDir(dir: string, root: string, files: string[]): Promise<void
   }
 
   for (const entry of entries) {
-    if (WALK_SKIP_DIRS.has(entry.name)) continue;
+    if (!shouldIncludeDir(entry.name)) continue;
 
     const full = join(dir, entry.name);
     if (entry.isDirectory()) {
       await walkDir(full, root, files);
     } else if (entry.isFile()) {
-      if (WALK_SKIP_FILES.has(entry.name) || entry.name.endsWith('.tsbuildinfo')) continue;
-      if (entry.name.endsWith('.tfstate') || entry.name.includes('.tfstate.')) continue;
-      if (entry.name.endsWith('.auto.tfvars.json')) continue;
+      if (!shouldIncludeFile(entry.name)) continue;
       files.push(relative(root, full));
     }
   }
