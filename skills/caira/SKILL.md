@@ -3,7 +3,7 @@ name: caira
 description: Primary entrypoint for coding agents using CAIRA as reference material to design and build Azure AI solutions tailored to a user's scenario.
 compatibility: Requires network access to github.com, api.github.com, and raw.githubusercontent.com.
 metadata:
-  author: pablozaiden
+  author: Microsoft
   version: "0.5.5"
 ---
 
@@ -272,13 +272,13 @@ Then:
 
 ## Source-of-truth URLs
 
-- Repository root: <https://github.com/pablozaiden/CAIRA>
+- Repository root: <https://github.com/microsoft/CAIRA>
 - Default discovery ref: `main` unless the user explicitly asks to browse another ref.
 - Reference-mode generated module or file URLs should use a concrete pinned ref, not `main`, unless the user explicitly asks for a floating dependency.
-- Latest release page (for pinned `reference` mode dependencies): <https://github.com/pablozaiden/CAIRA/releases/latest>
-- Deployment strategies listing API: `GET /repos/pablozaiden/CAIRA/contents/deployment-strategies?ref=main`
-- Docs listing API: `GET /repos/pablozaiden/CAIRA/contents/docs?ref=main`
-- Reference architectures listing API: `GET /repos/pablozaiden/CAIRA/contents/strategy-builder/infra/reference-architectures?ref=main`
-- Modules listing API: `GET /repos/pablozaiden/CAIRA/contents/strategy-builder/infra/modules?ref=main`
-- Infra testing listing API: `GET /repos/pablozaiden/CAIRA/contents/strategy-builder/infra/testing?ref=main`
-- Strategy builder listing API: `GET /repos/pablozaiden/CAIRA/contents/strategy-builder?ref=main`
+- Latest release page (for pinned `reference` mode dependencies): <https://github.com/microsoft/CAIRA/releases/latest>
+- Deployment strategies listing API: `GET /repos/microsoft/CAIRA/contents/deployment-strategies?ref=main`
+- Docs listing API: `GET /repos/microsoft/CAIRA/contents/docs?ref=main`
+- Reference architectures listing API: `GET /repos/microsoft/CAIRA/contents/strategy-builder/infra/reference-architectures?ref=main`
+- Modules listing API: `GET /repos/microsoft/CAIRA/contents/strategy-builder/infra/modules?ref=main`
+- Infra testing listing API: `GET /repos/microsoft/CAIRA/contents/strategy-builder/infra/testing?ref=main`
+- Strategy builder listing API: `GET /repos/microsoft/CAIRA/contents/strategy-builder?ref=main`

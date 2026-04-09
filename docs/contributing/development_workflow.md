@@ -67,7 +67,7 @@ flowchart TB
 
 ### Fork the Repository
 
-1. Navigate to the [CAIRA repository](https://github.com/pablozaiden/CAIRA)
+1. Navigate to the [CAIRA repository](https://github.com/microsoft/CAIRA)
 1. Click "Fork" in the top-right corner
 1. Choose your GitHub account as the destination
 
@@ -79,7 +79,7 @@ git clone https://github.com/YOUR-USERNAME/CAIRA.git
 cd CAIRA
 
 # Add upstream remote
-git remote add upstream https://github.com/pablozaiden/CAIRA.git
+git remote add upstream https://github.com/microsoft/CAIRA.git
 
 # Verify remotes
 git remote -v

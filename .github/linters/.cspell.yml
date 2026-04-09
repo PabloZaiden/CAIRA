@@ -40,7 +40,6 @@ dictionaryDefinitions:
     addWords: true
 allowCompoundWords: true
 words:
-  - pablozaiden
   - afterAll
   - AKS
 ignorePaths:

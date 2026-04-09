@@ -23,7 +23,7 @@ For each needed app component, ask whether the runtime dependencies are already 
 Template:
 
 ```hcl
-source = "git::https://github.com/pablozaiden/CAIRA.git//strategy-builder/infra/modules/<module_name>?ref=<pinned_ref>"
+source = "git::https://github.com/microsoft/CAIRA.git//strategy-builder/infra/modules/<module_name>?ref=<pinned_ref>"
 ```
 
 ## `copy` mode
@@ -41,8 +41,8 @@ source = "git::https://github.com/pablozaiden/CAIRA.git//strategy-builder/infra/
 ```bash
 # Ask first whether the user already wants a specific CAIRA release, tag, or commit.
 # If not, prefer the latest release tag for a stable dependency:
-curl -s https://api.github.com/repos/pablozaiden/CAIRA/releases/latest
+curl -s https://api.github.com/repos/microsoft/CAIRA/releases/latest
 
 # If a release tag is not appropriate, pin to a specific commit SHA instead:
-git ls-remote https://github.com/pablozaiden/CAIRA.git refs/heads/main
+git ls-remote https://github.com/microsoft/CAIRA.git refs/heads/main
 ```
