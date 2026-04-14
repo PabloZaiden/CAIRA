@@ -174,7 +174,7 @@ export class AgentClient {
 
   /**
    * Compound operation: create a conversation and send the first message.
-   * Used by business operation endpoints (shanty, treasure, crew/enlist).
+   * Used by business operation endpoints (discovery, planning, staffing).
    *
    * Returns the conversation ID, creation timestamp, and the agent's opening response.
    */

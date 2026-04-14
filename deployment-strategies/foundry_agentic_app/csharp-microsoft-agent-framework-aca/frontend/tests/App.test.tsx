@@ -15,7 +15,7 @@ const EMPTY_LIST: AdventureList = {
   total: 0
 };
 
-function makeAdventureStarted(mode: 'shanty' | 'treasure' | 'crew', id: string): AdventureStarted {
+function makeAdventureStarted(mode: 'discovery' | 'planning' | 'staffing', id: string): AdventureStarted {
   return {
     id,
     mode,
@@ -25,7 +25,7 @@ function makeAdventureStarted(mode: 'shanty' | 'treasure' | 'crew', id: string):
   };
 }
 
-function makeAdventureDetail(mode: 'shanty' | 'treasure' | 'crew', id: string): AdventureDetail {
+function makeAdventureDetail(mode: 'discovery' | 'planning' | 'staffing', id: string): AdventureDetail {
   return {
     id,
     mode,
@@ -44,11 +44,11 @@ function makeAdventureDetail(mode: 'shanty' | 'treasure' | 'crew', id: string): 
   };
 }
 
-// ---- Mock PirateClient via module mock ----
+// ---- Mock ActivityClient via module mock ----
 
-const mockStartShanty = vi.fn();
-const mockSeekTreasure = vi.fn();
-const mockEnlistInCrew = vi.fn();
+const mockStartDiscovery = vi.fn();
+const mockSeekPlanning = vi.fn();
+const mockEnlistInStaffing = vi.fn();
 const mockListAdventures = vi.fn();
 const mockGetAdventure = vi.fn();
 const mockParleyStream = vi.fn();
@@ -56,11 +56,11 @@ const mockGetStats = vi.fn();
 const mockGetHealth = vi.fn();
 const mockParley = vi.fn();
 
-vi.mock('../src/api/pirate-client.ts', () => ({
-  PirateClient: vi.fn().mockImplementation(() => ({
-    startShanty: mockStartShanty,
-    seekTreasure: mockSeekTreasure,
-    enlistInCrew: mockEnlistInCrew,
+vi.mock('../src/api/activity-client.ts', () => ({
+  ActivityClient: vi.fn().mockImplementation(() => ({
+    startDiscovery: mockStartDiscovery,
+    startPlanning: mockSeekPlanning,
+    startStaffing: mockEnlistInStaffing,
     listAdventures: mockListAdventures,
     getAdventure: mockGetAdventure,
     parleyStream: mockParleyStream,
@@ -89,10 +89,10 @@ describe('App', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockListAdventures.mockResolvedValue(EMPTY_LIST);
-    mockGetAdventure.mockResolvedValue(makeAdventureDetail('shanty', 'adv-1'));
+    mockGetAdventure.mockResolvedValue(makeAdventureDetail('discovery', 'adv-1'));
     // Default: parleyStream returns a valid async generator for any call
     mockParleyStream.mockImplementation((_id: string, _msg: string) => {
-      return makeMockStream('shanty')();
+      return makeMockStream('discovery')();
     });
   });
 
@@ -112,21 +112,21 @@ describe('App', () => {
     });
   });
 
-  it('clicking Sea Shanty Battle calls startShanty and shows conversation', async () => {
-    const started = makeAdventureStarted('shanty', 'adv-shanty');
-    mockStartShanty.mockResolvedValue(started);
+  it('clicking Sea Discovery Battle calls startDiscovery and shows conversation', async () => {
+    const started = makeAdventureStarted('discovery', 'adv-discovery');
+    mockStartDiscovery.mockResolvedValue(started);
 
     const user = userEvent.setup();
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('activity-btn-shanty')).toBeEnabled();
+      expect(screen.getByTestId('activity-btn-discovery')).toBeEnabled();
     });
 
-    await user.click(screen.getByTestId('activity-btn-shanty'));
+    await user.click(screen.getByTestId('activity-btn-discovery'));
 
     await waitFor(() => {
-      expect(mockStartShanty).toHaveBeenCalledTimes(1);
+      expect(mockStartDiscovery).toHaveBeenCalledTimes(1);
     });
 
     // Adventure should be selected — no-selection placeholder should be gone
@@ -135,21 +135,21 @@ describe('App', () => {
     });
   });
 
-  it('clicking Seek Treasure calls seekTreasure', async () => {
-    const started = makeAdventureStarted('treasure', 'adv-treasure');
-    mockSeekTreasure.mockResolvedValue(started);
+  it('clicking Seek Planning calls startPlanning', async () => {
+    const started = makeAdventureStarted('planning', 'adv-planning');
+    mockSeekPlanning.mockResolvedValue(started);
 
     const user = userEvent.setup();
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('activity-btn-treasure')).toBeEnabled();
+      expect(screen.getByTestId('activity-btn-planning')).toBeEnabled();
     });
 
-    await user.click(screen.getByTestId('activity-btn-treasure'));
+    await user.click(screen.getByTestId('activity-btn-planning'));
 
     await waitFor(() => {
-      expect(mockSeekTreasure).toHaveBeenCalledTimes(1);
+      expect(mockSeekPlanning).toHaveBeenCalledTimes(1);
     });
 
     await waitFor(() => {
@@ -157,21 +157,21 @@ describe('App', () => {
     });
   });
 
-  it('clicking Join the Crew calls enlistInCrew', async () => {
-    const started = makeAdventureStarted('crew', 'adv-crew');
-    mockEnlistInCrew.mockResolvedValue(started);
+  it('clicking Join the Staffing calls startStaffing', async () => {
+    const started = makeAdventureStarted('staffing', 'adv-staffing');
+    mockEnlistInStaffing.mockResolvedValue(started);
 
     const user = userEvent.setup();
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('activity-btn-crew')).toBeEnabled();
+      expect(screen.getByTestId('activity-btn-staffing')).toBeEnabled();
     });
 
-    await user.click(screen.getByTestId('activity-btn-crew'));
+    await user.click(screen.getByTestId('activity-btn-staffing'));
 
     await waitFor(() => {
-      expect(mockEnlistInCrew).toHaveBeenCalledTimes(1);
+      expect(mockEnlistInStaffing).toHaveBeenCalledTimes(1);
     });
 
     await waitFor(() => {
@@ -180,16 +180,16 @@ describe('App', () => {
   });
 
   it('shows error banner when startAdventure fails', async () => {
-    mockStartShanty.mockRejectedValue(new Error('API error 500: internal_error'));
+    mockStartDiscovery.mockRejectedValue(new Error('API error 500: internal_error'));
 
     const user = userEvent.setup();
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('activity-btn-shanty')).toBeEnabled();
+      expect(screen.getByTestId('activity-btn-discovery')).toBeEnabled();
     });
 
-    await user.click(screen.getByTestId('activity-btn-shanty'));
+    await user.click(screen.getByTestId('activity-btn-discovery'));
 
     await waitFor(() => {
       expect(screen.getByTestId('adventure-error')).toBeInTheDocument();
@@ -224,27 +224,27 @@ describe('App', () => {
 
     render(<App />);
 
-    expect(screen.getByTestId('activity-btn-shanty')).toBeDisabled();
-    expect(screen.getByTestId('activity-btn-treasure')).toBeDisabled();
-    expect(screen.getByTestId('activity-btn-crew')).toBeDisabled();
+    expect(screen.getByTestId('activity-btn-discovery')).toBeDisabled();
+    expect(screen.getByTestId('activity-btn-planning')).toBeDisabled();
+    expect(screen.getByTestId('activity-btn-staffing')).toBeDisabled();
   });
 
   it('new adventure appears in conversation list after starting', async () => {
-    const started = makeAdventureStarted('shanty', 'adv-shanty-1');
-    mockStartShanty.mockResolvedValue(started);
+    const started = makeAdventureStarted('discovery', 'adv-discovery-1');
+    mockStartDiscovery.mockResolvedValue(started);
 
     const user = userEvent.setup();
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('activity-btn-shanty')).toBeEnabled();
+      expect(screen.getByTestId('activity-btn-discovery')).toBeEnabled();
     });
 
-    await user.click(screen.getByTestId('activity-btn-shanty'));
+    await user.click(screen.getByTestId('activity-btn-discovery'));
 
     // The ConversationList should now contain the new adventure item
     await waitFor(() => {
-      expect(screen.getByTestId('conversation-item-adv-shanty-1')).toBeInTheDocument();
+      expect(screen.getByTestId('conversation-item-adv-discovery-1')).toBeInTheDocument();
     });
   });
 
@@ -291,9 +291,9 @@ describe('App', () => {
   });
 
   it('shows loading spinner on activity button while starting', async () => {
-    // Make startShanty hang so we can see the loading state
+    // Make startDiscovery hang so we can see the loading state
     let resolveStart!: (value: any) => void;
-    mockStartShanty.mockReturnValue(
+    mockStartDiscovery.mockReturnValue(
       new Promise((resolve) => {
         resolveStart = resolve;
       })
@@ -303,27 +303,27 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('activity-btn-shanty')).toBeEnabled();
+      expect(screen.getByTestId('activity-btn-discovery')).toBeEnabled();
     });
 
-    await user.click(screen.getByTestId('activity-btn-shanty'));
+    await user.click(screen.getByTestId('activity-btn-discovery'));
 
-    // The shanty button should now show a loading spinner
+    // The discovery button should now show a loading spinner
     await waitFor(() => {
-      expect(screen.getByTestId('activity-loading-shanty')).toBeInTheDocument();
+      expect(screen.getByTestId('activity-loading-discovery')).toBeInTheDocument();
       expect(screen.getByText('Starting...')).toBeInTheDocument();
     });
 
     // All buttons should be disabled
-    expect(screen.getByTestId('activity-btn-shanty')).toBeDisabled();
-    expect(screen.getByTestId('activity-btn-treasure')).toBeDisabled();
-    expect(screen.getByTestId('activity-btn-crew')).toBeDisabled();
+    expect(screen.getByTestId('activity-btn-discovery')).toBeDisabled();
+    expect(screen.getByTestId('activity-btn-planning')).toBeDisabled();
+    expect(screen.getByTestId('activity-btn-staffing')).toBeDisabled();
 
     // Resolve to clean up
-    resolveStart(makeAdventureStarted('shanty', 'adv-shanty'));
+    resolveStart(makeAdventureStarted('discovery', 'adv-discovery'));
 
     await waitFor(() => {
-      expect(screen.queryByTestId('activity-loading-shanty')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('activity-loading-discovery')).not.toBeInTheDocument();
     });
   });
 });

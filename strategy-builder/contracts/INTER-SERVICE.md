@@ -125,6 +125,6 @@ The API container does **not** modify SSE event data. Events are forwarded verba
 - `tool.done` — specialist agent-tool completed (OpenAI variant only); payload: `{ toolName: string }`
 - `error` — generation error
 
-The `tool.called`/`tool.done` events are emitted only for specialist tools (`shanty_specialist`, `treasure_specialist`, `crew_specialist`), not for resolution tools. The frontend uses them to show specialist-specific loading text (e.g., "The shanty specialist is working...").
+The `tool.called`/`tool.done` events are emitted only for specialist tools (`discovery_specialist`, `planning_specialist`, `staffing_specialist`), not for resolution tools. The frontend uses them to show specialist-specific loading text (e.g., "The discovery specialist is working...").
 
 The only exception is when the API container itself encounters an error (e.g., agent connection lost), in which case it generates its own `error` event.

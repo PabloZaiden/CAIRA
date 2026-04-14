@@ -153,11 +153,11 @@ deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca/
 |-----------------------------------------|----------------|---------------------------------------------------------|
 | `AGENT_MODEL`                           | `gpt-5.2-chat` | Model deployment name (default: gpt-5.2-chat)           |
 | `AGENT_NAME`                            | ``             | Agent display name                                      |
-| `CAPTAIN_INSTRUCTIONS`                  | ``             | Shared system prompt applied to all specialists         |
-| `TRIAGE_INSTRUCTIONS`                   | ``             | Legacy alias for the shared system prompt               |
-| `SHANTY_INSTRUCTIONS`                   | ``             | System prompt for shanty battle specialist              |
-| `TREASURE_INSTRUCTIONS`                 | ``             | System prompt for treasure hunt specialist              |
-| `CREW_INSTRUCTIONS`                     | ``             | System prompt for crew interview specialist             |
+| `SHARED_INSTRUCTIONS`                   | ``             | Shared system prompt applied to all specialists         |
+| `SHARED_INSTRUCTIONS`                   | ``             | Shared system prompt applied to all specialists         |
+| `DISCOVERY_INSTRUCTIONS`                | ``             | System prompt for the opportunity discovery specialist  |
+| `PLANNING_INSTRUCTIONS`                 | ``             | System prompt for the account planning specialist       |
+| `STAFFING_INSTRUCTIONS`                 | ``             | System prompt for staffing interview specialist         |
 | `INBOUND_AUTH_TENANT_ID`                | ``             | INBOUND_AUTH_TENANT_ID                                  |
 | `INBOUND_AUTH_ALLOWED_AUDIENCES`        | ``             | INBOUND_AUTH_ALLOWED_AUDIENCES                          |
 | `INBOUND_AUTH_ALLOWED_CALLER_APP_IDS`   | ``             | INBOUND_AUTH_ALLOWED_CALLER_APP_IDS                     |

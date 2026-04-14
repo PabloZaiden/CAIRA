@@ -172,9 +172,9 @@ describe('AgentClient', () => {
 
     it('passes metadata through', async () => {
       const client = createClient();
-      const result = await client.createConversation({ theme: 'pirate' });
+      const result = await client.createConversation({ theme: 'sales' });
       expect(result.ok).toBe(true);
-      expect(result.data?.metadata).toEqual({ theme: 'pirate' });
+      expect(result.data?.metadata).toEqual({ theme: 'sales' });
     });
   });
 
@@ -218,9 +218,9 @@ describe('AgentClient', () => {
   describe('sendMessage', () => {
     it('sends a message and gets JSON response', async () => {
       const client = createClient();
-      const result = await client.sendMessage('test-conv', 'Hello pirate!');
+      const result = await client.sendMessage('test-conv', 'Hello sales team!');
       expect(result.ok).toBe(true);
-      expect(result.data?.content).toContain('Hello pirate!');
+      expect(result.data?.content).toContain('Hello sales team!');
     });
   });
 

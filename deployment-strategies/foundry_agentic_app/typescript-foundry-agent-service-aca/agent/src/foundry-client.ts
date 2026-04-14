@@ -45,7 +45,7 @@ import { AIProjectClient } from '@azure/ai-projects';
 import type { Agent } from '@azure/ai-projects';
 import type { Config } from './config.ts';
 import { createAzureCredential } from './azure-credential.ts';
-import { lookupCrewKnowledge, lookupShantyKnowledge, lookupTreasureKnowledge } from './knowledge-base.ts';
+import { lookupStaffingKnowledge, lookupDiscoveryKnowledge, lookupPlanningKnowledge } from './knowledge-base.ts';
 import type {
   Conversation,
   ConversationDetail,
@@ -89,54 +89,54 @@ const noopLogger: Logger = {
 // Resolution tool schemas (JSON Schema for the Responses API function tools)
 // ---------------------------------------------------------------------------
 
-const RESOLVE_SHANTY_SCHEMA = {
+const RESOLVE_DISCOVERY_SCHEMA = {
   type: 'object',
   properties: {
-    winner: {
+    fit: {
       type: 'string',
-      enum: ['user', 'pirate', 'draw'],
-      description: 'Who won the shanty battle'
+      enum: ['qualified', 'unqualified', 'follow_up'],
+      description: 'Qualification outcome for the opportunity'
     },
-    rounds: { type: 'number', description: 'Number of rounds completed' },
-    best_verse: { type: 'string', description: 'The single best verse from the entire battle' }
+    signals_reviewed: { type: 'number', description: 'Number of qualification signals reviewed' },
+    primary_need: { type: 'string', description: 'The most important customer need or buying signal' }
   },
-  required: ['winner', 'rounds', 'best_verse'],
+  required: ['fit', 'signals_reviewed', 'primary_need'],
   additionalProperties: false
 } as const;
 
-const RESOLVE_TREASURE_SCHEMA = {
+const RESOLVE_PLANNING_SCHEMA = {
   type: 'object',
   properties: {
-    found: { type: 'boolean', description: 'Whether the treasure was found' },
-    treasure_name: { type: 'string', description: 'Name of the treasure' },
-    location: { type: 'string', description: 'Where the treasure was found or lost' }
+    approved: { type: 'boolean', description: 'Whether the plan should advance now' },
+    focus_area: { type: 'string', description: 'Primary account focus area' },
+    next_step: { type: 'string', description: 'The next milestone, meeting, or workstream' }
   },
-  required: ['found', 'treasure_name', 'location'],
+  required: ['approved', 'focus_area', 'next_step'],
   additionalProperties: false
 } as const;
 
-const RESOLVE_CREW_SCHEMA = {
+const RESOLVE_STAFFING_SCHEMA = {
   type: 'object',
   properties: {
-    rank: {
+    coverage_level: {
       type: 'string',
-      description: 'The assigned rank (e.g., Able Seaman, Quartermaster)'
+      description: 'The recommended coverage level'
     },
     role: {
       type: 'string',
-      description: 'The assigned role (e.g., lookout, cook, navigator)'
+      description: 'The recommended owner role'
     },
-    ship_name: {
+    team_name: {
       type: 'string',
-      description: 'The name of the ship they are joining'
+      description: 'The fictional account team name'
     }
   },
-  required: ['rank', 'role', 'ship_name'],
+  required: ['coverage_level', 'role', 'team_name'],
   additionalProperties: false
 } as const;
 
 // ---------------------------------------------------------------------------
-// Specialist tool schemas (thin wrappers — the captain passes a description
+// Specialist tool schemas (thin wrappers — the calling agent passes a description
 // of what content to generate, we route it to the specialist agent)
 // ---------------------------------------------------------------------------
 
@@ -159,53 +159,60 @@ const SPECIALIST_INPUT_SCHEMA = {
 const TOOL_DEFINITIONS: readonly FunctionTool[] = [
   {
     type: 'function',
-    name: 'lookup_shanty_knowledge',
-    description: 'Retrieve sample shanty references, motifs, and battle cues.',
+    name: 'lookup_discovery_knowledge',
+    description: 'Retrieve sample discovery guidance and qualification cues.',
     parameters: SPECIALIST_INPUT_SCHEMA,
     strict: true
   },
   {
     type: 'function',
-    name: 'lookup_treasure_knowledge',
-    description: 'Retrieve sample treasure lore, locations, and clues.',
+    name: 'lookup_planning_knowledge',
+    description: 'Retrieve sample planning guidance, priorities, and milestones.',
     parameters: SPECIALIST_INPUT_SCHEMA,
     strict: true
   },
   {
     type: 'function',
-    name: 'lookup_crew_knowledge',
-    description: 'Retrieve sample crew roles, ranks, and qualifications.',
+    name: 'lookup_staffing_knowledge',
+    description: 'Retrieve sample staffing roles, coverage guidance, and qualifications.',
     parameters: SPECIALIST_INPUT_SCHEMA,
     strict: true
   },
   // Resolution tools
   {
     type: 'function',
-    name: 'resolve_shanty',
-    description: 'Call this when the Sea Shanty Battle concludes. Declares the winner and records the outcome.',
-    parameters: RESOLVE_SHANTY_SCHEMA,
+    name: 'resolve_discovery',
+    description:
+      'Call this when the Opportunity Discovery Activity concludes. Records the qualification outcome and key signals.',
+    parameters: RESOLVE_DISCOVERY_SCHEMA,
     strict: true
   },
   {
     type: 'function',
-    name: 'resolve_treasure',
-    description: 'Call this when the Treasure Hunt concludes. Records whether treasure was found and details.',
-    parameters: RESOLVE_TREASURE_SCHEMA,
+    name: 'resolve_planning',
+    description:
+      'Call this when the Account Planning Activity concludes. Records whether the account plan should advance and the next step.',
+    parameters: RESOLVE_PLANNING_SCHEMA,
     strict: true
   },
   {
     type: 'function',
-    name: 'resolve_crew',
-    description: 'Call this when the crew interview concludes. Assigns a rank and role to the new crew member.',
-    parameters: RESOLVE_CREW_SCHEMA,
+    name: 'resolve_staffing',
+    description:
+      'Call this when the staffing activity concludes. Records the recommended staffing coverage and owner role.',
+    parameters: RESOLVE_STAFFING_SCHEMA,
     strict: true
   }
 ] as const;
 
-const KNOWLEDGE_TOOLS = new Set(['lookup_shanty_knowledge', 'lookup_treasure_knowledge', 'lookup_crew_knowledge']);
+const KNOWLEDGE_TOOLS = new Set([
+  'lookup_discovery_knowledge',
+  'lookup_planning_knowledge',
+  'lookup_staffing_knowledge'
+]);
 
 /** Resolution tool names. */
-const RESOLUTION_TOOLS = new Set(['resolve_shanty', 'resolve_treasure', 'resolve_crew']);
+const RESOLUTION_TOOLS = new Set(['resolve_discovery', 'resolve_planning', 'resolve_staffing']);
 
 // ---------------------------------------------------------------------------
 // Internal state
@@ -230,7 +237,7 @@ interface CapturedResolution {
 
 function shouldEmitLifecycleEvents(metadata: Record<string, unknown> | undefined): boolean {
   const mode = metadata?.['mode'];
-  return mode === 'shanty' || mode === 'treasure' || mode === 'crew';
+  return mode === 'discovery' || mode === 'planning' || mode === 'staffing';
 }
 
 /**
@@ -358,19 +365,19 @@ export class FoundryClient {
 
     const agentDefs = [
       {
-        name: 'shanty-specialist',
-        instructions: this.specialistInstructions('shanty', true),
-        tools: this.toolsForMode('shanty')
+        name: 'discovery-specialist',
+        instructions: this.specialistInstructions('discovery', true),
+        tools: this.toolsForMode('discovery')
       },
       {
-        name: 'treasure-specialist',
-        instructions: this.specialistInstructions('treasure', true),
-        tools: this.toolsForMode('treasure')
+        name: 'planning-specialist',
+        instructions: this.specialistInstructions('planning', true),
+        tools: this.toolsForMode('planning')
       },
       {
-        name: 'crew-specialist',
-        instructions: this.specialistInstructions('crew', true),
-        tools: this.toolsForMode('crew')
+        name: 'staffing-specialist',
+        instructions: this.specialistInstructions('staffing', true),
+        tools: this.toolsForMode('staffing')
       }
     ];
 
@@ -975,19 +982,19 @@ export class FoundryClient {
       return { output: 'Error: invalid tool arguments' };
     }
 
-    if (toolName === 'lookup_shanty_knowledge') {
+    if (toolName === 'lookup_discovery_knowledge') {
       const query = (args['query'] as string) ?? (args['request'] as string) ?? '';
-      return { output: JSON.stringify({ items: lookupShantyKnowledge(query) }) };
+      return { output: JSON.stringify({ items: lookupDiscoveryKnowledge(query) }) };
     }
 
-    if (toolName === 'lookup_treasure_knowledge') {
+    if (toolName === 'lookup_planning_knowledge') {
       const query = (args['query'] as string) ?? (args['request'] as string) ?? '';
-      return { output: JSON.stringify({ items: lookupTreasureKnowledge(query) }) };
+      return { output: JSON.stringify({ items: lookupPlanningKnowledge(query) }) };
     }
 
-    if (toolName === 'lookup_crew_knowledge') {
+    if (toolName === 'lookup_staffing_knowledge') {
       const query = (args['query'] as string) ?? (args['request'] as string) ?? '';
-      return { output: JSON.stringify({ items: lookupCrewKnowledge(query) }) };
+      return { output: JSON.stringify({ items: lookupStaffingKnowledge(query) }) };
     }
 
     // Resolution tools — return the structured result alongside the output string
@@ -996,14 +1003,14 @@ export class FoundryClient {
       let output: string;
 
       switch (toolName) {
-        case 'resolve_shanty':
-          output = `Shanty battle resolved: ${args['winner']} wins after ${args['rounds']} rounds.`;
+        case 'resolve_discovery':
+          output = `Discovery activity resolved: ${args['fit']} after ${args['signals_reviewed']} signals.`;
           break;
-        case 'resolve_treasure':
-          output = `Treasure hunt resolved: ${args['found'] ? 'Found' : 'Lost'} "${args['treasure_name']}" at ${args['location']}.`;
+        case 'resolve_planning':
+          output = `Planning activity resolved: ${args['approved'] ? 'advance' : 'hold'} "${args['focus_area']}" with next step ${args['next_step']}.`;
           break;
-        case 'resolve_crew':
-          output = `Crew interview resolved: ${args['rank']} ${args['role']} aboard the ${args['ship_name']}.`;
+        case 'resolve_staffing':
+          output = `Staffing activity resolved: ${args['coverage_level']} coverage with ${args['role']} on ${args['team_name']}.`;
           break;
         default:
           output = `Activity resolved via ${toolName}.`;
@@ -1017,50 +1024,52 @@ export class FoundryClient {
     return { output: `Error: unknown tool "${toolName}"` };
   }
 
-  private resolveConversationMode(metadata: Record<string, unknown> | undefined): 'shanty' | 'treasure' | 'crew' {
+  private resolveConversationMode(
+    metadata: Record<string, unknown> | undefined
+  ): 'discovery' | 'planning' | 'staffing' {
     const mode = metadata?.['mode'];
-    if (mode === 'treasure' || mode === 'crew' || mode === 'shanty') {
+    if (mode === 'planning' || mode === 'staffing' || mode === 'discovery') {
       return mode;
     }
-    return 'shanty';
+    return 'discovery';
   }
 
-  private specialistToolName(mode: 'shanty' | 'treasure' | 'crew'): string {
+  private specialistToolName(mode: 'discovery' | 'planning' | 'staffing'): string {
     switch (mode) {
-      case 'treasure':
-        return 'treasure_specialist';
-      case 'crew':
-        return 'crew_specialist';
-      case 'shanty':
+      case 'planning':
+        return 'planning_specialist';
+      case 'staffing':
+        return 'staffing_specialist';
+      case 'discovery':
       default:
-        return 'shanty_specialist';
+        return 'discovery_specialist';
     }
   }
 
-  private specialistInstructions(mode: 'shanty' | 'treasure' | 'crew', includeShared = true): string {
-    const shared = this.config.captainInstructions.trim();
+  private specialistInstructions(mode: 'discovery' | 'planning' | 'staffing', includeShared = true): string {
+    const shared = this.config.sharedInstructions.trim();
     const specific =
-      mode === 'treasure'
-        ? this.config.treasureInstructions
-        : mode === 'crew'
-          ? this.config.crewInstructions
-          : this.config.shantyInstructions;
+      mode === 'planning'
+        ? this.config.planningInstructions
+        : mode === 'staffing'
+          ? this.config.staffingInstructions
+          : this.config.discoveryInstructions;
     return includeShared ? `${shared}\n\n${specific}`.trim() : specific;
   }
 
-  private toolsForMode(mode: 'shanty' | 'treasure' | 'crew'): FunctionTool[] {
+  private toolsForMode(mode: 'discovery' | 'planning' | 'staffing'): FunctionTool[] {
     const knowledgeTool =
-      mode === 'treasure'
-        ? TOOL_DEFINITIONS.find((tool) => tool.name === 'lookup_treasure_knowledge')
-        : mode === 'crew'
-          ? TOOL_DEFINITIONS.find((tool) => tool.name === 'lookup_crew_knowledge')
-          : TOOL_DEFINITIONS.find((tool) => tool.name === 'lookup_shanty_knowledge');
+      mode === 'planning'
+        ? TOOL_DEFINITIONS.find((tool) => tool.name === 'lookup_planning_knowledge')
+        : mode === 'staffing'
+          ? TOOL_DEFINITIONS.find((tool) => tool.name === 'lookup_staffing_knowledge')
+          : TOOL_DEFINITIONS.find((tool) => tool.name === 'lookup_discovery_knowledge');
     const resolutionTool =
-      mode === 'treasure'
-        ? TOOL_DEFINITIONS.find((tool) => tool.name === 'resolve_treasure')
-        : mode === 'crew'
-          ? TOOL_DEFINITIONS.find((tool) => tool.name === 'resolve_crew')
-          : TOOL_DEFINITIONS.find((tool) => tool.name === 'resolve_shanty');
+      mode === 'planning'
+        ? TOOL_DEFINITIONS.find((tool) => tool.name === 'resolve_planning')
+        : mode === 'staffing'
+          ? TOOL_DEFINITIONS.find((tool) => tool.name === 'resolve_staffing')
+          : TOOL_DEFINITIONS.find((tool) => tool.name === 'resolve_discovery');
 
     return [knowledgeTool, resolutionTool].filter((tool): tool is FunctionTool => tool !== undefined);
   }

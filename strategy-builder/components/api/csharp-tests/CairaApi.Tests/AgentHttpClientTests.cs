@@ -416,7 +416,7 @@ public class AgentHttpClientTests
         });
 
         var result = await client.StartAdventureAsync("Test message",
-            new Dictionary<string, object> { ["mode"] = "shanty" });
+            new Dictionary<string, object> { ["mode"] = "discovery" });
 
         Assert.True(result.Ok);
         Assert.Equal(201, result.Status);

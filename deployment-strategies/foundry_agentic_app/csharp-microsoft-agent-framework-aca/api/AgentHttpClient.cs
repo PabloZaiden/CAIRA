@@ -111,7 +111,7 @@ public sealed class AgentHttpClient
 
     /// <summary>
     /// Compound operation: create conversation + send first message.
-    /// Used by business operation endpoints (shanty, treasure, crew/enlist).
+    /// Used by business operation endpoints (discovery, planning, staffing).
     /// </summary>
     public async Task<AgentResult<StartAdventureResult>> StartAdventureAsync(
         string syntheticMessage, Dictionary<string, object>? metadata = null, string? traceId = null)

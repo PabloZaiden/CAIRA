@@ -4,7 +4,7 @@
 **Port:** 8080 (production/Docker), 5173 (Vite dev server)
 **Contract:** `contracts/backend-api.openapi.yaml` (as a consumer)
 
-The frontend is a **React/TypeScript chat UI** with an **activity picker**. The current sample domain is a fictional sales/account-team scenario, while some internal client/route names remain pirate-shaped for compatibility. Users choose an activity (Opportunity Discovery, Account Planning, Team Staffing), which starts a new conversation via a business operation. The chat UI then displays the agent's opening response and allows continued conversation. When an activity resolves (via `activity.resolved` SSE event), the frontend displays an outcome card/banner. A runtime **stream toggle** lets users switch between SSE streaming and JSON request/response mode. During streaming, specialist-specific loading indicators show which agent-tool is active.
+The frontend is a **React/TypeScript chat UI** with an **activity picker**. The current sample domain is a fictional sales/account-team scenario, while some internal client/route names remain business-oriented and aligned to the activity sample. Users choose an activity (Opportunity Discovery, Account Planning, Team Staffing), which starts a new conversation via a business operation. The chat UI then displays the agent's opening response and allows continued conversation. When an activity resolves (via `activity.resolved` SSE event), the frontend displays an outcome card/banner. A runtime **stream toggle** lets users switch between SSE streaming and JSON request/response mode. During streaming, specialist-specific loading indicators show which agent-tool is active.
 
 ## Architecture
 
@@ -15,9 +15,9 @@ components/frontend/react-typescript/
 │   ├── App.tsx                     # Root component: sidebar + chat + input
 │   ├── types.ts                    # Frontend types (mirrors backend API schemas)
 │   ├── api/
-│   │   └── pirate-client.ts        # Typed HTTP/SSE client for all 6 backend endpoints
+│   │   └── activity-client.ts        # Typed HTTP/SSE client for all 6 backend endpoints
 │   ├── components/
-│   │   ├── ActivityPicker.tsx     # Three-button activity picker (shanty, treasure, crew)
+│   │   ├── ActivityPicker.tsx     # Three-button activity picker (discovery, planning, staffing)
 │   │   ├── ConversationList.tsx    # Sidebar: list conversations, highlight selected
 │   │   ├── ChatArea.tsx            # Message display area with streaming + loading/error states
 │   │   ├── OutcomeCard.tsx         # Resolution outcome card/banner
@@ -33,7 +33,7 @@ components/frontend/react-typescript/
 ├── tests/
 │   ├── setup.ts                   # @testing-library/jest-dom + scrollIntoView polyfill
 │   ├── api/
-│   │   └── pirate-client.test.ts  # API client tests (mock globalThis.fetch)
+│   │   └── activity-client.test.ts  # API client tests (mock globalThis.fetch)
 │   ├── components/
 │   │   ├── ActivityPicker.test.tsx # Activity selection tests
 │   │   ├── App.test.tsx           # Integration tests
@@ -59,22 +59,22 @@ components/frontend/react-typescript/
 
 ## Component breakdown
 
-### `PirateClient` (API client)
+### `ActivityClient` (API client)
 
-A class-based HTTP client (`src/api/pirate-client.ts`) that wraps the business API endpoints:
+A class-based HTTP client (`src/api/activity-client.ts`) that wraps the business API endpoints:
 
-> **WS-12 rework:** These methods replace the previous `recruit()`, `listCrew()`, `getCrewMember()`, `parley()`, `parleyStream()`, and `getTreasure()` methods.
+> **WS-12 rework:** These methods replace the previous `recruit()`, `listStaffing()`, `getStaffingMember()`, `parley()`, `parleyStream()`, and `getPlanning()` methods.
 
 | Method                               | Endpoint                                  | Returns                                        |
 |--------------------------------------|-------------------------------------------|------------------------------------------------|
-| `startShanty()`                      | `POST /api/pirate/shanty`                 | `AdventureStarted` (`id` + `syntheticMessage`) |
-| `seekTreasure()`                     | `POST /api/pirate/treasure`               | `AdventureStarted` (`id` + `syntheticMessage`) |
-| `enlistInCrew()`                     | `POST /api/pirate/crew/enlist`            | `AdventureStarted` (`id` + `syntheticMessage`) |
-| `listAdventures(offset?, limit?)`    | `GET /api/pirate/adventures`              | `AdventureList`                                |
-| `getAdventure(id)`                   | `GET /api/pirate/adventures/{id}`         | `AdventureDetail`                              |
-| `parley(adventureId, message)`       | `POST /api/pirate/adventures/{id}/parley` | `ParleyMessage` (JSON)                         |
-| `parleyStream(adventureId, message)` | `POST /api/pirate/adventures/{id}/parley` | `AsyncGenerator<SSEEvent>` (SSE)               |
-| `getStats()`                         | `GET /api/pirate/stats`                   | `ActivityStats`                                |
+| `startDiscovery()`                      | `POST /api/activities/discovery`                 | `AdventureStarted` (`id` + `syntheticMessage`) |
+| `startPlanning()`                     | `POST /api/activities/planning`               | `AdventureStarted` (`id` + `syntheticMessage`) |
+| `startStaffing()`                     | `POST /api/activities/staffing`            | `AdventureStarted` (`id` + `syntheticMessage`) |
+| `listAdventures(offset?, limit?)`    | `GET /api/activities/adventures`              | `AdventureList`                                |
+| `getAdventure(id)`                   | `GET /api/activities/adventures/{id}`         | `AdventureDetail`                              |
+| `parley(adventureId, message)`       | `POST /api/activities/adventures/{id}/parley` | `ParleyMessage` (JSON)                         |
+| `parleyStream(adventureId, message)` | `POST /api/activities/adventures/{id}/parley` | `AsyncGenerator<SSEEvent>` (SSE)               |
+| `getStats()`                         | `GET /api/activities/stats`                   | `ActivityStats`                                |
 | `checkHealth()`                      | `GET /health`                             | `HealthResponse`                               |
 
 **SSE implementation:** The `parleyStream()` method uses `fetch()` with `ReadableStream` (not `EventSource`) because the parley endpoint is a POST request. It is an async generator that parses SSE event blocks and yields typed `SSEEvent` discriminated unions (`SSEMessageDelta | SSEMessageComplete | SSEActivityResolved | SSEToolCalled | SSEToolDone | SSEError`).
@@ -84,7 +84,7 @@ A class-based HTTP client (`src/api/pirate-client.ts`) that wraps the business A
 | Component          | Props                                                            | Responsibility                                                                                |
 |--------------------|------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|
 | `App`              | --                                                               | Root: wires hooks to components, manages layout, renders activity picker, streaming toggle    |
-| `ActivityPicker`   | onStartShanty, onSeekTreasure, onEnlistInCrew, loadingMode       | Three-button picker for choosing a sample activity; shows spinner + "Starting..." during load |
+| `ActivityPicker`   | onStartDiscovery, onStartPlanning, onStartStaffing, loadingMode       | Three-button picker for choosing a sample activity; shows spinner + "Starting..." during load |
 | `ConversationList` | conversations, selected, onSelect                                | Sidebar with adventure list, shows mode badge and relative time (e.g., "2 min ago")           |
 | `ChatArea`         | messages, isStreaming, streamingContent, error, activeSpecialist | Displays messages with auto-scroll, specialist-specific loading text, and error state         |
 | `OutcomeCard`      | outcome, mode                                                    | Displays resolution outcome as a styled card/banner in the chat area                          |
@@ -98,7 +98,7 @@ A class-based HTTP client (`src/api/pirate-client.ts`) that wraps the business A
 |--------------------|------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `useConversations` | `{ conversations, selected, loading, error, select }`                        | Fetches adventure list on mount, selects adventures (no longer creates -- business operations handle creation)                                                                                                                                                                                                         |
 | `useChat`          | `{ messages, isStreaming, streamingContent, error, send, activeSpecialist }` | Sends messages via `parleyStream()` (SSE) or `parley()` (JSON), controlled by `streaming` option. In streaming mode, accumulates SSE deltas, tracks `activeSpecialist` via `tool.called`/`tool.done` events. Filters empty assistant messages. In JSON mode, sends a single request and appends the complete response. |
-| `useAdventures`    | `{ startShanty, seekTreasure, enlistInCrew, loading, loadingMode }`          | Calls business operation endpoints, receives `syntheticMessage`, then uses parley to obtain assistant responses. Tracks `loadingMode` per activity type for button loading states.                                                                                                                                     |
+| `useAdventures`    | `{ startDiscovery, startPlanning, startStaffing, loading, loadingMode }`          | Calls business operation endpoints, receives `syntheticMessage`, then uses parley to obtain assistant responses. Tracks `loadingMode` per activity type for button loading states.                                                                                                                                     |
 
 ## Configuration
 

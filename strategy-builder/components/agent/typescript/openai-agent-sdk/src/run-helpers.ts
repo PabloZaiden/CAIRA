@@ -75,7 +75,7 @@ export function formatSSE(event: string, data: unknown): string {
  * Strategy:
  *   1. Use `finalOutput` if it's a non-empty string (available when outputType is 'text')
  *   2. Fall back to the last non-empty `message_output_item` in newItems
- *      (handles cases where the captain invokes tools and the final response
+ *      (handles cases where the coordinator invokes tools and the final response
  *      appears as a later item)
  */
 export function extractTextFromResult(result: AgentRunResult, log: Logger): string {
@@ -95,9 +95,9 @@ export function extractTextFromResult(result: AgentRunResult, log: Logger): stri
   }
 
   // Fall back to extracting text from new items.
-  // Collect ALL message_output_item content — when the captain invokes
+  // Collect ALL message_output_item content — when the coordinator invokes
   // tools, the final response may appear as a later item in newItems.
-  // We take the last non-empty message to get the captain's response.
+  // We take the last non-empty message to get the coordinator's response.
   let lastContent = '';
   for (const item of result.newItems) {
     if (item.type === 'message_output_item') {

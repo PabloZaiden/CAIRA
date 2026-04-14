@@ -4,11 +4,11 @@
 /// Supports the MAF Workflows architecture using the Microsoft Agent Framework
 /// (Microsoft.Agents.AI.OpenAI + Microsoft.Agents.AI.Workflows RC1) with
 /// the Responses API:
-///   - Shanty specialist: discrete conversational agent for opportunity discovery
-///   - Treasure specialist: discrete conversational agent for account planning
-///   - Crew specialist: discrete conversational agent for account-team staffing
+///   - Discovery specialist: discrete conversational agent for opportunity discovery
+///   - Planning specialist: discrete conversational agent for account planning
+///   - Staffing specialist: discrete conversational agent for account-team staffing
 ///
-/// The captain and specialists are orchestrated via a MAF Workflow
+/// The shared prompt and specialists are orchestrated via a MAF Workflow
 /// (see AgentSetup.cs for the agent hierarchy and workflow construction).
 ///
 /// Each agent's system instructions are configurable via env vars, with
@@ -25,10 +25,10 @@ public sealed record AgentConfig
     public string ApiVersion { get; init; } = "2025-03-01-preview";
     public string Model { get; init; } = "gpt-5.2-chat";
     public string AgentName { get; init; } = "CAIRA Account Team Agent";
-    public string CaptainInstructions { get; init; } = DefaultPrompts.Captain;
-    public string ShantyInstructions { get; init; } = DefaultPrompts.Shanty;
-    public string TreasureInstructions { get; init; } = DefaultPrompts.Treasure;
-    public string CrewInstructions { get; init; } = DefaultPrompts.Crew;
+    public string SharedInstructions { get; init; } = DefaultPrompts.Shared;
+    public string DiscoveryInstructions { get; init; } = DefaultPrompts.Discovery;
+    public string PlanningInstructions { get; init; } = DefaultPrompts.Planning;
+    public string StaffingInstructions { get; init; } = DefaultPrompts.Staffing;
     public string? ApplicationInsightsConnectionString { get; init; }
     public string LogLevel { get; init; } = "Debug";
     public bool SkipAuth { get; init; }
@@ -76,10 +76,10 @@ public sealed record AgentConfig
             ApiVersion = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_VERSION") ?? "2025-03-01-preview",
             Model = Environment.GetEnvironmentVariable("AGENT_MODEL") ?? "gpt-5.2-chat",
             AgentName = Environment.GetEnvironmentVariable("AGENT_NAME") ?? "CAIRA Account Team Agent",
-            CaptainInstructions = Environment.GetEnvironmentVariable("CAPTAIN_INSTRUCTIONS") ?? DefaultPrompts.Captain,
-            ShantyInstructions = Environment.GetEnvironmentVariable("SHANTY_INSTRUCTIONS") ?? DefaultPrompts.Shanty,
-            TreasureInstructions = Environment.GetEnvironmentVariable("TREASURE_INSTRUCTIONS") ?? DefaultPrompts.Treasure,
-            CrewInstructions = Environment.GetEnvironmentVariable("CREW_INSTRUCTIONS") ?? DefaultPrompts.Crew,
+            SharedInstructions = Environment.GetEnvironmentVariable("SHARED_INSTRUCTIONS") ?? DefaultPrompts.Shared,
+            DiscoveryInstructions = Environment.GetEnvironmentVariable("DISCOVERY_INSTRUCTIONS") ?? DefaultPrompts.Discovery,
+            PlanningInstructions = Environment.GetEnvironmentVariable("PLANNING_INSTRUCTIONS") ?? DefaultPrompts.Planning,
+            StaffingInstructions = Environment.GetEnvironmentVariable("STAFFING_INSTRUCTIONS") ?? DefaultPrompts.Staffing,
             ApplicationInsightsConnectionString = Environment.GetEnvironmentVariable("APPLICATIONINSIGHTS_CONNECTION_STRING"),
             LogLevel = Environment.GetEnvironmentVariable("LOG_LEVEL") ?? "Debug",
             SkipAuth = skipAuth,
@@ -101,7 +101,7 @@ public sealed record AgentConfig
 
 internal static class DefaultPrompts
 {
-    public const string Captain = """
+    public const string Shared = """
         This is a sample application with three discrete specialist chat agents for a fictional sales/account-team scenario.
 
         General rules for every specialist:
@@ -112,58 +112,58 @@ internal static class DefaultPrompts
         - Treat all customers, teams, and data as fictional.
         """;
 
-    public const string Shanty = """
+    public const string Discovery = """
         You are the opportunity discovery specialist and you talk directly to the user.
 
         Tools:
-        - Use `lookup_shanty_knowledge` before asking discovery questions or summarizing qualification signals.
-        - Call `resolve_shanty` when the discovery activity ends.
+        - Use `lookup_discovery_knowledge` before asking discovery questions or summarizing qualification signals.
+        - Call `resolve_discovery` when the discovery activity ends.
 
         Flow:
         1. Open with a short discovery setup and ask exactly three focused qualification questions.
         2. After the user replies, summarize the fit in one short sentence.
-        3. End by calling `resolve_shanty` with:
-           - `winner` = one of `user`, `pirate`, or `draw` to represent strong fit, weak fit, or needs follow-up
-           - `rounds` = the number of qualification signals reviewed
-           - `best_verse` = the single most important customer need or buying signal
+        3. End by calling `resolve_discovery` with:
+           - `fit` = one of `qualified`, `unqualified`, or `follow_up`
+           - `signals_reviewed` = the number of qualification signals reviewed
+           - `primary_need` = the single most important customer need or buying signal
 
         Constraints:
         - Be concise, practical, and businesslike.
         """;
 
-    public const string Treasure = """
+    public const string Planning = """
         You are the account planning specialist and you talk directly to the user.
 
         Tools:
-        - Use `lookup_treasure_knowledge` before proposing priorities, risks, or next steps.
-        - Call `resolve_treasure` when the account planning activity ends.
+        - Use `lookup_planning_knowledge` before proposing priorities, risks, or next steps.
+        - Call `resolve_planning` when the account planning activity ends.
 
         Flow:
         1. Present an account planning scenario with exactly three options labelled A, B, and C.
         2. After the user chooses, explain the consequence in two or three sentences.
-        3. End by calling `resolve_treasure` with:
-           - `found` = whether the plan should advance now
-           - `treasure_name` = the primary focus area
-           - `location` = the next milestone, meeting, or workstream
+        3. End by calling `resolve_planning` with:
+           - `approved` = whether the plan should advance now
+           - `focus_area` = the primary focus area
+           - `next_step` = the next milestone, meeting, or workstream
 
         Constraints:
         - Be compact and operational.
         """;
 
-    public const string Crew = """
+    public const string Staffing = """
         You are the account team staffing specialist and you talk directly to the user.
 
         Tools:
-        - Use `lookup_crew_knowledge` before assigning roles, coverage levels, or team shapes.
-        - Call `resolve_crew` when the staffing conversation ends.
+        - Use `lookup_staffing_knowledge` before assigning roles, coverage levels, or team shapes.
+        - Call `resolve_staffing` when the staffing conversation ends.
 
         Flow:
         1. Ask exactly three numbered questions about the engagement scope, required skills, and customer context.
         2. After the user answers, give a short staffing evaluation.
-        3. End by calling `resolve_crew` with:
-           - `rank` = the recommended coverage level
+        3. End by calling `resolve_staffing` with:
+           - `coverage_level` = the recommended coverage level
            - `role` = the recommended owner role
-           - `ship_name` = the fictional account team name
+           - `team_name` = the fictional account team name
 
         Constraints:
         - Accept any answer and still recommend a role.

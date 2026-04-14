@@ -98,10 +98,10 @@ const LOCAL_CONFIG: Config = {
   azureEndpoint: 'http://localhost:8080',
   model: 'gpt-5.2-chat',
   agentName: 'test-agent',
-  captainInstructions: 'You are the captain agent. Route to specialists.',
-  shantyInstructions: 'You are a shanty specialist.',
-  treasureInstructions: 'You are a treasure specialist.',
-  crewInstructions: 'You are a crew specialist.',
+  sharedInstructions: 'You are the coordinator agent. Route to specialists.',
+  discoveryInstructions: 'You are a discovery specialist.',
+  planningInstructions: 'You are a planning specialist.',
+  staffingInstructions: 'You are a staffing specialist.',
   applicationInsightsConnectionString: undefined,
   logLevel: 'silent',
   skipAuth: true,
@@ -280,7 +280,7 @@ describe('FoundryClient (without agent registration)', () => {
 
   describe('initialise', () => {
     it('marks client as ready after initialisation', async () => {
-      const conv = await client.createConversation({ mode: 'shanty' });
+      const conv = await client.createConversation({ mode: 'discovery' });
       expect(conv.id).toMatch(/^conv_/);
     });
 
@@ -298,7 +298,7 @@ describe('FoundryClient (without agent registration)', () => {
 
   describe('createConversation', () => {
     it('creates a conversation via the Conversations API', async () => {
-      const conv = await client.createConversation({ mode: 'shanty' });
+      const conv = await client.createConversation({ mode: 'discovery' });
       expect(conv.id).toMatch(/^conv_/);
       expect(conv.createdAt).toBeDefined();
       expect(conv.updatedAt).toBeDefined();
@@ -386,7 +386,7 @@ describe('FoundryClient (without agent registration)', () => {
       const conv = await client.createConversation();
       mockResponsesCreate.mockResolvedValue(makeResponse('Ahoy matey!'));
 
-      const result = await client.sendMessage(conv.id, 'Hello pirate!');
+      const result = await client.sendMessage(conv.id, 'Hello sales team!');
       expect(result).toBeDefined();
       expect(result!.role).toBe('assistant');
       expect(result!.content).toBe('Ahoy matey!');
@@ -415,7 +415,7 @@ describe('FoundryClient (without agent registration)', () => {
       expect(mockResponsesCreate).toHaveBeenCalledTimes(1);
       const params = mockResponsesCreate.mock.calls[0]![0];
       expect(params.model).toBe('gpt-5.2-chat');
-      expect(params.instructions).toBe(LOCAL_CONFIG.shantyInstructions);
+      expect(params.instructions).toBe(LOCAL_CONFIG.discoveryInstructions);
       expect(params.input).toBe('Test message');
       expect(params.tools).toBeDefined();
       expect(params.tools.length).toBe(2);
@@ -444,12 +444,12 @@ describe('FoundryClient (without agent registration)', () => {
     it('handles tool-call loop — executes specialist tool and continues', async () => {
       const conv = await client.createConversation();
 
-      // First call returns a function_call for lookup_shanty_knowledge
+      // First call returns a function_call for lookup_discovery_knowledge
       mockResponsesCreate.mockResolvedValueOnce(
         makeResponse('', 'resp_001', {
           functionCalls: [
             {
-              name: 'lookup_shanty_knowledge',
+              name: 'lookup_discovery_knowledge',
               callId: 'call_001',
               arguments: JSON.stringify({ query: 'Sing a verse' })
             }
@@ -458,11 +458,11 @@ describe('FoundryClient (without agent registration)', () => {
       );
 
       // Second call (tool output submission) returns final text
-      mockResponsesCreate.mockResolvedValueOnce(makeResponse('Here be a fine shanty!', 'resp_002'));
+      mockResponsesCreate.mockResolvedValueOnce(makeResponse('Here be a fine discovery!', 'resp_002'));
 
-      const result = await client.sendMessage(conv.id, 'Sing me a shanty');
+      const result = await client.sendMessage(conv.id, 'Sing me a discovery');
       expect(result).toBeDefined();
-      expect(result!.content).toBe('Here be a fine shanty!');
+      expect(result!.content).toBe('Here be a fine discovery!');
       expect(mockResponsesCreate).toHaveBeenCalledTimes(2);
 
       // Check that the second call includes tool output and conversation param
@@ -476,17 +476,17 @@ describe('FoundryClient (without agent registration)', () => {
     it('handles resolution tool — captures structured result', async () => {
       const conv = await client.createConversation();
 
-      // First call returns a function_call for resolve_shanty
+      // First call returns a function_call for resolve_discovery
       mockResponsesCreate.mockResolvedValueOnce(
         makeResponse('', 'resp_001', {
           functionCalls: [
             {
-              name: 'resolve_shanty',
+              name: 'resolve_discovery',
               callId: 'call_res_001',
               arguments: JSON.stringify({
                 winner: 'user',
                 rounds: 3,
-                best_verse: 'A mighty fine verse'
+                primary_need: 'A mighty fine verse'
               })
             }
           ]
@@ -499,8 +499,8 @@ describe('FoundryClient (without agent registration)', () => {
       const result = await client.sendMessage(conv.id, 'My final verse!');
       expect(result).toBeDefined();
       expect(result!.resolution).toEqual({
-        tool: 'resolve_shanty',
-        result: { winner: 'user', rounds: 3, best_verse: 'A mighty fine verse' }
+        tool: 'resolve_discovery',
+        result: { winner: 'user', rounds: 3, primary_need: 'A mighty fine verse' }
       });
     });
 
@@ -516,7 +516,7 @@ describe('FoundryClient (without agent registration)', () => {
 
   describe('sendMessageStream', () => {
     it('streams delta events and emits complete', async () => {
-      const conv = await client.createConversation({ mode: 'shanty' });
+      const conv = await client.createConversation({ mode: 'discovery' });
       const streamResult = makeStreamEvents(['Hello', ' world'], 'resp_stream_001');
       mockResponsesStream.mockReturnValue(streamResult);
 
@@ -602,13 +602,13 @@ describe('FoundryClient (without agent registration)', () => {
     });
 
     it('emits tool.called SSE event for specialist tools', async () => {
-      const conv = await client.createConversation({ mode: 'shanty' });
+      const conv = await client.createConversation({ mode: 'discovery' });
 
       // Stream that includes a specialist function call
       const streamResult = makeStreamEvents(['Arr'], 'resp_specialist', {
         functionCalls: [
           {
-            name: 'lookup_shanty_knowledge',
+            name: 'lookup_discovery_knowledge',
             callId: 'call_spec_001',
             arguments: JSON.stringify({ query: 'Sing a verse' })
           }
@@ -622,21 +622,23 @@ describe('FoundryClient (without agent registration)', () => {
       mockResponsesStream.mockReturnValueOnce(finalStream);
 
       const chunks: string[] = [];
-      await client.sendMessageStream(conv.id, 'Sing me a shanty', (chunk: string) => {
+      await client.sendMessageStream(conv.id, 'Sing me a discovery', (chunk: string) => {
         chunks.push(chunk);
       });
 
       // Check for tool.called event
       const toolCalledChunk = chunks.find(
-        (c) => c.includes('tool.called') && c.includes('"toolName":"shanty_specialist"')
+        (c) => c.includes('tool.called') && c.includes('"toolName":"discovery_specialist"')
       );
       expect(toolCalledChunk).toBeDefined();
-      expect(toolCalledChunk).toContain('"toolName":"shanty_specialist"');
+      expect(toolCalledChunk).toContain('"toolName":"discovery_specialist"');
 
       // Check for tool.done event
-      const toolDoneChunk = chunks.find((c) => c.includes('tool.done') && c.includes('"toolName":"shanty_specialist"'));
+      const toolDoneChunk = chunks.find(
+        (c) => c.includes('tool.done') && c.includes('"toolName":"discovery_specialist"')
+      );
       expect(toolDoneChunk).toBeDefined();
-      expect(toolDoneChunk).toContain('"toolName":"shanty_specialist"');
+      expect(toolDoneChunk).toContain('"toolName":"discovery_specialist"');
     });
 
     it('emits activity.resolved SSE event when resolution tool fires during streaming', async () => {
@@ -646,12 +648,12 @@ describe('FoundryClient (without agent registration)', () => {
       const streamResult = makeStreamEvents(['Battle over!'], 'resp_resolve', {
         functionCalls: [
           {
-            name: 'resolve_shanty',
+            name: 'resolve_discovery',
             callId: 'call_res_001',
             arguments: JSON.stringify({
               winner: 'user',
               rounds: 4,
-              best_verse: 'A verse about the sea'
+              primary_need: 'A verse about the sea'
             })
           }
         ]
@@ -671,7 +673,7 @@ describe('FoundryClient (without agent registration)', () => {
       // Check for activity.resolved event
       const resolvedChunk = chunks.find((c) => c.includes('activity.resolved'));
       expect(resolvedChunk).toBeDefined();
-      expect(resolvedChunk).toContain('"tool":"resolve_shanty"');
+      expect(resolvedChunk).toContain('"tool":"resolve_discovery"');
       expect(resolvedChunk).toContain('"winner":"user"');
 
       // Check complete event is present
@@ -694,17 +696,17 @@ describe('FoundryClient (without agent registration)', () => {
     });
 
     it('does not emit tool.called/tool.done for resolution tools', async () => {
-      const conv = await client.createConversation({ mode: 'treasure' });
+      const conv = await client.createConversation({ mode: 'planning' });
 
       // Stream with a resolution tool call (should NOT emit tool.called/tool.done)
       const streamResult = makeStreamEvents([], 'resp_resolve', {
         functionCalls: [
           {
-            name: 'resolve_treasure',
+            name: 'resolve_planning',
             callId: 'call_res_002',
             arguments: JSON.stringify({
               found: true,
-              treasure_name: 'Gold Crown',
+              focus_area: 'Gold Crown',
               location: 'Cave'
             })
           }
@@ -722,7 +724,7 @@ describe('FoundryClient (without agent registration)', () => {
         chunks.push(chunk);
       });
 
-      expect(chunks[0]).toContain('"toolName":"treasure_specialist"');
+      expect(chunks[0]).toContain('"toolName":"planning_specialist"');
 
       // But activity.resolved SHOULD be emitted
       const hasResolved = chunks.some((c) => c.includes('activity.resolved'));
@@ -730,7 +732,7 @@ describe('FoundryClient (without agent registration)', () => {
     });
 
     it('records assistant message in conversation after streaming', async () => {
-      const conv = await client.createConversation({ mode: 'treasure' });
+      const conv = await client.createConversation({ mode: 'planning' });
       const streamResult = makeStreamEvents(['Streamed text'], 'resp_stream');
       mockResponsesStream.mockReturnValue(streamResult);
 
@@ -809,9 +811,9 @@ describe('FoundryClient (with agent registration)', () => {
 
       // Check agent names passed to create
       const createdNames = mockAgentsCreate.mock.calls.map((call: unknown[]) => call[0]);
-      expect(createdNames).toContain('shanty-specialist');
-      expect(createdNames).toContain('treasure-specialist');
-      expect(createdNames).toContain('crew-specialist');
+      expect(createdNames).toContain('discovery-specialist');
+      expect(createdNames).toContain('planning-specialist');
+      expect(createdNames).toContain('staffing-specialist');
     });
 
     it('updates agents when they already exist (get succeeds)', async () => {
@@ -845,27 +847,31 @@ describe('FoundryClient (with agent registration)', () => {
     });
 
     it('creates specialist agents with focused toolsets', async () => {
-      const shantyCreateCall = mockAgentsCreate.mock.calls.find((call: unknown[]) => call[0] === 'shanty-specialist');
-      expect(shantyCreateCall).toBeDefined();
+      const discoveryCreateCall = mockAgentsCreate.mock.calls.find(
+        (call: unknown[]) => call[0] === 'discovery-specialist'
+      );
+      expect(discoveryCreateCall).toBeDefined();
 
-      const definition = shantyCreateCall![1] as Record<string, unknown>;
+      const definition = discoveryCreateCall![1] as Record<string, unknown>;
       expect(definition.kind).toBe('prompt');
       expect(definition.model).toBe('gpt-5.2-chat');
-      expect(String(definition.instructions)).toContain(AZURE_CONFIG.shantyInstructions);
+      expect(String(definition.instructions)).toContain(AZURE_CONFIG.discoveryInstructions);
 
       const tools = definition.tools as Array<{ name: string }>;
       expect(tools).toHaveLength(2);
     });
 
     it('creates specialist agents with shared + specialist instructions', async () => {
-      const shantyCreateCall = mockAgentsCreate.mock.calls.find((call: unknown[]) => call[0] === 'shanty-specialist');
-      expect(shantyCreateCall).toBeDefined();
+      const discoveryCreateCall = mockAgentsCreate.mock.calls.find(
+        (call: unknown[]) => call[0] === 'discovery-specialist'
+      );
+      expect(discoveryCreateCall).toBeDefined();
 
-      const definition = shantyCreateCall![1] as Record<string, unknown>;
+      const definition = discoveryCreateCall![1] as Record<string, unknown>;
       expect(definition.kind).toBe('prompt');
       expect(definition.model).toBe('gpt-5.2-chat');
-      expect(String(definition.instructions)).toContain(AZURE_CONFIG.shantyInstructions);
-      expect(String(definition.instructions)).toContain(AZURE_CONFIG.captainInstructions);
+      expect(String(definition.instructions)).toContain(AZURE_CONFIG.discoveryInstructions);
+      expect(String(definition.instructions)).toContain(AZURE_CONFIG.sharedInstructions);
     });
 
     it('throws if agent registration fails with non-404 error', async () => {
@@ -969,12 +975,12 @@ describe('FoundryClient (with agent registration)', () => {
     it('handles tool-call loop with conversation param', async () => {
       const conv = await client.createConversation();
 
-      // First call returns a function_call for lookup_shanty_knowledge
+      // First call returns a function_call for lookup_discovery_knowledge
       mockResponsesCreate.mockResolvedValueOnce(
         makeResponse('', 'resp_001', {
           functionCalls: [
             {
-              name: 'lookup_shanty_knowledge',
+              name: 'lookup_discovery_knowledge',
               callId: 'call_001',
               arguments: JSON.stringify({ query: 'Sing a verse' })
             }
@@ -983,16 +989,16 @@ describe('FoundryClient (with agent registration)', () => {
       );
 
       // Second call (tool output submission) returns final text
-      mockResponsesCreate.mockResolvedValueOnce(makeResponse('Here be a shanty!', 'resp_002'));
+      mockResponsesCreate.mockResolvedValueOnce(makeResponse('Here be a discovery!', 'resp_002'));
 
-      const result = await client.sendMessage(conv.id, 'Sing me a shanty');
+      const result = await client.sendMessage(conv.id, 'Sing me a discovery');
       expect(result).toBeDefined();
-      expect(result!.content).toBe('Here be a shanty!');
+      expect(result!.content).toBe('Here be a discovery!');
       expect(mockResponsesCreate).toHaveBeenCalledTimes(2);
 
-      // First call (captain) should use conversation param
-      const captainParams = mockResponsesCreate.mock.calls[0]![0];
-      expect(captainParams.conversation).toBeDefined();
+      // First call (coordinator) should use conversation param
+      const coordinatorParams = mockResponsesCreate.mock.calls[0]![0];
+      expect(coordinatorParams.conversation).toBeDefined();
 
       // Second call (tool output back to specialist) should also use conversation param
       const toolOutputParams = mockResponsesCreate.mock.calls[1]![0];
@@ -1006,12 +1012,12 @@ describe('FoundryClient (with agent registration)', () => {
         makeResponse('', 'resp_001', {
           functionCalls: [
             {
-              name: 'resolve_crew',
+              name: 'resolve_staffing',
               callId: 'call_res_001',
               arguments: JSON.stringify({
                 rank: 'Quartermaster',
                 role: 'navigator',
-                ship_name: 'The Agentic'
+                team_name: 'The Agentic'
               })
             }
           ]
@@ -1023,8 +1029,8 @@ describe('FoundryClient (with agent registration)', () => {
       const result = await client.sendMessage(conv.id, 'My answers');
       expect(result).toBeDefined();
       expect(result!.resolution).toEqual({
-        tool: 'resolve_crew',
-        result: { rank: 'Quartermaster', role: 'navigator', ship_name: 'The Agentic' }
+        tool: 'resolve_staffing',
+        result: { rank: 'Quartermaster', role: 'navigator', team_name: 'The Agentic' }
       });
     });
   });
@@ -1065,12 +1071,12 @@ describe('FoundryClient (with agent registration)', () => {
     });
 
     it('emits tool.called and tool.done for specialist tools', async () => {
-      const conv = await client.createConversation({ mode: 'treasure' });
+      const conv = await client.createConversation({ mode: 'planning' });
 
       const streamResult = makeStreamEvents(['Arr'], 'resp_specialist', {
         functionCalls: [
           {
-            name: 'lookup_treasure_knowledge',
+            name: 'lookup_planning_knowledge',
             callId: 'call_spec_001',
             arguments: JSON.stringify({ query: 'Describe a scene' })
           }
@@ -1084,21 +1090,21 @@ describe('FoundryClient (with agent registration)', () => {
       mockResponsesStream.mockReturnValueOnce(finalStream);
 
       const chunks: string[] = [];
-      await client.sendMessageStream(conv.id, 'Start treasure hunt', (chunk: string) => {
+      await client.sendMessageStream(conv.id, 'Start planning hunt', (chunk: string) => {
         chunks.push(chunk);
       });
 
       const toolCalledChunk = chunks.find(
-        (c) => c.includes('tool.called') && c.includes('"toolName":"treasure_specialist"')
+        (c) => c.includes('tool.called') && c.includes('"toolName":"planning_specialist"')
       );
       expect(toolCalledChunk).toBeDefined();
-      expect(toolCalledChunk).toContain('"toolName":"treasure_specialist"');
+      expect(toolCalledChunk).toContain('"toolName":"planning_specialist"');
 
       const toolDoneChunk = chunks.find(
-        (c) => c.includes('tool.done') && c.includes('"toolName":"treasure_specialist"')
+        (c) => c.includes('tool.done') && c.includes('"toolName":"planning_specialist"')
       );
       expect(toolDoneChunk).toBeDefined();
-      expect(toolDoneChunk).toContain('"toolName":"treasure_specialist"');
+      expect(toolDoneChunk).toContain('"toolName":"planning_specialist"');
     });
 
     it('emits activity.resolved during streaming', async () => {
@@ -1107,12 +1113,12 @@ describe('FoundryClient (with agent registration)', () => {
       const streamResult = makeStreamEvents(['Battle over!'], 'resp_resolve', {
         functionCalls: [
           {
-            name: 'resolve_shanty',
+            name: 'resolve_discovery',
             callId: 'call_res_001',
             arguments: JSON.stringify({
-              winner: 'pirate',
+              winner: 'sales',
               rounds: 2,
-              best_verse: 'The sea be wild!'
+              primary_need: 'The sea be wild!'
             })
           }
         ]
@@ -1130,8 +1136,8 @@ describe('FoundryClient (with agent registration)', () => {
 
       const resolvedChunk = chunks.find((c) => c.includes('activity.resolved'));
       expect(resolvedChunk).toBeDefined();
-      expect(resolvedChunk).toContain('"tool":"resolve_shanty"');
-      expect(resolvedChunk).toContain('"winner":"pirate"');
+      expect(resolvedChunk).toContain('"tool":"resolve_discovery"');
+      expect(resolvedChunk).toContain('"winner":"sales"');
     });
 
     it('records assistant message in conversation after streaming', async () => {

@@ -31,10 +31,10 @@ public class ConfigTests : IDisposable
         "AZURE_OPENAI_API_VERSION",
         "AGENT_MODEL",
         "AGENT_NAME",
-        "CAPTAIN_INSTRUCTIONS",
-        "SHANTY_INSTRUCTIONS",
-        "TREASURE_INSTRUCTIONS",
-        "CREW_INSTRUCTIONS",
+        "SHARED_INSTRUCTIONS",
+        "DISCOVERY_INSTRUCTIONS",
+        "PLANNING_INSTRUCTIONS",
+        "STAFFING_INSTRUCTIONS",
         "INBOUND_AUTH_TENANT_ID",
         "INBOUND_AUTH_ALLOWED_AUDIENCES",
         "INBOUND_AUTH_ALLOWED_CALLER_APP_IDS",
@@ -82,10 +82,10 @@ public class ConfigTests : IDisposable
         Assert.Equal("2025-03-01-preview", config.ApiVersion);
         Assert.Equal("gpt-5.2-chat", config.Model);
         Assert.Equal("CAIRA Account Team Agent", config.AgentName);
-        Assert.Contains("discrete specialist", config.CaptainInstructions, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("opportunity discovery", config.ShantyInstructions, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("account planning", config.TreasureInstructions, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("account team staffing", config.CrewInstructions, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("discrete specialist", config.SharedInstructions, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("opportunity discovery", config.DiscoveryInstructions, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("account planning", config.PlanningInstructions, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("account team staffing", config.StaffingInstructions, StringComparison.OrdinalIgnoreCase);
         Assert.Equal("Debug", config.LogLevel);
         Assert.False(config.SkipAuth);
         Assert.Equal("tenant-123", config.InboundAuthTenantId);
@@ -114,10 +114,10 @@ public class ConfigTests : IDisposable
         Environment.SetEnvironmentVariable("AZURE_OPENAI_API_VERSION", "2024-10-01");
         Environment.SetEnvironmentVariable("AGENT_MODEL", "gpt-4o");
         Environment.SetEnvironmentVariable("AGENT_NAME", "Test Agent");
-        Environment.SetEnvironmentVariable("CAPTAIN_INSTRUCTIONS", "Custom captain prompt.");
-        Environment.SetEnvironmentVariable("SHANTY_INSTRUCTIONS", "Custom shanty prompt.");
-        Environment.SetEnvironmentVariable("TREASURE_INSTRUCTIONS", "Custom treasure prompt.");
-        Environment.SetEnvironmentVariable("CREW_INSTRUCTIONS", "Custom crew prompt.");
+        Environment.SetEnvironmentVariable("SHARED_INSTRUCTIONS", "Custom shared prompt.");
+        Environment.SetEnvironmentVariable("DISCOVERY_INSTRUCTIONS", "Custom discovery prompt.");
+        Environment.SetEnvironmentVariable("PLANNING_INSTRUCTIONS", "Custom planning prompt.");
+        Environment.SetEnvironmentVariable("STAFFING_INSTRUCTIONS", "Custom staffing prompt.");
         Environment.SetEnvironmentVariable("INBOUND_AUTH_TENANT_ID", "tenant-123");
         Environment.SetEnvironmentVariable("INBOUND_AUTH_ALLOWED_AUDIENCES", "api://caira-agent,api://caira-agent/.default");
         Environment.SetEnvironmentVariable("INBOUND_AUTH_ALLOWED_CALLER_APP_IDS", "api-client-1,api-client-2");
@@ -132,10 +132,10 @@ public class ConfigTests : IDisposable
         Assert.Equal("2024-10-01", config.ApiVersion);
         Assert.Equal("gpt-4o", config.Model);
         Assert.Equal("Test Agent", config.AgentName);
-        Assert.Equal("Custom captain prompt.", config.CaptainInstructions);
-        Assert.Equal("Custom shanty prompt.", config.ShantyInstructions);
-        Assert.Equal("Custom treasure prompt.", config.TreasureInstructions);
-        Assert.Equal("Custom crew prompt.", config.CrewInstructions);
+        Assert.Equal("Custom shared prompt.", config.SharedInstructions);
+        Assert.Equal("Custom discovery prompt.", config.DiscoveryInstructions);
+        Assert.Equal("Custom planning prompt.", config.PlanningInstructions);
+        Assert.Equal("Custom staffing prompt.", config.StaffingInstructions);
         Assert.Equal("info", config.LogLevel);
         Assert.True(config.SkipAuth);
         Assert.Equal("tenant-123", config.InboundAuthTenantId);

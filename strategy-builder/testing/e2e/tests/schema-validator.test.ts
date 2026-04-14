@@ -7,7 +7,7 @@
 
 import { describe, it, expect, afterEach } from 'vitest';
 import { validateSchema, resetSchemaCache } from '../src/helpers/schema-validator.ts';
-import { SCHEMAS } from '../src/fixtures/pirate-fixtures.ts';
+import { SCHEMAS } from '../src/fixtures/activity-fixtures.ts';
 
 afterEach(() => {
   resetSchemaCache();
@@ -20,7 +20,7 @@ describe('validateSchema', () => {
     it('validates a valid Adventure', async () => {
       const result = await validateSchema(SCHEMAS.Adventure, {
         id: 'adv_001',
-        mode: 'shanty',
+        mode: 'discovery',
         status: 'active',
         createdAt: '2026-01-15T10:30:00.000Z',
         lastParleyAt: '2026-01-15T10:30:00.000Z',
@@ -34,11 +34,11 @@ describe('validateSchema', () => {
     it('validates an Adventure with optional outcome', async () => {
       const result = await validateSchema(SCHEMAS.Adventure, {
         id: 'adv_002',
-        mode: 'treasure',
+        mode: 'planning',
         status: 'resolved',
         outcome: {
-          tool: 'resolve_treasure',
-          result: { found: true, treasure_name: 'Golden Chalice', location: 'Skeleton Cove' }
+          tool: 'resolve_planning',
+          result: { approved: true, focus_area: 'Executive sponsor alignment', next_step: 'Confirm stakeholder review' }
         },
         createdAt: '2026-01-15T10:30:00.000Z',
         lastParleyAt: '2026-01-15T11:00:00.000Z',
@@ -51,10 +51,9 @@ describe('validateSchema', () => {
     it('validates a valid AdventureStarted', async () => {
       const result = await validateSchema(SCHEMAS.AdventureStarted, {
         id: 'adv_003',
-        mode: 'crew',
+        mode: 'staffing',
         status: 'active',
-        syntheticMessage:
-          'I want to join your pirate crew! Interview me and assign me a rank and role aboard your ship.',
+        syntheticMessage: 'Recommend the right team staffing coverage for this account.',
         createdAt: '2026-01-15T10:30:00.000Z'
       });
 
@@ -64,11 +63,11 @@ describe('validateSchema', () => {
     it('validates a valid AdventureDetail', async () => {
       const result = await validateSchema(SCHEMAS.AdventureDetail, {
         id: 'adv_004',
-        mode: 'shanty',
+        mode: 'discovery',
         status: 'resolved',
         outcome: {
-          tool: 'resolve_shanty',
-          result: { winner: 'user', rounds: 4, best_verse: 'Through storms...' }
+          tool: 'resolve_discovery',
+          result: { fit: 'qualified', signals_reviewed: 4, primary_need: 'Executive visibility into account risk.' }
         },
         createdAt: '2026-01-15T10:30:00.000Z',
         lastParleyAt: '2026-01-15T10:35:00.000Z',
@@ -98,7 +97,7 @@ describe('validateSchema', () => {
         adventures: [
           {
             id: 'adv_001',
-            mode: 'shanty',
+            mode: 'discovery',
             status: 'active',
             createdAt: '2026-01-15T10:30:00.000Z',
             lastParleyAt: '2026-01-15T10:30:00.000Z',
@@ -129,12 +128,12 @@ describe('validateSchema', () => {
       const result = await validateSchema(SCHEMAS.ParleyMessage, {
         id: 'msg_456',
         role: 'assistant',
-        content: 'Ye won the shanty battle!',
+        content: 'The opportunity looks qualified.',
         createdAt: '2026-01-15T10:30:00.000Z',
         usage: { promptTokens: 10, completionTokens: 8 },
         resolution: {
-          tool: 'resolve_shanty',
-          result: { winner: 'user', rounds: 4, best_verse: 'Through storms...' }
+          tool: 'resolve_discovery',
+          result: { fit: 'qualified', signals_reviewed: 4, primary_need: 'Executive visibility into account risk.' }
         }
       });
 
@@ -147,9 +146,9 @@ describe('validateSchema', () => {
         activeAdventures: 7,
         resolvedAdventures: 35,
         byMode: {
-          shanty: { total: 15, active: 3, resolved: 12 },
-          treasure: { total: 20, active: 2, resolved: 18 },
-          crew: { total: 7, active: 2, resolved: 5 }
+          discovery: { total: 15, active: 3, resolved: 12 },
+          planning: { total: 20, active: 2, resolved: 18 },
+          staffing: { total: 7, active: 2, resolved: 5 }
         }
       });
 
@@ -201,7 +200,7 @@ describe('validateSchema', () => {
     it('rejects an Adventure with invalid mode enum', async () => {
       const result = await validateSchema(SCHEMAS.Adventure, {
         id: 'adv_001',
-        mode: 'duel', // not in enum: [shanty, treasure, crew]
+        mode: 'duel', // not in enum: [discovery, planning, staffing]
         status: 'active',
         createdAt: '2026-01-15T10:30:00.000Z',
         lastParleyAt: '2026-01-15T10:30:00.000Z',
@@ -214,7 +213,7 @@ describe('validateSchema', () => {
     it('rejects an Adventure with invalid status enum', async () => {
       const result = await validateSchema(SCHEMAS.Adventure, {
         id: 'adv_001',
-        mode: 'shanty',
+        mode: 'discovery',
         status: 'finished', // not in enum: [active, resolved]
         createdAt: '2026-01-15T10:30:00.000Z',
         lastParleyAt: '2026-01-15T10:30:00.000Z',
@@ -227,8 +226,8 @@ describe('validateSchema', () => {
     it('rejects a ParleyMessage with invalid role', async () => {
       const result = await validateSchema(SCHEMAS.ParleyMessage, {
         id: 'msg_123',
-        role: 'pirate', // Not in enum: [user, assistant, system]
-        content: 'Arr!',
+        role: 'manager', // Not in enum: [user, assistant, system]
+        content: 'Thanks.',
         createdAt: '2026-01-15T10:30:00.000Z'
       });
 
@@ -263,7 +262,7 @@ describe('validateSchema', () => {
 
     it('rejects AdventureOutcome missing tool field', async () => {
       const result = await validateSchema(SCHEMAS.AdventureOutcome, {
-        result: { winner: 'user' }
+        result: { fit: 'qualified' }
         // missing tool
       });
 
@@ -306,7 +305,7 @@ describe('validateSchema', () => {
     it('validates AdventureDetail without optional outcome', async () => {
       const result = await validateSchema(SCHEMAS.AdventureDetail, {
         id: 'adv_005',
-        mode: 'treasure',
+        mode: 'planning',
         status: 'active',
         createdAt: '2026-01-15T10:30:00.000Z',
         lastParleyAt: '2026-01-15T10:30:00.000Z',
@@ -315,7 +314,7 @@ describe('validateSchema', () => {
           {
             id: 'msg_1',
             role: 'user',
-            content: 'Where be the treasure?',
+            content: 'Where be the planning?',
             createdAt: '2026-01-15T10:30:00.000Z'
           }
         ]

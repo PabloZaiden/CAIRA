@@ -1,12 +1,12 @@
 ---
 openapi: 3.1.0
 info:
-  title: CAIRA Business API (Pirate Theme)
+  title: CAIRA Business API
   version: 2.0.0
   description: |
     REST contract for the CAIRA business API container. This is the public-facing
     API that the frontend calls. It wraps the agent container's generic conversation
-    API with a pirate-themed business layer.
+    API with a business-oriented business layer.
 
     The API container is agent-framework-agnostic — it only knows the agent API
     contract (`agent-api.openapi.yaml`) and proxies requests to whichever agent
@@ -17,18 +17,18 @@ info:
     Every conversation starts from a **business operation** — there is no generic
     "create a conversation" endpoint. The three operations are:
 
-    - `POST /api/pirate/shanty` — Start a Sea Shanty Battle (lyrical verse duel)
-    - `POST /api/pirate/treasure` — Seek Treasure (adventure with choices)
-    - `POST /api/pirate/crew/enlist` — Join the Crew (interview and role assignment)
+    - `POST /api/activities/discovery` — Start opportunity discovery
+    - `POST /api/activities/planning` — Start account planning
+    - `POST /api/activities/staffing` — Start team staffing
 
     Each operation creates a conversation on the agent container, sends a synthetic
-    first message to prime the triage agent, and returns the adventure ID and the
-    agent's opening response.
+    first message aligned to the selected activity, and returns the adventure ID
+    and the agent's opening response.
 
     ## Activity Resolution
 
     Each activity has a **definitive conclusion** captured via agent-driven resolution
-    tools (`resolve_shanty`, `resolve_treasure`, `resolve_crew`). When an activity
+    tools (`resolve_discovery`, `resolve_planning`, `resolve_staffing`). When an activity
     resolves, the SSE stream includes an `activity.resolved` event with structured
     outcome data. The API captures this outcome and stores it on the adventure.
 
@@ -37,8 +37,8 @@ info:
 
     ## Streaming
 
-    The `POST /api/pirate/adventures/{adventureId}/parley` endpoint supports
-    Server-Sent Events (SSE) for streaming pirate responses. The API parses the
+    The `POST /api/activities/adventures/{adventureId}/parley` endpoint supports
+    Server-Sent Events (SSE) for streaming assistant responses. The API parses the
     agent's SSE stream to detect `activity.resolved` events and passes all events
     through to the frontend.
 
@@ -49,16 +49,16 @@ info:
 
     ```
     event: message.delta
-    data: {"content": "Arr, "}
+    data: {"content": "Let us review "}
 
     event: activity.resolved
-    data: {"tool": "resolve_shanty", "result": {"winner": "user", "rounds": 4, "best_verse": "..."}}
+    data: {"tool": "resolve_discovery", "result": {"fit": "qualified", "signals_reviewed": 4, "primary_need": "..."}}
 
     event: message.complete
-    data: {"messageId": "...", "content": "Arr, ye've won!", "usage": {"promptTokens": 10, "completionTokens": 8}}
+    data: {"messageId": "...", "content": "The opportunity looks qualified.", "usage": {"promptTokens": 10, "completionTokens": 8}}
 
     event: error
-    data: {"code": "agent_error", "message": "The seas be rough today"}
+    data: {"code": "agent_error", "message": "The service is temporarily unavailable"}
     ```
 
     ## Authentication
@@ -78,26 +78,25 @@ servers:
 
 tags:
   - name: Activities
-    description: Pirate activity business operations
+    description: Business operations for each activity mode
   - name: Adventures
     description: Adventure management and chat
   - name: Observability
     description: Health checks and statistics
 
 paths:
-  /api/pirate/shanty:
+  /api/activities/discovery:
     post:
-      operationId: startShanty
-      summary: Start a Sea Shanty Battle
+      operationId: startDiscovery
+      summary: Start opportunity discovery
       tags: [Activities]
       description: |
-        Starts a sea shanty battle — a lyrical verse duel at sea. Creates a
-        conversation on the agent container, sends a synthetic first message to
-        prime the triage agent for shanty routing, and returns the adventure ID
-        with the agent's opening verse.
+        Starts an opportunity discovery flow. Creates a conversation on the
+        agent container, sends a synthetic first message for discovery routing,
+        and returns the adventure ID with the agent's opening response.
       responses:
         '201':
-          description: Shanty battle started
+          description: Discovery flow started
           content:
             application/json:
               schema:
@@ -109,43 +108,18 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
-  /api/pirate/treasure:
+  /api/activities/planning:
     post:
-      operationId: seekTreasure
-      summary: Start a Treasure Hunt
+      operationId: startPlanning
+      summary: Start account planning
       tags: [Activities]
       description: |
-        Starts a treasure hunting adventure. The pirate guide describes locations,
-        poses choices, and narrates the discovery (or peril) that follows. Creates
-        a conversation on the agent container and returns the adventure ID with the
-        agent's opening response.
-      responses:
-        '201':
-          description: Treasure hunt started
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdventureStarted'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '502':
-          $ref: '#/components/responses/AgentUnavailable'
-        '500':
-          $ref: '#/components/responses/InternalError'
-
-  /api/pirate/crew/enlist:
-    post:
-      operationId: enlistInCrew
-      summary: Join the Pirate Crew
-      tags: [Activities]
-      description: |
-        Starts a crew enlistment interview. The first mate evaluates the user's
-        pirate skills and assigns a rank, role, and ship. Creates a conversation
-        on the agent container and returns the adventure ID with the agent's
+        Starts an account planning flow. The agent presents planning options,
+        evaluates the selected path, and returns the adventure ID with the
         opening response.
       responses:
         '201':
-          description: Crew interview started
+          description: Planning flow started
           content:
             application/json:
               schema:
@@ -157,7 +131,30 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
-  /api/pirate/adventures:
+  /api/activities/staffing:
+    post:
+      operationId: startStaffing
+      summary: Start team staffing
+      tags: [Activities]
+      description: |
+        Starts a team staffing interview. The agent evaluates the requested
+        engagement needs, recommends staffing coverage, and returns the
+        adventure ID with the opening response.
+      responses:
+        '201':
+          description: Staffing interview started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdventureStarted'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '502':
+          $ref: '#/components/responses/AgentUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/activities/adventures:
     get:
       operationId: listAdventures
       summary: List all adventures
@@ -184,7 +181,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
-  /api/pirate/adventures/{adventureId}:
+  /api/activities/adventures/{adventureId}:
     get:
       operationId: getAdventure
       summary: Get adventure details
@@ -209,16 +206,16 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
-  /api/pirate/adventures/{adventureId}/parley:
+  /api/activities/adventures/{adventureId}/parley:
     post:
       operationId: parley
       summary: Send a message in an adventure
       tags: [Adventures]
       description: |
-        Sends a message to the pirate agent within an existing adventure and receives
+        Sends a message to the agent within an existing adventure and receives
         a response. The response format depends on the `Accept` header:
 
-        - `Accept: text/event-stream` (default) — streams the pirate's response
+        - `Accept: text/event-stream` (default) — streams the assistant response
           as SSE events. The API parses the agent stream to detect `activity.resolved`
           events, captures the outcome, and passes all events through to the frontend.
         - `Accept: application/json` — waits for the full response
@@ -229,19 +226,19 @@ paths:
 
         **`message.delta`**
         ```json
-        {"content": "partial pirate text"}
+        {"content": "partial assistant text"}
         ```
 
         **`activity.resolved`**
         ```json
-        {"tool": "resolve_shanty", "result": {"winner": "user", "rounds": 4, "best_verse": "..."}}
+        {"tool": "resolve_discovery", "result": {"fit": "qualified", "signals_reviewed": 4, "primary_need": "..."}}
         ```
 
         **`message.complete`**
         ```json
         {
           "messageId": "msg_abc123",
-          "content": "Arr, that be a fine question!",
+          "content": "That is a strong next question.",
           "usage": {
             "promptTokens": 10,
             "completionTokens": 12
@@ -251,7 +248,7 @@ paths:
 
         **`error`**
         ```json
-        {"code": "agent_error", "message": "The seas be too rough for parley"}
+        {"code": "agent_error", "message": "The service could not complete the request"}
         ```
       parameters:
         - $ref: '#/components/parameters/AdventureId'
@@ -286,13 +283,13 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
-  /api/pirate/stats:
+  /api/activities/stats:
     get:
       operationId: getStats
       summary: Get activity statistics
       tags: [Observability]
       description: |
-        Returns aggregate statistics about pirate activities — total adventures
+        Returns aggregate statistics about activity — total adventures
         per mode, resolution counts, and active adventures.
       responses:
         '200':
@@ -374,11 +371,11 @@ components:
   schemas:
     AdventureMode:
       type: string
-      description: The type of pirate activity
+      description: The type of activity
       enum:
-        - shanty
-        - treasure
-        - crew
+        - discovery
+        - planning
+        - staffing
 
     AdventureStatus:
       type: string
@@ -495,14 +492,14 @@ components:
       description: |
         Structured outcome from an activity resolution. The `result` field
         contains the domain-specific data from the resolution tool (e.g.,
-        winner/rounds for shanty, found/treasure for treasure hunt).
+        fit/signals_reviewed for discovery, approved/next_step for planning).
       required:
         - tool
         - result
       properties:
         tool:
           type: string
-          description: The resolution tool that was called (e.g., resolve_shanty)
+          description: The resolution tool that was called (e.g., resolve_discovery)
         result:
           type: object
           description: Domain-specific outcome data from the resolution tool
@@ -535,7 +532,7 @@ components:
 
     ParleyRequest:
       type: object
-      description: A message to send to the pirate
+      description: A message to send to the assistant
       required:
         - message
       properties:
@@ -585,7 +582,7 @@ components:
 
     ActivityStats:
       type: object
-      description: Aggregate statistics about pirate activities
+      description: Aggregate statistics about activity
       required:
         - totalAdventures
         - activeAdventures
@@ -605,15 +602,15 @@ components:
           type: object
           description: Per-mode adventure counts
           required:
-            - shanty
-            - treasure
-            - crew
+            - discovery
+            - planning
+            - staffing
           properties:
-            shanty:
+            discovery:
               $ref: '#/components/schemas/ModeStats'
-            treasure:
+            planning:
               $ref: '#/components/schemas/ModeStats'
-            crew:
+            staffing:
               $ref: '#/components/schemas/ModeStats'
 
     ModeStats:

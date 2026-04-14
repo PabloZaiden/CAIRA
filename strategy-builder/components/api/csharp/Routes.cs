@@ -2,13 +2,13 @@
 /// ASP.NET Core Minimal API route definitions for the fictional sales/account-team sample API.
 ///
 /// Maps business endpoints to agent container operations:
-///   POST /api/pirate/shanty              -> create conv, return syntheticMessage
-///   POST /api/pirate/treasure            -> create conv, return syntheticMessage
-///   POST /api/pirate/crew/enlist         -> create conv, return syntheticMessage
-///   GET  /api/pirate/adventures          -> GET  /conversations (enriched)
-///   GET  /api/pirate/adventures/:id      -> GET  /conversations/:id (enriched)
-///   POST /api/pirate/adventures/:id/parley -> POST /conversations/:id/messages (SSE parsed)
-///   GET  /api/pirate/stats               -> computed from adventures
+///   POST /api/activities/discovery              -> create conv, return syntheticMessage
+///   POST /api/activities/planning            -> create conv, return syntheticMessage
+///   POST /api/activities/staffing                -> create conv, return syntheticMessage
+///   GET  /api/activities/adventures          -> GET  /conversations (enriched)
+///   GET  /api/activities/adventures/:id      -> GET  /conversations/:id (enriched)
+///   POST /api/activities/adventures/:id/parley -> POST /conversations/:id/messages (SSE parsed)
+///   GET  /api/activities/stats               -> computed from adventures
 ///   GET  /health                         -> checks agent /health
 ///   GET  /health/deep                    -> auth-required check of agent business endpoint
 /// </summary>
@@ -29,9 +29,9 @@ public static class Routes
 
     private static readonly Dictionary<string, string> SyntheticMessages = new()
     {
-        ["shanty"] = "I am qualifying a new customer opportunity. Lead a short discovery conversation, ask targeted questions, and conclude with a concise qualification summary.",
-        ["treasure"] = "I need an account plan for an active customer. Guide me through priorities, risks, and next steps, then conclude with a concise planning summary.",
-        ["crew"] = "I need to staff an account team for a customer engagement. Interview me for the needed context and conclude with a clear staffing recommendation.",
+        ["discovery"] = "I am qualifying a new customer opportunity. Lead a short discovery conversation, ask targeted questions, and conclude with a concise qualification summary.",
+        ["planning"] = "I need an account plan for an active customer. Guide me through priorities, risks, and next steps, then conclude with a concise planning summary.",
+        ["staffing"] = "I need to staff an account team for a customer engagement. Interview me for the needed context and conclude with a clear staffing recommendation.",
     };
 
     // ---------- Route registration ----------
@@ -74,17 +74,17 @@ public static class Routes
         });
 
         // ---- Business operations: start adventure ----
-        app.MapPost("/api/pirate/shanty", (AgentHttpClient agentClient) =>
-            HandleStartAdventure("shanty", agentClient));
+        app.MapPost("/api/activities/discovery", (AgentHttpClient agentClient) =>
+            HandleStartAdventure("discovery", agentClient));
 
-        app.MapPost("/api/pirate/treasure", (AgentHttpClient agentClient) =>
-            HandleStartAdventure("treasure", agentClient));
+        app.MapPost("/api/activities/planning", (AgentHttpClient agentClient) =>
+            HandleStartAdventure("planning", agentClient));
 
-        app.MapPost("/api/pirate/crew/enlist", (AgentHttpClient agentClient) =>
-            HandleStartAdventure("crew", agentClient));
+        app.MapPost("/api/activities/staffing", (AgentHttpClient agentClient) =>
+            HandleStartAdventure("staffing", agentClient));
 
-        // ---- GET /api/pirate/adventures ----
-        app.MapGet("/api/pirate/adventures", async (AgentHttpClient agentClient, int? offset, int? limit) =>
+        // ---- GET /api/activities/adventures ----
+        app.MapGet("/api/activities/adventures", async (AgentHttpClient agentClient, int? offset, int? limit) =>
         {
             var result = await agentClient.ListConversationsAsync(offset, limit);
             if (!result.Ok || result.Data == null)
@@ -102,8 +102,8 @@ public static class Routes
             return Results.Ok(new AdventureList(adventures, result.Data.Offset, result.Data.Limit, result.Data.Total));
         });
 
-        // ---- GET /api/pirate/adventures/{adventureId} ----
-        app.MapGet("/api/pirate/adventures/{adventureId}", async (string adventureId, AgentHttpClient agentClient) =>
+        // ---- GET /api/activities/adventures/{adventureId} ----
+        app.MapGet("/api/activities/adventures/{adventureId}", async (string adventureId, AgentHttpClient agentClient) =>
         {
             var result = await agentClient.GetConversationAsync(adventureId);
             if (!result.Ok || result.Data == null)
@@ -118,8 +118,8 @@ public static class Routes
             return Results.Ok(detail);
         });
 
-        // ---- POST /api/pirate/adventures/{adventureId}/parley ----
-        app.MapPost("/api/pirate/adventures/{adventureId}/parley", async (
+        // ---- POST /api/activities/adventures/{adventureId}/parley ----
+        app.MapPost("/api/activities/adventures/{adventureId}/parley", async (
             string adventureId,
             HttpContext httpContext,
             AgentHttpClient agentClient,
@@ -215,8 +215,8 @@ public static class Routes
             }
         });
 
-        // ---- GET /api/pirate/stats ----
-        app.MapGet("/api/pirate/stats", async (AgentHttpClient agentClient) =>
+        // ---- GET /api/activities/stats ----
+        app.MapGet("/api/activities/stats", async (AgentHttpClient agentClient) =>
         {
             var result = await agentClient.ListConversationsAsync(0, 100);
             if (!result.Ok || result.Data == null)
@@ -229,9 +229,9 @@ public static class Routes
 
             var counts = new Dictionary<string, int[]>
             {
-                ["shanty"] = [0, 0, 0],  // total, active, resolved
-                ["treasure"] = [0, 0, 0],
-                ["crew"] = [0, 0, 0],
+                ["discovery"] = [0, 0, 0],  // total, active, resolved
+                ["planning"] = [0, 0, 0],
+                ["staffing"] = [0, 0, 0],
             };
 
             var totalAdventures = 0;
@@ -335,9 +335,9 @@ public static class Routes
         if (metadata != null && metadata.TryGetValue("mode", out var modeObj))
         {
             var mode = modeObj?.ToString();
-            if (mode is "shanty" or "treasure" or "crew") return mode;
+            if (mode is "discovery" or "planning" or "staffing") return mode;
         }
-        return "shanty"; // fallback
+        return "discovery"; // fallback
     }
 
     /// <summary>

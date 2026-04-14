@@ -3,12 +3,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useAdventures } from '../../src/hooks/useAdventures.ts';
-import type { PirateClient } from '../../src/api/pirate-client.ts';
+import type { ActivityClient } from '../../src/api/activity-client.ts';
 import type { AdventureList, Adventure, AdventureStarted } from '../../src/types.ts';
 
 const ADVENTURE: Adventure = {
   id: 'adv-1',
-  mode: 'shanty',
+  mode: 'discovery',
   status: 'active',
   createdAt: '2026-01-01T00:00:00Z',
   lastParleyAt: '2026-01-02T00:00:00Z',
@@ -24,18 +24,18 @@ const ADVENTURE_LIST: AdventureList = {
 
 const ADVENTURE_STARTED: AdventureStarted = {
   id: 'adv-new',
-  mode: 'treasure',
+  mode: 'planning',
   status: 'active',
-  syntheticMessage: 'I seek buried treasure! Guide me on a treasure hunting adventure.',
+  syntheticMessage: 'I seek buried planning! Guide me on a planning hunting adventure.',
   createdAt: '2026-01-01T00:00:00Z'
 };
 
-function createMockClient(): PirateClient {
+function createMockClient(): ActivityClient {
   return {
     listAdventures: vi.fn().mockResolvedValue(ADVENTURE_LIST),
-    startShanty: vi.fn().mockResolvedValue(ADVENTURE_STARTED),
-    seekTreasure: vi.fn().mockResolvedValue(ADVENTURE_STARTED),
-    enlistInCrew: vi.fn().mockResolvedValue(ADVENTURE_STARTED),
+    startDiscovery: vi.fn().mockResolvedValue(ADVENTURE_STARTED),
+    startPlanning: vi.fn().mockResolvedValue(ADVENTURE_STARTED),
+    startStaffing: vi.fn().mockResolvedValue(ADVENTURE_STARTED),
     getAdventure: vi.fn(),
     parley: vi.fn(),
     parleyStream: vi.fn(),
@@ -45,7 +45,7 @@ function createMockClient(): PirateClient {
 }
 
 describe('useAdventures', () => {
-  let mockClient: PirateClient;
+  let mockClient: ActivityClient;
 
   beforeEach(() => {
     mockClient = createMockClient();
@@ -82,13 +82,13 @@ describe('useAdventures', () => {
     expect(result.current.adventures).toEqual([]);
   });
 
-  it('starts a shanty adventure and selects it', async () => {
-    const shantyStarted: AdventureStarted = {
+  it('starts a discovery adventure and selects it', async () => {
+    const discoveryStarted: AdventureStarted = {
       ...ADVENTURE_STARTED,
-      mode: 'shanty',
-      id: 'adv-shanty'
+      mode: 'discovery',
+      id: 'adv-discovery'
     };
-    (mockClient.startShanty as any).mockResolvedValue(shantyStarted);
+    (mockClient.startDiscovery as any).mockResolvedValue(discoveryStarted);
 
     const { result } = renderHook(() => useAdventures(mockClient));
 
@@ -97,16 +97,16 @@ describe('useAdventures', () => {
     });
 
     await act(async () => {
-      await result.current.startAdventure('shanty');
+      await result.current.startAdventure('discovery');
     });
 
-    expect(result.current.selectedId).toBe('adv-shanty');
-    expect(result.current.adventures[0]?.id).toBe('adv-shanty');
-    expect(result.current.adventures[0]?.mode).toBe('shanty');
-    expect(mockClient.startShanty).toHaveBeenCalled();
+    expect(result.current.selectedId).toBe('adv-discovery');
+    expect(result.current.adventures[0]?.id).toBe('adv-discovery');
+    expect(result.current.adventures[0]?.mode).toBe('discovery');
+    expect(mockClient.startDiscovery).toHaveBeenCalled();
   });
 
-  it('starts a treasure adventure via seekTreasure', async () => {
+  it('starts a planning adventure via startPlanning', async () => {
     const { result } = renderHook(() => useAdventures(mockClient));
 
     await waitFor(() => {
@@ -114,16 +114,16 @@ describe('useAdventures', () => {
     });
 
     await act(async () => {
-      await result.current.startAdventure('treasure');
+      await result.current.startAdventure('planning');
     });
 
-    expect(mockClient.seekTreasure).toHaveBeenCalled();
+    expect(mockClient.startPlanning).toHaveBeenCalled();
     expect(result.current.selectedId).toBe('adv-new');
   });
 
-  it('starts a crew adventure via enlistInCrew', async () => {
-    const crewStarted: AdventureStarted = { ...ADVENTURE_STARTED, mode: 'crew', id: 'adv-crew' };
-    (mockClient.enlistInCrew as any).mockResolvedValue(crewStarted);
+  it('starts a staffing adventure via startStaffing', async () => {
+    const staffingStarted: AdventureStarted = { ...ADVENTURE_STARTED, mode: 'staffing', id: 'adv-staffing' };
+    (mockClient.startStaffing as any).mockResolvedValue(staffingStarted);
 
     const { result } = renderHook(() => useAdventures(mockClient));
 
@@ -132,15 +132,15 @@ describe('useAdventures', () => {
     });
 
     await act(async () => {
-      await result.current.startAdventure('crew');
+      await result.current.startAdventure('staffing');
     });
 
-    expect(mockClient.enlistInCrew).toHaveBeenCalled();
-    expect(result.current.selectedId).toBe('adv-crew');
+    expect(mockClient.startStaffing).toHaveBeenCalled();
+    expect(result.current.selectedId).toBe('adv-staffing');
   });
 
   it('sets error on start failure', async () => {
-    (mockClient.startShanty as any).mockRejectedValue(new Error('Start failed'));
+    (mockClient.startDiscovery as any).mockRejectedValue(new Error('Start failed'));
 
     const { result } = renderHook(() => useAdventures(mockClient));
 
@@ -149,7 +149,7 @@ describe('useAdventures', () => {
     });
 
     await act(async () => {
-      await result.current.startAdventure('shanty');
+      await result.current.startAdventure('discovery');
     });
 
     expect(result.current.error).toBe('Start failed');
@@ -197,9 +197,9 @@ describe('useAdventures', () => {
   });
 
   it('sets loadingMode to the mode being started', async () => {
-    // Make startShanty hang so we can observe loadingMode mid-flight
+    // Make startDiscovery hang so we can observe loadingMode mid-flight
     let resolveStart!: (value: any) => void;
-    (mockClient.startShanty as any).mockReturnValue(
+    (mockClient.startDiscovery as any).mockReturnValue(
       new Promise((resolve) => {
         resolveStart = resolve;
       })
@@ -214,11 +214,11 @@ describe('useAdventures', () => {
     // Start the adventure (don't await)
     let startPromise: Promise<void>;
     act(() => {
-      startPromise = result.current.startAdventure('shanty');
+      startPromise = result.current.startAdventure('discovery');
     });
 
-    // loadingMode should be 'shanty' while in-flight
-    expect(result.current.loadingMode).toBe('shanty');
+    // loadingMode should be 'discovery' while in-flight
+    expect(result.current.loadingMode).toBe('discovery');
 
     // Resolve it
     await act(async () => {
@@ -231,7 +231,7 @@ describe('useAdventures', () => {
   });
 
   it('clears loadingMode on start failure', async () => {
-    (mockClient.startShanty as any).mockRejectedValue(new Error('Start failed'));
+    (mockClient.startDiscovery as any).mockRejectedValue(new Error('Start failed'));
 
     const { result } = renderHook(() => useAdventures(mockClient));
 
@@ -240,7 +240,7 @@ describe('useAdventures', () => {
     });
 
     await act(async () => {
-      await result.current.startAdventure('shanty');
+      await result.current.startAdventure('discovery');
     });
 
     expect(result.current.loadingMode).toBeNull();
@@ -260,7 +260,7 @@ describe('useAdventures', () => {
     expect(result.current.pendingFirstMessage).toBeNull();
 
     await act(async () => {
-      await result.current.startAdventure('treasure');
+      await result.current.startAdventure('planning');
     });
 
     expect(result.current.pendingFirstMessage).toBe(ADVENTURE_STARTED.syntheticMessage);
@@ -274,7 +274,7 @@ describe('useAdventures', () => {
     });
 
     await act(async () => {
-      await result.current.startAdventure('treasure');
+      await result.current.startAdventure('planning');
     });
 
     expect(result.current.pendingFirstMessage).not.toBeNull();
@@ -287,7 +287,7 @@ describe('useAdventures', () => {
   });
 
   it('does not set pendingFirstMessage on start failure', async () => {
-    (mockClient.startShanty as any).mockRejectedValue(new Error('Start failed'));
+    (mockClient.startDiscovery as any).mockRejectedValue(new Error('Start failed'));
 
     const { result } = renderHook(() => useAdventures(mockClient));
 
@@ -296,7 +296,7 @@ describe('useAdventures', () => {
     });
 
     await act(async () => {
-      await result.current.startAdventure('shanty');
+      await result.current.startAdventure('discovery');
     });
 
     expect(result.current.pendingFirstMessage).toBeNull();
@@ -310,7 +310,7 @@ describe('useAdventures', () => {
     });
 
     await act(async () => {
-      await result.current.startAdventure('treasure');
+      await result.current.startAdventure('planning');
     });
 
     const newAdventure = result.current.adventures.find((a) => a.id === 'adv-new');

@@ -65,11 +65,11 @@ describe('formatSSE', () => {
 
   it('handles complex objects', () => {
     const result = formatSSE('activity.resolved', {
-      tool: 'resolve_shanty',
+      tool: 'resolve_discovery',
       result: { winner: 'user', rounds: 3 }
     });
     expect(result).toContain('event: activity.resolved');
-    expect(result).toContain('"tool":"resolve_shanty"');
+    expect(result).toContain('"tool":"resolve_discovery"');
     expect(result).toContain('"winner":"user"');
   });
 });
@@ -143,16 +143,16 @@ describe('extractResolutionFromItems', () => {
         type: 'tool_call_item',
         rawItem: {
           type: 'function_call',
-          name: 'resolve_shanty',
-          arguments: JSON.stringify({ winner: 'user', rounds: 3, best_verse: 'A verse' }),
+          name: 'resolve_discovery',
+          arguments: JSON.stringify({ winner: 'user', rounds: 3, primary_need: 'A verse' }),
           callId: 'call_1'
         }
       }
     ]);
     const result = extractResolutionFromItems(items, noopLog);
     expect(result).toEqual({
-      tool: 'resolve_shanty',
-      result: { winner: 'user', rounds: 3, best_verse: 'A verse' }
+      tool: 'resolve_discovery',
+      result: { winner: 'user', rounds: 3, primary_need: 'A verse' }
     });
   });
 
@@ -183,7 +183,7 @@ describe('extractResolutionFromItems', () => {
         type: 'tool_call_item',
         rawItem: {
           type: 'function_call',
-          name: 'resolve_treasure',
+          name: 'resolve_planning',
           arguments: 'not valid json{{{',
           callId: 'call_1'
         }
@@ -199,8 +199,8 @@ describe('extractResolutionFromItems', () => {
         type: 'tool_call_item',
         rawItem: {
           type: 'function_call',
-          name: 'resolve_shanty',
-          arguments: JSON.stringify({ winner: 'user', rounds: 1, best_verse: 'v1' }),
+          name: 'resolve_discovery',
+          arguments: JSON.stringify({ winner: 'user', rounds: 1, primary_need: 'v1' }),
           callId: 'call_1'
         }
       },
@@ -208,14 +208,14 @@ describe('extractResolutionFromItems', () => {
         type: 'tool_call_item',
         rawItem: {
           type: 'function_call',
-          name: 'resolve_treasure',
-          arguments: JSON.stringify({ found: true, treasure_name: 'Gold', location: 'Cave' }),
+          name: 'resolve_planning',
+          arguments: JSON.stringify({ found: true, focus_area: 'Gold', location: 'Cave' }),
           callId: 'call_2'
         }
       }
     ]);
     const result = extractResolutionFromItems(items, noopLog);
-    expect(result!.tool).toBe('resolve_shanty');
+    expect(result!.tool).toBe('resolve_discovery');
   });
 
   it('skips non-tool_call_item types', () => {
@@ -225,16 +225,16 @@ describe('extractResolutionFromItems', () => {
         type: 'tool_call_item',
         rawItem: {
           type: 'function_call',
-          name: 'resolve_crew',
-          arguments: JSON.stringify({ rank: 'Captain', role: 'Navigator', ship_name: 'Dawn' }),
+          name: 'resolve_staffing',
+          arguments: JSON.stringify({ rank: 'Captain', role: 'Navigator', team_name: 'Dawn' }),
           callId: 'call_1'
         }
       }
     ]);
     const result = extractResolutionFromItems(items, noopLog);
     expect(result).toEqual({
-      tool: 'resolve_crew',
-      result: { rank: 'Captain', role: 'Navigator', ship_name: 'Dawn' }
+      tool: 'resolve_staffing',
+      result: { rank: 'Captain', role: 'Navigator', team_name: 'Dawn' }
     });
   });
 });

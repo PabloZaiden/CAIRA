@@ -10,7 +10,7 @@ const FIXED_NOW = new Date('2026-01-03T12:00:00Z').getTime();
 const ADVENTURES: Adventure[] = [
   {
     id: 'adv-001',
-    mode: 'shanty',
+    mode: 'discovery',
     status: 'active',
     createdAt: '2026-01-01T00:00:00Z',
     lastParleyAt: '2026-01-03T11:58:00Z', // 2 min ago
@@ -18,11 +18,11 @@ const ADVENTURES: Adventure[] = [
   },
   {
     id: 'adv-002',
-    mode: 'treasure',
+    mode: 'planning',
     status: 'resolved',
     outcome: {
-      tool: 'resolve_treasure',
-      result: { found: true, treasure_name: 'Golden Chalice', location: 'Skeleton Cove' }
+      tool: 'resolve_planning',
+      result: { found: true, focus_area: 'Golden Chalice', location: 'Skeleton Cove' }
     },
     createdAt: '2026-01-01T00:00:00Z',
     lastParleyAt: '2026-01-02T12:00:00Z', // 24h ago = 1d ago
@@ -30,7 +30,7 @@ const ADVENTURES: Adventure[] = [
   },
   {
     id: 'adv-003',
-    mode: 'crew',
+    mode: 'staffing',
     status: 'active',
     createdAt: '2026-01-02T00:00:00Z',
     lastParleyAt: '2026-01-03T09:00:00Z', // 3h ago
@@ -96,12 +96,12 @@ describe('ConversationList', () => {
 
   it('applies mode-specific color classes to badges', () => {
     render(<ConversationList conversations={ADVENTURES} selectedId={null} onSelect={vi.fn()} isLoading={false} />);
-    const shantyBadge = screen.getByTestId('mode-badge-adv-001');
-    const treasureBadge = screen.getByTestId('mode-badge-adv-002');
-    const crewBadge = screen.getByTestId('mode-badge-adv-003');
+    const discoveryBadge = screen.getByTestId('mode-badge-adv-001');
+    const planningBadge = screen.getByTestId('mode-badge-adv-002');
+    const staffingBadge = screen.getByTestId('mode-badge-adv-003');
 
-    expect(shantyBadge.className).toContain('text-amber-400');
-    expect(treasureBadge.className).toContain('text-emerald-400');
-    expect(crewBadge.className).toContain('text-sky-400');
+    expect(discoveryBadge.className).toContain('text-amber-400');
+    expect(planningBadge.className).toContain('text-emerald-400');
+    expect(staffingBadge.className).toContain('text-sky-400');
   });
 });

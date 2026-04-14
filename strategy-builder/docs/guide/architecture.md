@@ -38,24 +38,24 @@ Each CAIRA deployment strategy is a three-container application with Terraform-m
 
 The two agent variants use **different orchestration patterns** to coordinate three specialist agents:
 
-**OpenAI Agent SDK — Captain + Agent-as-Tool:**
+**OpenAI Agent SDK — Coordinator + Agent-as-Tool:**
 
 ```text
                     ┌─────────────────────────────────┐
                     │         Agent Container          │
                     │                                   │
-User message ──────▶  Captain Agent (sole talker)      │
+User message ──────▶  Coordinator Agent (sole talker)      │
                     │    │                              │
-                    │    ├── tool ──▶ shanty_specialist │──▶ LLM ──▶ resolve_shanty()
-                    │    ├── tool ──▶ treasure_specialist│──▶ LLM ──▶ resolve_treasure()
-                    │    ├── tool ──▶ crew_specialist   │──▶ LLM ──▶ resolve_crew()
+                    │    ├── tool ──▶ discovery_specialist │──▶ LLM ──▶ resolve_discovery()
+                    │    ├── tool ──▶ planning_specialist│──▶ LLM ──▶ resolve_planning()
+                    │    ├── tool ──▶ staffing_specialist   │──▶ LLM ──▶ resolve_staffing()
                     │    └── (can also respond directly when no specialist call is needed)
                     └─────────────────────────────────┘
 ```
 
-- **Captain agent** — the sole conversational agent. Talks to the user directly, invokes specialist tools when an activity is active, and calls resolution tools when the activity concludes.
-- Specialists are wrapped with `.asTool()` — they are tools, not agents the user talks to. They receive input from the captain, call the LLM, and return content to the captain.
-- The captain has **6 tools**: 3 specialist agent-tools (`shanty_specialist`, `treasure_specialist`, `crew_specialist`) + 3 resolution FunctionTools (`resolve_shanty`, `resolve_treasure`, `resolve_crew`).
+- **Coordinator agent** — the sole conversational agent. Talks to the user directly, invokes specialist tools when an activity is active, and calls resolution tools when the activity concludes.
+- Specialists are wrapped with `.asTool()` — they are tools, not agents the user talks to. They receive input from the coordinator, call the LLM, and return content to the coordinator.
+- The coordinator has **6 tools**: 3 specialist agent-tools (`discovery_specialist`, `planning_specialist`, `staffing_specialist`) + 3 resolution FunctionTools (`resolve_discovery`, `resolve_planning`, `resolve_staffing`).
 - No triage agent, no handoffs, no re-triage.
 
 **Foundry Agent Service — Triage + Connected Agents:**
@@ -66,9 +66,9 @@ User message ──────▶  Captain Agent (sole talker)      │
                     │                                   │
 User message ──────▶  Triage Agent                     │
                     │    │                              │
-                    │    ├── handoff ──▶ Shanty         │──▶ LLM ──▶ resolve_shanty()
-                    │    ├── handoff ──▶ Treasure       │──▶ LLM ──▶ resolve_treasure()
-                    │    ├── handoff ──▶ Crew           │──▶ LLM ──▶ resolve_crew()
+                    │    ├── handoff ──▶ Discovery         │──▶ LLM ──▶ resolve_discovery()
+                    │    ├── handoff ──▶ Planning       │──▶ LLM ──▶ resolve_planning()
+                    │    ├── handoff ──▶ Staffing           │──▶ LLM ──▶ resolve_staffing()
                     │    └── (fallback: general assistant) │
                     └─────────────────────────────────┘
 ```
@@ -78,26 +78,26 @@ User message ──────▶  Triage Agent                     │
 
 **Common to both variants:**
 
-- **Shanty agent** — opportunity discovery specialist in the fictional sales/account-team sample
-- **Treasure agent** — account planning specialist in the fictional sales/account-team sample
-- **Crew agent** — account-team staffing specialist in the fictional sales/account-team sample
+- **Discovery agent** — opportunity discovery specialist in the fictional sales/account-team sample
+- **Planning agent** — account planning specialist in the fictional sales/account-team sample
+- **Staffing agent** — account-team staffing specialist in the fictional sales/account-team sample
 
-Each specialist agent has an **activity-specific resolution tool** (`resolve_shanty`, `resolve_treasure`, `resolve_crew`) with domain-specific parameters. When the activity reaches its natural conclusion, the agent calls its resolution tool, which emits an `activity.resolved` SSE event with structured outcome data.
+Each specialist agent has an **activity-specific resolution tool** (`resolve_discovery`, `resolve_planning`, `resolve_staffing`) with domain-specific parameters. When the activity reaches its natural conclusion, the agent calls its resolution tool, which emits an `activity.resolved` SSE event with structured outcome data.
 
 ### Request flow
 
 **Starting a new activity (business operation):**
 
 1. User picks an activity (Opportunity Discovery / Account Planning / Team Staffing) in the **frontend** activity picker
-1. Frontend calls the corresponding API business operation (e.g., `POST /api/pirate/shanty`)
+1. Frontend calls the corresponding API business operation (e.g., `POST /api/activities/discovery`)
 1. API container creates a conversation on the **agent container** (`POST /conversations`) and sends a synthetic first user message aligned to the fictional sales/account-team scenario
-1. Agent container routes via its orchestration pattern (captain agent-tools for OpenAI, triage handoff for Foundry) to the specialist, generates an opening response
+1. Agent container routes via its orchestration pattern (coordinator agent-tools for OpenAI, triage handoff for Foundry) to the specialist, generates an opening response
 1. API returns the conversation ID + opening response to the frontend
 
 **Continuing a conversation:**
 
 1. User types a message in the **frontend** chat UI
-1. Frontend BFF proxies `POST /api/pirate/adventures/{id}/parley` to the **API container**
+1. Frontend BFF proxies `POST /api/activities/adventures/{id}/parley` to the **API container**
 1. API container translates to `POST /conversations/{id}/messages` to the **agent container**
 1. Agent container uses its framework SDK (Foundry Agent Service or OpenAI Agent SDK) to call **Azure AI Foundry**, routing to the appropriate specialist via the variant's orchestration pattern
 1. Response streams back as **Server-Sent Events (SSE)** through all layers: Agent -> API -> Frontend BFF -> Browser
@@ -105,7 +105,7 @@ Each specialist agent has an **activity-specific resolution tool** (`resolve_sha
 
 ### Activity resolution
 
-Activities have **definitive conclusions** captured via agent-driven tool calls. When a specialist agent determines an activity is complete, it calls its resolution tool (`resolve_shanty`, `resolve_treasure`, or `resolve_crew`). This emits an `activity.resolved` SSE event with structured outcome data. The API layer **parses** the SSE stream (not raw passthrough) to detect these events, stores the outcome, and passes the event through to the frontend. Adventures gain `status` (`active`/`resolved`) and `outcome` fields. Conversations remain open after resolution.
+Activities have **definitive conclusions** captured via agent-driven tool calls. When a specialist agent determines an activity is complete, it calls its resolution tool (`resolve_discovery`, `resolve_planning`, or `resolve_staffing`). This emits an `activity.resolved` SSE event with structured outcome data. The API layer **parses** the SSE stream (not raw passthrough) to detect these events, stores the outcome, and passes the event through to the frontend. Adventures gain `status` (`active`/`resolved`) and `outcome` fields. Conversations remain open after resolution.
 
 ### Streaming architecture
 
@@ -118,16 +118,16 @@ event: message.delta
 data: {"content": "Arr, "}
 
 event: tool.called
-data: {"toolName": "shanty_specialist"}
+data: {"toolName": "discovery_specialist"}
 
 event: tool.done
-data: {"toolName": "shanty_specialist"}
+data: {"toolName": "discovery_specialist"}
 
 event: message.complete
 data: {"messageId": "...", "content": "full response", "usage": {"promptTokens": 10, "completionTokens": 42}}
 
 event: activity.resolved
-data: {"tool": "resolve_shanty", "result": {"winner": "user", "rounds": 4, "best_verse": "..."}}
+data: {"tool": "resolve_discovery", "result": {"fit": "qualified", "signals_reviewed": 4, "primary_need": "..."}}
 
 event: error
 data: {"code": "agent_error", "message": "Something went wrong"}
@@ -139,7 +139,7 @@ The API container **parses** SSE events from the agent container to detect `acti
 
 | Component           | Responsibility                                                                                                                                                                                                                                                        | Framework-aware?                           |
 |---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------|
-| **Agent container** | Multi-agent orchestration (captain + agent-tools for OpenAI, triage + connected agents for Foundry; 3 specialists with resolution tools), manages conversations, calls Azure AI Foundry, streams responses + `activity.resolved` / `tool.called` / `tool.done` events | Yes -- each variant uses a different SDK   |
+| **Agent container** | Multi-agent orchestration (coordinator + agent-tools for OpenAI, triage + connected agents for Foundry; 3 specialists with resolution tools), manages conversations, calls Azure AI Foundry, streams responses + `activity.resolved` / `tool.called` / `tool.done` events | Yes -- each variant uses a different SDK   |
 | **API container**   | Business operations layer: creates conversations, sends synthetic first messages, **parses SSE stream** to capture resolution outcomes, proxies chat, retry                                                                                                           | No -- only knows the agent API contract    |
 | **Frontend**        | Fastify BFF: serves React SPA with activity picker + chat UI + outcome display, proxies `/api/*` to API, handles `activity.resolved` events                                                                                                                           | No -- only knows the business API contract |
 | **IaC**             | Terraform composition of the Foundry foundation plus composable Container Apps app-infra layers, backed by reusable infrastructure modules                                                                                                                            | No -- deploys any combination              |
@@ -295,7 +295,7 @@ The agent variants implement the same API contract but use different Azure AI Fo
 | **API style**        | Agent CRUD + Responses API (stateless `POST /responses`)                                                           | Responses API (stateless `POST /responses`)                                                        | Responses API (stateless `POST /responses`)                        |
 | **State model**      | Client-side (conversation map in memory, chained via `previousResponseId`)                                         | Client-side (conversation map in memory, chained via `previousResponseId`)                         | Client-side (conversation map, `previousResponseId`)               |
 | **Conversation =**   | Map entry (client-managed)                                                                                         | Map entry (client-managed)                                                                         | Map entry (client-managed)                                         |
-| **Multi-agent**      | Triage agent + connected agents (`ToolUtility.createConnectedAgentTool`) + resolution FunctionTools -- server-side | Captain agent + agent-as-tool (`.asTool()`) + resolution FunctionTools -- client-side SDK run loop | Mode-selected workflows with one specialist executor per mode      |
+| **Multi-agent**      | Triage agent + connected agents (`ToolUtility.createConnectedAgentTool`) + resolution FunctionTools -- server-side | Coordinator agent + agent-as-tool (`.asTool()`) + resolution FunctionTools -- client-side SDK run loop | Mode-selected workflows with one specialist executor per mode      |
 | **Streaming events** | `response.output_text.delta`, `response.completed`                                                                 | `response.output_text.delta`, `response.completed`                                                 | `response.output_text.delta`, `response.completed`                 |
 | **Auth env var**     | `AZURE_AI_PROJECT_ENDPOINT`                                                                                        | `AZURE_OPENAI_ENDPOINT` (direct resource or APIM gateway root URL)                                 | `AZURE_OPENAI_ENDPOINT` (direct resource or APIM gateway root URL) |
 | **Token scope**      | Implicit via `AIProjectClient` + `getOpenAIClient()`                                                               | `https://cognitiveservices.azure.com/.default`                                                     | `https://cognitiveservices.azure.com/.default`                     |

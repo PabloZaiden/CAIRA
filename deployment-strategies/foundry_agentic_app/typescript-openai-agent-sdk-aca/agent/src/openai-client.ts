@@ -6,7 +6,7 @@
  *
  *   Conversation = client-side Map entry (id + lastResponseId + messages)
  *   Message      = accumulated from RunResult / StreamedRunResult
- *   sendMessage  = run(captainAgent, input, { previousResponseId })
+ *   sendMessage  = run(coordinatorAgent, input, { previousResponseId })
  *
  * This file is the orchestration glue between:
  *   - agent-setup.ts      — SDK client config + agent hierarchy creation
@@ -131,19 +131,19 @@ interface StreamState {
 
 function specialistToolName(mode: SpecialistMode | undefined): string {
   switch (mode) {
-    case 'treasure':
-      return 'treasure_specialist';
-    case 'crew':
-      return 'crew_specialist';
-    case 'shanty':
+    case 'planning':
+      return 'planning_specialist';
+    case 'staffing':
+      return 'staffing_specialist';
+    case 'discovery':
     default:
-      return 'shanty_specialist';
+      return 'discovery_specialist';
   }
 }
 
 function shouldEmitLifecycleEvents(record: ConversationRecord): boolean {
   const mode = record.metadata?.['mode'];
-  return mode === 'shanty' || mode === 'treasure' || mode === 'crew';
+  return mode === 'discovery' || mode === 'planning' || mode === 'staffing';
 }
 
 // ---------------------------------------------------------------------------
@@ -208,16 +208,16 @@ export class OpenAIClient {
   private selectSpecialist(record: ConversationRecord): { agent: Agent; mode?: SpecialistMode } {
     const specialists = this.ensureReady();
     const mode = record.metadata?.['mode'];
-    if (mode === 'treasure') {
-      return { agent: specialists.treasure, mode };
+    if (mode === 'planning') {
+      return { agent: specialists.planning, mode };
     }
-    if (mode === 'crew') {
-      return { agent: specialists.crew, mode };
+    if (mode === 'staffing') {
+      return { agent: specialists.staffing, mode };
     }
-    if (mode === 'shanty') {
-      return { agent: specialists.shanty, mode };
+    if (mode === 'discovery') {
+      return { agent: specialists.discovery, mode };
     }
-    return { agent: specialists.shanty };
+    return { agent: specialists.discovery };
   }
 
   // ---- Conversations (delegated to ConversationStore) ----
@@ -246,7 +246,7 @@ export class OpenAIClient {
    *
    * Flow:
    *   1. Record the user message in the conversation
-   *   2. Call the SDK's `run()` with the captain agent
+   *   2. Call the SDK's `run()` with the coordinator agent
    *   3. Extract the response text, token usage, and any resolution
    *   4. Record the assistant message and return it
    *
@@ -278,10 +278,10 @@ export class OpenAIClient {
     };
     record.messages.push(userMsg);
 
-    // Run captain agent — always the same agent for every message.
-    // The captain may internally call specialist tools (shanty_specialist,
-    // treasure_specialist, crew_specialist) to generate content, and/or
-    // resolution tools (resolve_shanty, etc.) to end an activity with a
+    // Run coordinator agent — always the same agent for every message.
+    // The coordinator may internally call specialist tools (discovery_specialist,
+    // planning_specialist, staffing_specialist) to generate content, and/or
+    // resolution tools (resolve_discovery, etc.) to end an activity with a
     // structured outcome.  The SDK handles the tool-call loop automatically.
     //
     // `previousResponseId` chains this run to the prior one so the model
@@ -319,9 +319,9 @@ export class OpenAIClient {
     // Extract usage
     const usage = extractUsage(result);
 
-    // Check if the captain called a resolution tool (e.g. resolve_shanty).
+    // Check if the coordinator called a resolution tool (e.g. resolve_discovery).
     // Resolution tools signal that an activity is complete — the frontend
-    // uses this to show outcomes like "You won the shanty battle!" with
+    // uses this to show outcomes like "You won the discovery battle!" with
     // structured data (winner, rounds, etc.) rather than just free text.
     const cap = extractResolutionFromItems(result.newItems, this.log);
     const resolution: ActivityResolution | undefined = cap ? { tool: cap.tool, result: cap.result } : undefined;
@@ -391,7 +391,7 @@ export class OpenAIClient {
    * ## SSE events emitted to the client
    *
    *   `message.delta`      — A text fragment (real-time streaming)
-   *   `tool.called`        — A specialist tool started (e.g. shanty_specialist)
+   *   `tool.called`        — A specialist tool started (e.g. discovery_specialist)
    *   `tool.done`          — A specialist tool finished
    *   `activity.resolved`  — A resolution tool fired (activity complete with structured result)
    *   `message.complete`   — Final assembled message with full text and token usage
@@ -399,7 +399,7 @@ export class OpenAIClient {
    *
    * ## Resolution detection
    *
-   * Resolution tools (resolve_shanty, resolve_treasure, resolve_crew) signal
+   * Resolution tools (resolve_discovery, resolve_planning, resolve_staffing) signal
    * that an interactive activity has concluded.  We detect them from the
    * `tool_called` event (which carries the tool name and JSON arguments),
    * then emit `activity.resolved` when the corresponding `tool_output`
@@ -612,9 +612,9 @@ export class OpenAIClient {
    * While raw model events give us individual tokens, item events tell
    * us about complete semantic units in the run:
    *
-   *   tool_called  — The captain invoked a tool (specialist or resolution).
+   *   tool_called  — The coordinator invoked a tool (specialist or resolution).
    *                  We emit `tool.called` SSE for specialist tools so the
-   *                  frontend can show "Consulting shanty expert...".
+   *                  frontend can show "Consulting discovery expert...".
    *                  For resolution tools, we capture the structured args
    *                  so we can emit `activity.resolved` later.
    *
@@ -690,14 +690,14 @@ export class OpenAIClient {
   /**
    * Handle a `tool_called` item event.
    *
-   * The captain agent has two kinds of tools:
+   * The coordinator agent has two kinds of tools:
    *
-   *   **Specialist tools** (shanty_specialist, treasure_specialist, crew_specialist)
-   *   are sub-agents wrapped as tools via `.asTool()`.  When the captain calls
+   *   **Specialist tools** (discovery_specialist, planning_specialist, staffing_specialist)
+   *   are sub-agents wrapped as tools via `.asTool()`.  When the coordinator calls
    *   one, the SDK runs that agent internally.  We emit `tool.called` SSE so
-   *   the frontend can show a progress indicator ("Consulting shanty expert...").
+   *   the frontend can show a progress indicator ("Consulting discovery expert...").
    *
-   *   **Resolution tools** (resolve_shanty, resolve_treasure, resolve_crew)
+   *   **Resolution tools** (resolve_discovery, resolve_planning, resolve_staffing)
    *   are FunctionTools that signal an activity is complete.  Their arguments
    *   contain the structured outcome (e.g. { winner: "user", rounds: 4 }).
    *   We capture those args here and emit `activity.resolved` later when the
@@ -713,7 +713,7 @@ export class OpenAIClient {
     const name = toolName?.['name'] as string | undefined;
 
     // Specialist tool → emit `tool.called` SSE so the frontend can show
-    // a progress indicator (e.g. "Consulting shanty expert...").
+    // a progress indicator (e.g. "Consulting discovery expert...").
     if (name && SPECIALIST_TOOLS.has(name) && !state.activeSpecialistTool && state.emitLifecycleEvents) {
       const toolCalledEvent: SSEToolCalledEvent = { toolName: name };
       onChunk(formatSSE('tool.called', toolCalledEvent));
@@ -750,7 +750,7 @@ export class OpenAIClient {
    *
    * This is the counterpart to `handleToolCalled`.  When a specialist sub-agent
    * finishes, the SDK emits a `tool_output` event.  We send `tool.done` SSE so
-   * the frontend can dismiss the "Consulting shanty expert..." indicator.
+   * the frontend can dismiss the "Consulting discovery expert..." indicator.
    *
    * Note: resolution tool outputs are handled separately — the `activity.resolved`
    * emission is triggered in `handleRunItemEvent` after this method returns.
@@ -939,7 +939,7 @@ export class OpenAIClient {
       // and the agent is created. A lightweight run isn't practical
       // without incurring token costs, so we just verify setup.
       const start = Date.now();
-      // Verify captain agent exists and is configured
+      // Verify coordinator agent exists and is configured
       const specialists = this.specialistAgents;
       if (!specialists) throw new Error('Agent not configured');
       const latencyMs = Date.now() - start;

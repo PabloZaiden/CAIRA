@@ -133,16 +133,16 @@ describe('Authentication', () => {
 describe('Agent CRUD', () => {
   describe('POST /agents/:name — create', () => {
     it('creates an agent with model and instructions', async () => {
-      const { status, body } = await post<Agent>('/agents/captain', {
+      const { status, body } = await post<Agent>('/agents/coordinator', {
         model: 'gpt-5.2-chat',
-        instructions: 'You are a pirate captain'
+        instructions: 'You are a sales coordinator'
       });
       expect(status).toBe(200);
       expect(body.object).toBe('agent');
       expect(body.id).toMatch(/^agent_/);
-      expect(body.name).toBe('captain');
+      expect(body.name).toBe('coordinator');
       expect(body.versions.latest.model).toBe('gpt-5.2-chat');
-      expect(body.versions.latest.instructions).toBe('You are a pirate captain');
+      expect(body.versions.latest.instructions).toBe('You are a sales coordinator');
       expect(body.versions.latest.tools).toEqual([]);
       expect(body.created_at).toBeGreaterThan(0);
     });
@@ -703,11 +703,11 @@ describe('Mock Controls', () => {
 
 describe('Determinism', () => {
   it('produces same agent IDs after reset', async () => {
-    const { body: a1 } = await post<Agent>('/agents/captain', { model: 'gpt-5.2-chat' });
+    const { body: a1 } = await post<Agent>('/agents/coordinator', { model: 'gpt-5.2-chat' });
 
     resetStore();
 
-    const { body: a2 } = await post<Agent>('/agents/captain', { model: 'gpt-5.2-chat' });
+    const { body: a2 } = await post<Agent>('/agents/coordinator', { model: 'gpt-5.2-chat' });
     expect(a2.id).toBe(a1.id);
   });
 
@@ -827,105 +827,105 @@ describe('Multi-agent handoff flow', () => {
   const transferTools = [
     {
       type: 'function' as const,
-      name: 'transfer_to_Shanty',
-      description: 'Transfer to Shanty agent',
+      name: 'transfer_to_Discovery',
+      description: 'Transfer to Discovery agent',
       parameters: { type: 'object', properties: {} }
     },
     {
       type: 'function' as const,
-      name: 'transfer_to_Treasure',
-      description: 'Transfer to Treasure agent',
+      name: 'transfer_to_Planning',
+      description: 'Transfer to Planning agent',
       parameters: { type: 'object', properties: {} }
     },
     {
       type: 'function' as const,
-      name: 'transfer_to_Crew',
-      description: 'Transfer to Crew agent',
+      name: 'transfer_to_Staffing',
+      description: 'Transfer to Staffing agent',
       parameters: { type: 'object', properties: {} }
     }
   ];
 
-  it('routes to Shanty agent when user text contains "shanty"', async () => {
+  it('routes to Discovery agent when user text contains "discovery"', async () => {
     const { body } = await post<Response>('/responses', {
-      input: 'Sing me a shanty!',
+      input: 'Sing me a discovery!',
       tools: transferTools
     });
     expect(body.output.length).toBe(1);
     expect(body.output[0]?.type).toBe('function_call');
     const fnCall = body.output[0] as { name: string };
-    expect(fnCall.name).toBe('transfer_to_Shanty');
+    expect(fnCall.name).toBe('transfer_to_Discovery');
   });
 
-  it('routes to Treasure agent when user text contains "treasure"', async () => {
+  it('routes to Planning agent when user text contains "planning"', async () => {
     const { body } = await post<Response>('/responses', {
-      input: "Let's go on a treasure hunt!",
+      input: "Let's go on a planning hunt!",
       tools: transferTools
     });
     const fnCall = body.output[0] as { name: string };
-    expect(fnCall.name).toBe('transfer_to_Treasure');
+    expect(fnCall.name).toBe('transfer_to_Planning');
   });
 
-  it('routes to Crew agent when user text contains "crew"', async () => {
+  it('routes to Staffing agent when user text contains "staffing"', async () => {
     const { body } = await post<Response>('/responses', {
-      input: 'I want to join the crew',
+      input: 'I want to join the staffing',
       tools: transferTools
     });
     const fnCall = body.output[0] as { name: string };
-    expect(fnCall.name).toBe('transfer_to_Crew');
+    expect(fnCall.name).toBe('transfer_to_Staffing');
   });
 
   it('falls back to first transfer tool when no keyword match', async () => {
     const { body } = await post<Response>('/responses', {
-      input: 'Hello there pirate!',
+      input: 'Hello there team!',
       tools: transferTools
     });
     const fnCall = body.output[0] as { name: string };
-    expect(fnCall.name).toBe('transfer_to_Shanty');
+    expect(fnCall.name).toBe('transfer_to_Discovery');
   });
 
-  it('routes based on keyword "sing" to Shanty', async () => {
+  it('routes based on keyword "sing" to Discovery', async () => {
     const { body } = await post<Response>('/responses', {
       input: 'Can you sing for me?',
       tools: transferTools
     });
     const fnCall = body.output[0] as { name: string };
-    expect(fnCall.name).toBe('transfer_to_Shanty');
+    expect(fnCall.name).toBe('transfer_to_Discovery');
   });
 
-  it('routes based on keyword "enlist" to Crew', async () => {
+  it('routes based on keyword "enlist" to Staffing', async () => {
     const { body } = await post<Response>('/responses', {
-      input: 'I want to enlist as a pirate',
+      input: 'I want to join the account team',
       tools: transferTools
     });
     const fnCall = body.output[0] as { name: string };
-    expect(fnCall.name).toBe('transfer_to_Crew');
+    expect(fnCall.name).toBe('transfer_to_Staffing');
   });
 });
 
 describe('Multi-agent resolution tool flow', () => {
-  const resolveShantyTools = [
+  const resolveDiscoveryTools = [
     {
       type: 'function' as const,
-      name: 'resolve_shanty',
-      description: 'Resolve shanty battle',
+      name: 'resolve_discovery',
+      description: 'Resolve discovery battle',
       parameters: { type: 'object', properties: {} }
     }
   ];
 
-  const resolveTreasureTools = [
+  const resolvePlanningTools = [
     {
       type: 'function' as const,
-      name: 'resolve_treasure',
-      description: 'Resolve treasure hunt',
+      name: 'resolve_planning',
+      description: 'Resolve planning hunt',
       parameters: { type: 'object', properties: {} }
     }
   ];
 
-  const resolveCrewTools = [
+  const resolveStaffingTools = [
     {
       type: 'function' as const,
-      name: 'resolve_crew',
-      description: 'Resolve crew interview',
+      name: 'resolve_staffing',
+      description: 'Resolve staffing interview',
       parameters: { type: 'object', properties: {} }
     }
   ];
@@ -933,11 +933,11 @@ describe('Multi-agent resolution tool flow', () => {
   it('returns text on FIRST specialist turn (post-handoff), not resolution tool', async () => {
     const { body } = await post<Response>('/responses', {
       input: [
-        { type: 'message', role: 'user', content: 'Sing me a shanty!' },
+        { type: 'message', role: 'user', content: 'Sing me a discovery!' },
         { type: 'function_call_output', call_id: 'call_handoff', output: '' }
       ],
-      tools: resolveShantyTools,
-      instructions: 'You are the Shanty agent'
+      tools: resolveDiscoveryTools,
+      instructions: 'You are the Discovery agent'
     });
 
     expect(body.output.length).toBe(1);
@@ -945,14 +945,14 @@ describe('Multi-agent resolution tool flow', () => {
     expect(body.output_text).toContain('verse');
   });
 
-  it('calls resolve_shanty on SECOND specialist turn', async () => {
+  it('calls resolve_discovery on SECOND specialist turn', async () => {
     // First specialist turn: returns text
     const { body: firstResp } = await post<Response>('/responses', {
       input: [
-        { type: 'message', role: 'user', content: 'Sing me a shanty!' },
+        { type: 'message', role: 'user', content: 'Sing me a discovery!' },
         { type: 'function_call_output', call_id: 'call_handoff', output: '' }
       ],
-      tools: resolveShantyTools
+      tools: resolveDiscoveryTools
     });
     expect(firstResp.output[0]?.type).toBe('message');
 
@@ -962,28 +962,28 @@ describe('Multi-agent resolution tool flow', () => {
         { type: 'message', role: 'user', content: 'Great verse!' },
         { type: 'function_call_output', call_id: 'call_handoff2', output: '' }
       ],
-      tools: resolveShantyTools,
+      tools: resolveDiscoveryTools,
       previous_response_id: firstResp.id
     });
 
     expect(body.output.length).toBe(1);
     expect(body.output[0]?.type).toBe('function_call');
     const fnCall = body.output[0] as { name: string; arguments: string };
-    expect(fnCall.name).toBe('resolve_shanty');
+    expect(fnCall.name).toBe('resolve_discovery');
 
     const args = JSON.parse(fnCall.arguments) as Record<string, unknown>;
-    expect(args).toHaveProperty('winner', 'user');
-    expect(args).toHaveProperty('rounds', 4);
-    expect(args).toHaveProperty('best_verse');
+    expect(args).toHaveProperty('fit', 'qualified');
+    expect(args).toHaveProperty('signals_reviewed', 4);
+    expect(args).toHaveProperty('primary_need');
   });
 
-  it('calls resolve_treasure with mock args on second turn', async () => {
+  it('calls resolve_planning with mock args on second turn', async () => {
     const { body: firstResp } = await post<Response>('/responses', {
       input: [
         { type: 'message', role: 'user', content: 'Explore the cave' },
         { type: 'function_call_output', call_id: 'call_handoff', output: '' }
       ],
-      tools: resolveTreasureTools
+      tools: resolvePlanningTools
     });
     expect(firstResp.output[0]?.type).toBe('message');
 
@@ -992,26 +992,26 @@ describe('Multi-agent resolution tool flow', () => {
         { type: 'message', role: 'user', content: 'Head east!' },
         { type: 'function_call_output', call_id: 'call_handoff2', output: '' }
       ],
-      tools: resolveTreasureTools,
+      tools: resolvePlanningTools,
       previous_response_id: firstResp.id
     });
 
     const fnCall = body.output[0] as { name: string; arguments: string };
-    expect(fnCall.name).toBe('resolve_treasure');
+    expect(fnCall.name).toBe('resolve_planning');
 
     const args = JSON.parse(fnCall.arguments) as Record<string, unknown>;
-    expect(args).toHaveProperty('found', true);
-    expect(args).toHaveProperty('treasure_name');
-    expect(args).toHaveProperty('location');
+    expect(args).toHaveProperty('approved', true);
+    expect(args).toHaveProperty('focus_area');
+    expect(args).toHaveProperty('next_step');
   });
 
-  it('calls resolve_crew with mock args on second turn', async () => {
+  it('calls resolve_staffing with mock args on second turn', async () => {
     const { body: firstResp } = await post<Response>('/responses', {
       input: [
         { type: 'message', role: 'user', content: 'I can tie a bowline!' },
         { type: 'function_call_output', call_id: 'call_handoff', output: '' }
       ],
-      tools: resolveCrewTools
+      tools: resolveStaffingTools
     });
     expect(firstResp.output[0]?.type).toBe('message');
 
@@ -1020,17 +1020,17 @@ describe('Multi-agent resolution tool flow', () => {
         { type: 'message', role: 'user', content: 'I know the stars!' },
         { type: 'function_call_output', call_id: 'call_handoff2', output: '' }
       ],
-      tools: resolveCrewTools,
+      tools: resolveStaffingTools,
       previous_response_id: firstResp.id
     });
 
     const fnCall = body.output[0] as { name: string; arguments: string };
-    expect(fnCall.name).toBe('resolve_crew');
+    expect(fnCall.name).toBe('resolve_staffing');
 
     const args = JSON.parse(fnCall.arguments) as Record<string, unknown>;
-    expect(args).toHaveProperty('rank', 'Able Seaman');
+    expect(args).toHaveProperty('coverage_level', 'core');
     expect(args).toHaveProperty('role', 'lookout');
-    expect(args).toHaveProperty('ship_name', 'The Salty Serpent');
+    expect(args).toHaveProperty('team_name', 'Northwind Account Team');
   });
 
   it('returns text response after resolution tool output is submitted (final turn)', async () => {
@@ -1040,13 +1040,13 @@ describe('Multi-agent resolution tool flow', () => {
         {
           type: 'function_call_output',
           call_id: 'call_resolve',
-          output: 'Shanty battle resolved: user wins after 4 rounds.'
+          output: 'Discovery flow resolved: qualified after 4 signals.'
         }
       ]
     });
 
     expect(body.output[0]?.type).toBe('message');
-    expect(body.output_text).toContain('Shanty battle resolved');
+    expect(body.output_text).toContain('Discovery flow resolved');
   });
 });
 
@@ -1055,37 +1055,37 @@ describe('Multi-agent full 4-turn flow', () => {
     const transferTools = [
       {
         type: 'function' as const,
-        name: 'transfer_to_Shanty',
-        description: 'Transfer to Shanty',
+        name: 'transfer_to_Discovery',
+        description: 'Transfer to Discovery',
         parameters: { type: 'object', properties: {} }
       }
     ];
     const resolutionTools = [
       {
         type: 'function' as const,
-        name: 'resolve_shanty',
-        description: 'Resolve shanty',
+        name: 'resolve_discovery',
+        description: 'Resolve discovery',
         parameters: { type: 'object', properties: {} }
       }
     ];
 
     // Turn 1: triage → handoff
     const { body: turn1 } = await post<Response>('/responses', {
-      input: 'Sing me a shanty!',
+      input: 'Sing me a discovery!',
       tools: transferTools
     });
     expect(turn1.output[0]?.type).toBe('function_call');
     const handoffCall = turn1.output[0] as { name: string; call_id: string };
-    expect(handoffCall.name).toBe('transfer_to_Shanty');
+    expect(handoffCall.name).toBe('transfer_to_Discovery');
 
     // Turn 2: specialist → conversational text (NOT resolution)
     const { body: turn2 } = await post<Response>('/responses', {
       input: [
-        { type: 'message', role: 'user', content: 'Sing me a shanty!' },
+        { type: 'message', role: 'user', content: 'Sing me a discovery!' },
         { type: 'function_call_output', call_id: handoffCall.call_id, output: '' }
       ],
       tools: resolutionTools,
-      instructions: 'You are the Shanty agent',
+      instructions: 'You are the Discovery agent',
       previous_response_id: turn1.id
     });
     expect(turn2.output[0]?.type).toBe('message');
@@ -1098,21 +1098,21 @@ describe('Multi-agent full 4-turn flow', () => {
         { type: 'function_call_output', call_id: 'call_retriage', output: '' }
       ],
       tools: resolutionTools,
-      instructions: 'You are the Shanty agent',
+      instructions: 'You are the Discovery agent',
       previous_response_id: turn2.id
     });
     expect(turn3.output[0]?.type).toBe('function_call');
     const resolveCall = turn3.output[0] as { name: string; call_id: string; arguments: string };
-    expect(resolveCall.name).toBe('resolve_shanty');
+    expect(resolveCall.name).toBe('resolve_discovery');
 
     // Turn 4: resolution result → text response
-    const resolveOutput = 'Shanty battle resolved: user wins after 4 rounds.';
+    const resolveOutput = 'Discovery flow resolved: qualified after 4 signals.';
     const { body: turn4 } = await post<Response>('/responses', {
       input: [{ type: 'function_call_output', call_id: resolveCall.call_id, output: resolveOutput }],
       previous_response_id: turn3.id
     });
     expect(turn4.output[0]?.type).toBe('message');
-    expect(turn4.output_text).toContain('Shanty battle resolved');
+    expect(turn4.output_text).toContain('Discovery flow resolved');
   });
 });
 
@@ -1121,8 +1121,8 @@ describe('Multi-agent SSE streaming with handoff', () => {
     const transferTools = [
       {
         type: 'function' as const,
-        name: 'transfer_to_Treasure',
-        description: 'Transfer to Treasure',
+        name: 'transfer_to_Planning',
+        description: 'Transfer to Planning',
         parameters: { type: 'object', properties: {} }
       }
     ];
@@ -1131,7 +1131,7 @@ describe('Multi-agent SSE streaming with handoff', () => {
       method: 'POST',
       headers: { ...AUTH_HEADER, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        input: "Let's find some treasure!",
+        input: "Let's find some planning!",
         tools: transferTools,
         stream: true
       })
@@ -1142,15 +1142,15 @@ describe('Multi-agent SSE streaming with handoff', () => {
     expect(text).toContain('event: response.function_call_arguments.delta');
     expect(text).toContain('event: response.function_call_arguments.done');
     expect(text).toContain('event: response.completed');
-    expect(text).toContain('transfer_to_Treasure');
+    expect(text).toContain('transfer_to_Planning');
   });
 
   it('streams text on first specialist turn, resolution on second', async () => {
     const resolutionTools = [
       {
         type: 'function' as const,
-        name: 'resolve_crew',
-        description: 'Resolve crew',
+        name: 'resolve_staffing',
+        description: 'Resolve staffing',
         parameters: { type: 'object', properties: {} }
       }
     ];
@@ -1201,8 +1201,8 @@ describe('Multi-agent SSE streaming with handoff', () => {
     expect(res2.status).toBe(200);
     const text2 = await res2.text();
     expect(text2).toContain('event: response.function_call_arguments.delta');
-    expect(text2).toContain('resolve_crew');
-    expect(text2).toContain('Able Seaman');
+    expect(text2).toContain('resolve_staffing');
+    expect(text2).toContain('core');
     expect(text2).toContain('lookout');
   });
 });
@@ -1302,19 +1302,19 @@ describe('Response format validation', () => {
   });
 
   it('agent object has correct shape', async () => {
-    const { body } = await post<Record<string, unknown>>('/agents/test-captain', {
+    const { body } = await post<Record<string, unknown>>('/agents/test-coordinator', {
       model: 'gpt-5.2-chat',
-      instructions: 'You are a pirate captain'
+      instructions: 'You are a sales coordinator'
     });
 
     expect(body['id']).toMatch(/^agent_/);
     expect(body['object']).toBe('agent');
-    expect(body['name']).toBe('test-captain');
+    expect(body['name']).toBe('test-coordinator');
     expect(typeof body['created_at']).toBe('number');
 
     const versions = body['versions'] as { latest: Record<string, unknown> };
     expect(versions.latest['model']).toBe('gpt-5.2-chat');
-    expect(versions.latest['instructions']).toBe('You are a pirate captain');
+    expect(versions.latest['instructions']).toBe('You are a sales coordinator');
     expect(Array.isArray(versions.latest['tools'])).toBe(true);
   });
 
@@ -1384,9 +1384,9 @@ describe('Conversations API', () => {
         id: string;
         object: string;
         metadata: Record<string, string> | null;
-      }>('/conversations', { metadata: { topic: 'pirates' } });
+      }>('/conversations', { metadata: { topic: 'sales' } });
       expect(status).toBe(200);
-      expect(body.metadata).toEqual({ topic: 'pirates' });
+      expect(body.metadata).toEqual({ topic: 'sales' });
     });
 
     it('retrieves a conversation by ID', async () => {
@@ -1452,11 +1452,11 @@ describe('Conversations API', () => {
 
       // Send a message using the conversation
       const { status, body } = await post<{ id: string; output_text: string; output: unknown[] }>('/responses', {
-        input: 'Hello pirate!',
+        input: 'Hello team!',
         conversation: { id: conv.body.id }
       });
       expect(status).toBe(200);
-      expect(body.output_text).toContain('Hello pirate!');
+      expect(body.output_text).toContain('Hello team!');
     });
 
     it('accumulates conversation items across multiple responses', async () => {
@@ -1486,18 +1486,18 @@ describe('Conversations API', () => {
 
       // Send a message that triggers specialist routing
       const r1 = await post<{ id: string; output: Array<{ type: string; name?: string }> }>('/responses', {
-        input: 'I want to sing a shanty!',
+        input: 'I want to sing a discovery!',
         tools: [
           {
             type: 'function',
-            name: 'shanty_specialist',
-            description: 'Shanty specialist',
+            name: 'discovery_specialist',
+            description: 'Discovery specialist',
             parameters: {}
           },
           {
             type: 'function',
-            name: 'treasure_specialist',
-            description: 'Treasure specialist',
+            name: 'planning_specialist',
+            description: 'Planning specialist',
             parameters: {}
           }
         ],
@@ -1506,7 +1506,7 @@ describe('Conversations API', () => {
       expect(r1.status).toBe(200);
       expect(r1.body.output).toHaveLength(1);
       expect(r1.body.output[0]?.type).toBe('function_call');
-      expect(r1.body.output[0]?.name).toBe('shanty_specialist');
+      expect(r1.body.output[0]?.name).toBe('discovery_specialist');
     });
 
     it('supports tool-call loop with conversation (specialist text then resolution)', async () => {
@@ -1518,8 +1518,8 @@ describe('Conversations API', () => {
         id: string;
         output: Array<{ type: string; name?: string; call_id?: string }>;
       }>('/responses', {
-        input: 'I want to sing a shanty!',
-        tools: [{ type: 'function', name: 'shanty_specialist', description: 'Shanty', parameters: {} }],
+        input: 'I want to sing a discovery!',
+        tools: [{ type: 'function', name: 'discovery_specialist', description: 'Discovery', parameters: {} }],
         conversation: { id: conv.body.id }
       });
       expect(r1.body.output[0]?.type).toBe('function_call');
@@ -1531,8 +1531,8 @@ describe('Conversations API', () => {
         tools: [
           {
             type: 'function',
-            name: 'resolve_shanty',
-            description: 'Resolve shanty',
+            name: 'resolve_discovery',
+            description: 'Resolve discovery',
             parameters: {}
           }
         ],
@@ -1548,15 +1548,15 @@ describe('Conversations API', () => {
         tools: [
           {
             type: 'function',
-            name: 'resolve_shanty',
-            description: 'Resolve shanty',
+            name: 'resolve_discovery',
+            description: 'Resolve discovery',
             parameters: {}
           }
         ],
         conversation: { id: conv.body.id }
       });
       expect(r3.body.output[0]?.type).toBe('function_call');
-      expect(r3.body.output[0]?.name).toBe('resolve_shanty');
+      expect(r3.body.output[0]?.name).toBe('resolve_discovery');
     });
 
     it('supports streaming with conversation parameter', async () => {

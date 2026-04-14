@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "version": "0.1.0",
-  "description": "CAIRA Business API container — pirate-themed proxy to agent container",
+  "description": "CAIRA Business API container — business-oriented proxy to agent container",
   "scripts": {
     "start": "node src/server.ts",
     "dev": "node --watch src/server.ts",

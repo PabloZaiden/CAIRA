@@ -72,38 +72,38 @@ The `/conversations/{conversationId}/messages` endpoint supports both streaming 
 
 ## Business API (`backend-api.openapi.yaml`)
 
-The public business API that the frontend calls. The current sample domain is a fictional sales/account-team scenario, while the existing route and mode identifiers remain pirate-shaped for compatibility. These endpoints create conversations on the agent and return a mode-specific `syntheticMessage` for the frontend to send as the first parley.
+The public business API that the frontend calls. The current sample domain is a fictional sales/account-team scenario, while the existing route and mode identifiers remain business-oriented and aligned to the activity sample. These endpoints create conversations on the agent and return a mode-specific `syntheticMessage` for the frontend to send as the first parley.
 
-> **WS-12 rework:** These endpoints replace the previous `recruit`, `crew`, `crew/{crewId}/parley`, and `treasure` endpoints.
+> **WS-12 rework:** These endpoints replace the previous `recruit`, `staffing`, `staffing/{id}/parley`, and `planning` endpoints.
 
 | Endpoint                                  | Method | Description                                  | Maps to agent API                   |
 |-------------------------------------------|--------|----------------------------------------------|-------------------------------------|
-| `POST /api/pirate/shanty`                 | POST   | Start an opportunity discovery flow          | `POST /conversations`               |
-| `POST /api/pirate/treasure`               | POST   | Start an account planning flow               | `POST /conversations`               |
-| `POST /api/pirate/crew/enlist`            | POST   | Start an account-team staffing flow          | `POST /conversations`               |
-| `GET /api/pirate/adventures`              | GET    | List all adventures (with mode + status)     | `GET /conversations`                |
-| `GET /api/pirate/adventures/{id}`         | GET    | Get adventure detail with messages + outcome | `GET /conversations/{id}`           |
-| `POST /api/pirate/adventures/{id}/parley` | POST   | Continue chatting (SSE stream)               | `POST /conversations/{id}/messages` |
-| `GET /api/pirate/stats`                   | GET    | Activity stats per mode                      | Computed from `GET /conversations`  |
+| `POST /api/activities/discovery`                 | POST   | Start an opportunity discovery flow          | `POST /conversations`               |
+| `POST /api/activities/planning`               | POST   | Start an account planning flow               | `POST /conversations`               |
+| `POST /api/activities/staffing`            | POST   | Start an account-team staffing flow          | `POST /conversations`               |
+| `GET /api/activities/adventures`              | GET    | List all adventures (with mode + status)     | `GET /conversations`                |
+| `GET /api/activities/adventures/{id}`         | GET    | Get adventure detail with messages + outcome | `GET /conversations/{id}`           |
+| `POST /api/activities/adventures/{id}/parley` | POST   | Continue chatting (SSE stream)               | `POST /conversations/{id}/messages` |
+| `GET /api/activities/stats`                   | GET    | Activity stats per mode                      | Computed from `GET /conversations`  |
 | `GET /health`                             | GET    | Health check (includes agent health)         | Checks agent `/health` too          |
 
 ### Business operation flow
 
-Each business operation (`shanty`, `treasure`, `crew/enlist`) follows the same pattern:
+Each business operation (`discovery`, `planning`, `staffing`) follows the same pattern:
 
 1. **Create conversation:** API calls `POST /conversations` on the agent and stores adventure metadata
 1. **Return to frontend:** API returns `{ id, mode, status, syntheticMessage, createdAt }`
-1. **Get first agent response:** frontend sends `syntheticMessage` to `POST /api/pirate/adventures/{id}/parley`; the API forwards to `POST /conversations/{id}/messages`
+1. **Get first agent response:** frontend sends `syntheticMessage` to `POST /api/activities/adventures/{id}/parley`; the API forwards to `POST /conversations/{id}/messages`
 
 ```json
-// POST /api/pirate/shanty
+// POST /api/activities/discovery
 // Request: (empty body or optional metadata)
 {}
 
 // Response (201):
 {
   "id": "conv_abc123",
-  "mode": "shanty",
+  "mode": "discovery",
   "status": "active",
   "syntheticMessage": "I am qualifying a new customer opportunity. Lead a short discovery conversation, ask targeted questions, and conclude with a concise qualification summary.",
   "createdAt": "2026-02-14T..."
@@ -111,10 +111,10 @@ Each business operation (`shanty`, `treasure`, `crew/enlist`) follows the same p
 ```
 
 ```json
-// GET /api/pirate/adventures/{id} (after resolution)
+// GET /api/activities/adventures/{id} (after resolution)
 {
   "id": "conv_abc123",
-  "mode": "shanty",
+  "mode": "discovery",
   "status": "resolved",
   "outcome": {
     "result": "win",
@@ -148,17 +148,17 @@ data: {"messageId": "msg_xyz", "content": "Arr, welcome aboard!", "usage": {"pro
 
 ### Specialist tool activity events (OpenAI variant only)
 
-When the captain agent invokes a specialist agent-tool during streaming, the agent container emits `tool.called` and `tool.done` events. The frontend uses these to show specialist-specific loading text (e.g., "The shanty specialist is working..."):
+When the coordinator agent invokes a specialist agent-tool during streaming, the agent container emits `tool.called` and `tool.done` events. The frontend uses these to show specialist-specific loading text (e.g., "The discovery specialist is working..."):
 
 ```text
 event: tool.called
-data: {"toolName": "shanty_specialist"}
+data: {"toolName": "discovery_specialist"}
 
 event: tool.done
-data: {"toolName": "shanty_specialist"}
+data: {"toolName": "discovery_specialist"}
 ```
 
-Only emitted for specialist tools (`shanty_specialist`, `treasure_specialist`, `crew_specialist`), not for resolution tools. The API container passes these events through to the frontend.
+Only emitted for specialist tools (`discovery_specialist`, `planning_specialist`, `staffing_specialist`), not for resolution tools. The API container passes these events through to the frontend.
 
 ### Activity resolution event
 
@@ -166,7 +166,7 @@ When a specialist agent calls its resolution tool, the agent container emits an 
 
 ```text
 event: activity.resolved
-data: {"tool": "resolve_shanty", "result": {"winner": "user", "rounds": 4, "best_verse": "Through storms and gales we sail with glee..."}}
+data: {"tool": "resolve_discovery", "result": {"fit": "qualified", "signals_reviewed": 4, "primary_need": "Executive visibility into account risk."}}
 ```
 
 The API container **parses** the SSE stream (not raw passthrough) to detect `activity.resolved` events, capture outcomes, and pass them through to the frontend.
@@ -177,12 +177,12 @@ For non-streaming (JSON) responses, the `sendMessage` response includes an optio
 {
   "id": "msg_xyz",
   "role": "assistant",
-  "content": "And with that final verse, ye've won!",
+  "content": "With that, the opportunity looks well qualified.",
   "createdAt": "...",
   "usage": { "promptTokens": 50, "completionTokens": 30 },
   "resolution": {
-    "tool": "resolve_shanty",
-    "result": { "winner": "user", "rounds": 4, "best_verse": "..." }
+    "tool": "resolve_discovery",
+    "result": { "fit": "qualified", "signals_reviewed": 4, "primary_need": "..." }
   }
 }
 ```
@@ -193,7 +193,7 @@ On error during streaming:
 
 ```text
 event: error
-data: {"code": "agent_error", "message": "The seas be rough today"}
+data: {"code": "agent_error", "message": "The service is temporarily unavailable"}
 ```
 
 ## Inter-service communication

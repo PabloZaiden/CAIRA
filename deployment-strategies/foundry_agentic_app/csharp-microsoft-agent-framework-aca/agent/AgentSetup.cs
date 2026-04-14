@@ -101,123 +101,123 @@ public static class AgentSetup
     {
         var responsesClient = CreateResponsesClient(config);
 
-        var sharedInstructions = config.CaptainInstructions.Trim();
+        var sharedInstructions = config.SharedInstructions.Trim();
         string Compose(string specialistInstructions) => $"{sharedInstructions}\n\n{specialistInstructions}".Trim();
 
-        var shantyAgent = responsesClient.AsAIAgent(
-            instructions: Compose(config.ShantyInstructions),
-            name: "ShantySpecialist",
+        var discoveryAgent = responsesClient.AsAIAgent(
+            instructions: Compose(config.DiscoveryInstructions),
+            name: "DiscoverySpecialist",
             description: "Opportunity discovery specialist for the fictional sales/account-team sample.");
 
-        var treasureAgent = responsesClient.AsAIAgent(
-            instructions: Compose(config.TreasureInstructions),
-            name: "TreasureSpecialist",
+        var planningAgent = responsesClient.AsAIAgent(
+            instructions: Compose(config.PlanningInstructions),
+            name: "PlanningSpecialist",
             description: "Account planning specialist for the fictional sales/account-team sample.");
 
-        var crewAgent = responsesClient.AsAIAgent(
-            instructions: Compose(config.CrewInstructions),
-            name: "CrewSpecialist",
+        var staffingAgent = responsesClient.AsAIAgent(
+            instructions: Compose(config.StaffingInstructions),
+            name: "StaffingSpecialist",
             description: "Account-team staffing specialist for the fictional sales/account-team sample.");
 
-        var shantyKnowledge = AIFunctionFactory.Create(
+        var discoveryKnowledge = AIFunctionFactory.Create(
             ([Description("What discovery signal, qualification detail, or customer need is needed")] string query) =>
-                System.Text.Json.JsonSerializer.Serialize(new { items = KnowledgeBase.LookupShanty(query) }),
-            "lookup_shanty_knowledge",
+                System.Text.Json.JsonSerializer.Serialize(new { items = KnowledgeBase.LookupDiscovery(query) }),
+            "lookup_discovery_knowledge",
             "Retrieve fictional sample discovery guidance and qualification cues.");
 
-        var treasureKnowledge = AIFunctionFactory.Create(
+        var planningKnowledge = AIFunctionFactory.Create(
             ([Description("What account-planning priority, risk, or next-step detail is needed")] string query) =>
-                System.Text.Json.JsonSerializer.Serialize(new { items = KnowledgeBase.LookupTreasure(query) }),
-            "lookup_treasure_knowledge",
+                System.Text.Json.JsonSerializer.Serialize(new { items = KnowledgeBase.LookupPlanning(query) }),
+            "lookup_planning_knowledge",
             "Retrieve fictional sample account-planning guidance, risks, and milestones.");
 
-        var crewKnowledge = AIFunctionFactory.Create(
+        var staffingKnowledge = AIFunctionFactory.Create(
             ([Description("What staffing role, coverage level, or qualification detail is needed")] string query) =>
-                System.Text.Json.JsonSerializer.Serialize(new { items = KnowledgeBase.LookupCrew(query) }),
-            "lookup_crew_knowledge",
+                System.Text.Json.JsonSerializer.Serialize(new { items = KnowledgeBase.LookupStaffing(query) }),
+            "lookup_staffing_knowledge",
             "Retrieve fictional sample staffing roles, coverage guidance, and qualifications.");
 
-        var resolveShanty = AIFunctionFactory.Create(
+        var resolveDiscovery = AIFunctionFactory.Create(
             (
-                [Description("Who won the shanty battle")] string winner,
-                [Description("Number of qualification signals reviewed")] int rounds,
-                [Description("The single most important customer need or buying signal")] string best_verse
+                [Description("Qualification outcome for the opportunity")] string fit,
+                [Description("Number of qualification signals reviewed")] int signals_reviewed,
+                [Description("The single most important customer need or buying signal")] string primary_need
             ) =>
             {
-                logger.LogInformation("Discovery flow resolved: {Winner} after {Rounds} signals", winner, rounds);
-                return $"Discovery flow resolved: {winner} after {rounds} signals.";
+                logger.LogInformation("Discovery flow resolved: {Fit} after {SignalsReviewed} signals", fit, signals_reviewed);
+                return $"Discovery flow resolved: {fit} after {signals_reviewed} signals.";
             },
-            "resolve_shanty",
+            "resolve_discovery",
             "Call this when the discovery activity concludes. Records the fit signal summary using the existing contract.");
 
-        var resolveTreasure = AIFunctionFactory.Create(
+        var resolvePlanning = AIFunctionFactory.Create(
             (
-                [Description("Whether the plan should advance now")] bool found,
-                [Description("Primary account focus area")] string treasure_name,
-                [Description("Next milestone, meeting, or workstream")] string location
+                [Description("Whether the plan should advance now")] bool approved,
+                [Description("Primary account focus area")] string focus_area,
+                [Description("Next milestone, meeting, or workstream")] string next_step
             ) =>
             {
-                var outcome = found ? "Advance" : "Rework";
-                logger.LogInformation("Account plan resolved: {Outcome} \"{TreasureName}\" at {Location}", outcome, treasure_name, location);
-                return $"Account plan resolved: {outcome} \"{treasure_name}\" at {location}.";
+                var outcome = approved ? "Advance" : "Hold";
+                logger.LogInformation("Account plan resolved: {Outcome} \"{FocusArea}\" with next step {NextStep}", outcome, focus_area, next_step);
+                return $"Account plan resolved: {outcome} \"{focus_area}\" with next step {next_step}.";
             },
-            "resolve_treasure",
+            "resolve_planning",
             "Call this when the account-planning activity concludes. Records the planning outcome using the existing contract.");
 
-        var resolveCrew = AIFunctionFactory.Create(
+        var resolveStaffing = AIFunctionFactory.Create(
             (
-                [Description("The recommended coverage level")] string rank,
+                [Description("The recommended coverage level")] string coverage_level,
                 [Description("The recommended owner role")] string role,
-                [Description("The fictional account team name")] string ship_name
+                [Description("The fictional account team name")] string team_name
             ) =>
             {
-                logger.LogInformation("Staffing flow resolved: {Rank} {Role} on {ShipName}", rank, role, ship_name);
-                return $"Staffing flow resolved: {rank} {role} on {ship_name}.";
+                logger.LogInformation("Staffing flow resolved: {CoverageLevel} {Role} on {TeamName}", coverage_level, role, team_name);
+                return $"Staffing flow resolved: {coverage_level} {role} on {team_name}.";
             },
-            "resolve_crew",
+            "resolve_staffing",
             "Call this when the staffing conversation concludes. Records the staffing recommendation using the existing contract.");
 
-        var shantyAgentWithTools = responsesClient.AsAIAgent(
-            instructions: Compose(config.ShantyInstructions),
-            name: "ShantySpecialist",
+        var discoveryAgentWithTools = responsesClient.AsAIAgent(
+            instructions: Compose(config.DiscoveryInstructions),
+            name: "DiscoverySpecialist",
             tools:
             [
-                shantyKnowledge,
-                resolveShanty,
+                discoveryKnowledge,
+                resolveDiscovery,
             ]);
 
-        var treasureAgentWithTools = responsesClient.AsAIAgent(
-            instructions: Compose(config.TreasureInstructions),
-            name: "TreasureSpecialist",
+        var planningAgentWithTools = responsesClient.AsAIAgent(
+            instructions: Compose(config.PlanningInstructions),
+            name: "PlanningSpecialist",
             tools:
             [
-                treasureKnowledge,
-                resolveTreasure,
+                planningKnowledge,
+                resolvePlanning,
             ]);
 
-        var crewAgentWithTools = responsesClient.AsAIAgent(
-            instructions: Compose(config.CrewInstructions),
-            name: "CrewSpecialist",
+        var staffingAgentWithTools = responsesClient.AsAIAgent(
+            instructions: Compose(config.StaffingInstructions),
+            name: "StaffingSpecialist",
             tools:
             [
-                crewKnowledge,
-                resolveCrew,
+                staffingKnowledge,
+                resolveStaffing,
             ]);
 
-        var shantyBinding = shantyAgentWithTools.BindAsExecutor(emitEvents: true);
-        var treasureBinding = treasureAgentWithTools.BindAsExecutor(emitEvents: true);
-        var crewBinding = crewAgentWithTools.BindAsExecutor(emitEvents: true);
+        var discoveryBinding = discoveryAgentWithTools.BindAsExecutor(emitEvents: true);
+        var planningBinding = planningAgentWithTools.BindAsExecutor(emitEvents: true);
+        var staffingBinding = staffingAgentWithTools.BindAsExecutor(emitEvents: true);
 
         var workflows = new Dictionary<string, Workflow>
         {
-            ["shanty"] = new WorkflowBuilder(shantyBinding)
-                .WithOutputFrom(shantyBinding)
+            ["discovery"] = new WorkflowBuilder(discoveryBinding)
+                .WithOutputFrom(discoveryBinding)
                 .Build(),
-            ["treasure"] = new WorkflowBuilder(treasureBinding)
-                .WithOutputFrom(treasureBinding)
+            ["planning"] = new WorkflowBuilder(planningBinding)
+                .WithOutputFrom(planningBinding)
                 .Build(),
-            ["crew"] = new WorkflowBuilder(crewBinding)
-                .WithOutputFrom(crewBinding)
+            ["staffing"] = new WorkflowBuilder(staffingBinding)
+                .WithOutputFrom(staffingBinding)
                 .Build(),
         };
 
@@ -235,7 +235,7 @@ public static class AgentSetup
 
         return new AgentSetupResult
         {
-            Workflow = workflows["shanty"],
+            Workflow = workflows["discovery"],
             CheckpointManager = checkpointManager,
             WorkflowsByMode = workflows,
         };

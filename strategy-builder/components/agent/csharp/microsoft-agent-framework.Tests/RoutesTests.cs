@@ -130,7 +130,7 @@ public class RoutesTests : IDisposable
     [Fact]
     public async Task PostConversations_WithMetadata_PassesMetadataToStore()
     {
-        var metadata = new Dictionary<string, object> { ["mode"] = "shanty" };
+        var metadata = new Dictionary<string, object> { ["mode"] = "discovery" };
         _mockStore.Setup(s => s.Create(It.IsAny<Dictionary<string, object>?>()))
             .Returns(new Conversation("conv_456", "2026-01-01T00:00:00Z", "2026-01-01T00:00:00Z", metadata));
 

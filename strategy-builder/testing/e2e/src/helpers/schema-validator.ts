@@ -78,7 +78,7 @@ function resolveRefs(obj: unknown, root: OpenAPISpec): unknown {
 }
 
 /**
- * Resolve a single $ref pointer (e.g., "#/components/schemas/CrewMember").
+ * Resolve a single $ref pointer (e.g., "#/components/schemas/StaffingMember").
  */
 function resolveRefPointer(ref: string, root: OpenAPISpec): unknown {
   if (!ref.startsWith('#/')) {
@@ -107,7 +107,7 @@ function resolveRefPointer(ref: string, root: OpenAPISpec): unknown {
 /**
  * Validate a response body against a named OpenAPI component schema.
  *
- * @param schemaName - Name of the schema in components/schemas (e.g., "CrewMember")
+ * @param schemaName - Name of the schema in components/schemas (e.g., "StaffingMember")
  * @param data - The response body to validate
  * @param specPath - Optional path to the OpenAPI spec (defaults to backend-api.openapi.yaml)
  */

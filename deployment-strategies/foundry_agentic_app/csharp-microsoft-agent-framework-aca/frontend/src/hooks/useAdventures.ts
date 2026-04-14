@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { Adventure, AdventureMode } from '../types.ts';
-import type { PirateClient } from '../api/pirate-client.ts';
+import type { ActivityClient } from '../api/activity-client.ts';
 
 interface UseAdventuresResult {
   readonly adventures: readonly Adventure[];
@@ -17,7 +17,7 @@ interface UseAdventuresResult {
   readonly refresh: () => Promise<void>;
 }
 
-export function useAdventures(client: PirateClient): UseAdventuresResult {
+export function useAdventures(client: ActivityClient): UseAdventuresResult {
   const [adventures, setAdventures] = useState<readonly Adventure[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,14 +47,14 @@ export function useAdventures(client: PirateClient): UseAdventuresResult {
       try {
         let started;
         switch (mode) {
-          case 'shanty':
-            started = await client.startShanty();
+          case 'discovery':
+            started = await client.startDiscovery();
             break;
-          case 'treasure':
-            started = await client.seekTreasure();
+          case 'planning':
+            started = await client.startPlanning();
             break;
-          case 'crew':
-            started = await client.enlistInCrew();
+          case 'staffing':
+            started = await client.startStaffing();
             break;
         }
         const adventure: Adventure = {

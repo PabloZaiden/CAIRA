@@ -395,7 +395,7 @@ public class WorkflowRunner
             return workflow;
         }
 
-        return _setup.WorkflowsByMode["shanty"];
+        return _setup.WorkflowsByMode["discovery"];
     }
 
     private static string ResolveSpecialistTool(Dictionary<string, object>? metadata)
@@ -406,9 +406,9 @@ public class WorkflowRunner
 
         return mode switch
         {
-            "treasure" => "treasure_specialist",
-            "crew" => "crew_specialist",
-            _ => "shanty_specialist"
+            "planning" => "planning_specialist",
+            "staffing" => "staffing_specialist",
+            _ => "discovery_specialist"
         };
     }
 

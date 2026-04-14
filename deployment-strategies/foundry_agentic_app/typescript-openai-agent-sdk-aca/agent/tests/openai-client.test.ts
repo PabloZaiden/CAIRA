@@ -20,10 +20,10 @@ const TEST_CONFIG: Config = {
   apiVersion: '2025-03-01-preview',
   model: 'gpt-5.2-chat',
   agentName: 'Test Agent',
-  captainInstructions: 'You are the captain agent. Route to specialists.',
-  shantyInstructions: 'You are a shanty specialist.',
-  treasureInstructions: 'You are a treasure specialist.',
-  crewInstructions: 'You are a crew specialist.',
+  sharedInstructions: 'You are the coordinator agent. Route to specialists.',
+  discoveryInstructions: 'You are a discovery specialist.',
+  planningInstructions: 'You are a planning specialist.',
+  staffingInstructions: 'You are a staffing specialist.',
   applicationInsightsConnectionString: undefined,
   logLevel: 'silent',
   skipAuth: true,
@@ -231,7 +231,7 @@ describe('OpenAIClient', () => {
     it('creates specialist agents and becomes ready', async () => {
       // The agent is created during initialise — we verify the client is ready
       // by calling createConversation (which calls ensureReady)
-      const conv = await client.createConversation({ mode: 'shanty' });
+      const conv = await client.createConversation({ mode: 'discovery' });
       expect(conv.id).toMatch(/^conv_/);
     });
 
@@ -248,7 +248,7 @@ describe('OpenAIClient', () => {
 
   describe('createConversation', () => {
     it('creates a conversation and returns it', async () => {
-      const conv = await client.createConversation({ mode: 'shanty' });
+      const conv = await client.createConversation({ mode: 'discovery' });
       expect(conv.id).toMatch(/^conv_/);
       expect(conv.createdAt).toBeDefined();
       expect(conv.updatedAt).toBeDefined();
@@ -333,7 +333,7 @@ describe('OpenAIClient', () => {
       const conv = await client.createConversation();
       mockRunFn.mockResolvedValue(makeRunResult('Ahoy matey!'));
 
-      const result = await client.sendMessage(conv.id, 'Hello pirate!');
+      const result = await client.sendMessage(conv.id, 'Hello sales team!');
       expect(result).toBeDefined();
       expect(result!.role).toBe('assistant');
       expect(result!.content).toBe('Ahoy matey!');
@@ -353,8 +353,8 @@ describe('OpenAIClient', () => {
       expect(result!.usage).toEqual({ promptTokens: 50, completionTokens: 30 });
     });
 
-    it('routes shanty conversations to the shanty specialist agent', async () => {
-      const conv = await client.createConversation({ mode: 'shanty' });
+    it('routes discovery conversations to the discovery specialist agent', async () => {
+      const conv = await client.createConversation({ mode: 'discovery' });
       mockRunFn.mockResolvedValue(makeRunResult('Response'));
 
       await client.sendMessage(conv.id, 'Test message');
@@ -362,29 +362,29 @@ describe('OpenAIClient', () => {
       expect(mockRunFn).toHaveBeenCalledTimes(1);
       const [agent, content, options] = mockRunFn.mock.calls[0]!;
       expect(agent).toBeDefined();
-      expect(agent.name).toBe('Shanty');
+      expect(agent.name).toBe('Discovery');
       expect(content).toBe('Test message');
       expect(options).not.toHaveProperty('previousResponseId');
     });
 
-    it('routes treasure conversations to the treasure specialist agent', async () => {
-      const conv = await client.createConversation({ mode: 'treasure' });
+    it('routes planning conversations to the planning specialist agent', async () => {
+      const conv = await client.createConversation({ mode: 'planning' });
       mockRunFn.mockResolvedValue(makeRunResult('Buried riches await'));
 
-      await client.sendMessage(conv.id, 'Guide me to treasure');
+      await client.sendMessage(conv.id, 'Guide me to planning');
 
       const [agent] = mockRunFn.mock.calls[0]!;
-      expect(agent.name).toBe('Treasure');
+      expect(agent.name).toBe('Planning');
     });
 
-    it('routes crew conversations to the crew specialist agent', async () => {
-      const conv = await client.createConversation({ mode: 'crew' });
+    it('routes staffing conversations to the staffing specialist agent', async () => {
+      const conv = await client.createConversation({ mode: 'staffing' });
       mockRunFn.mockResolvedValue(makeRunResult('State your rank'));
 
       await client.sendMessage(conv.id, 'I want to join');
 
       const [agent] = mockRunFn.mock.calls[0]!;
-      expect(agent.name).toBe('Crew');
+      expect(agent.name).toBe('Staffing');
     });
 
     it('chains conversation via previousResponseId', async () => {
@@ -429,10 +429,10 @@ describe('OpenAIClient', () => {
       // The run result includes a tool_call_item with the resolution tool's rawItem.
       // extractResolutionFromItems() scans newItems for resolution tool calls.
       mockRunFn.mockResolvedValue(
-        makeRunResult('Ye won the shanty battle!', 'resp_001', {
+        makeRunResult('Ye won the discovery battle!', 'resp_001', {
           resolution: {
-            tool: 'resolve_shanty',
-            result: { winner: 'user', rounds: 4, best_verse: 'A verse about the sea' }
+            tool: 'resolve_discovery',
+            result: { winner: 'user', rounds: 4, primary_need: 'A verse about the sea' }
           }
         })
       );
@@ -440,8 +440,8 @@ describe('OpenAIClient', () => {
       const result = await client.sendMessage(conv.id, 'My final verse!');
       expect(result).toBeDefined();
       expect(result!.resolution).toEqual({
-        tool: 'resolve_shanty',
-        result: { winner: 'user', rounds: 4, best_verse: 'A verse about the sea' }
+        tool: 'resolve_discovery',
+        result: { winner: 'user', rounds: 4, primary_need: 'A verse about the sea' }
       });
     });
 
@@ -547,12 +547,12 @@ describe('OpenAIClient', () => {
 
       // Mock runFn returns a stream with a resolution tool_called event
       // containing rawItem.name and rawItem.arguments — the new detection mechanism.
-      const streamResult = makeStreamedRunResult(['Treasure ', 'found!'], 'Treasure found!', 'resp_resolved', {
+      const streamResult = makeStreamedRunResult(['Planning ', 'found!'], 'Planning found!', 'resp_resolved', {
         resolutionToolCall: {
-          name: 'resolve_treasure',
+          name: 'resolve_planning',
           arguments: JSON.stringify({
             found: true,
-            treasure_name: 'Ruby Crown',
+            focus_area: 'Ruby Crown',
             location: 'Cavern of Echoes'
           })
         }
@@ -565,7 +565,7 @@ describe('OpenAIClient', () => {
       });
 
       // Check deltas
-      const firstDelta = chunks.find((c) => c.includes('"content":"Treasure "'));
+      const firstDelta = chunks.find((c) => c.includes('"content":"Planning "'));
       expect(firstDelta).toBeDefined();
 
       const secondDelta = chunks.find((c) => c.includes('"content":"found!"'));
@@ -574,14 +574,14 @@ describe('OpenAIClient', () => {
       // Check activity.resolved event
       const resolvedChunk = chunks.find((c) => c.includes('event: activity.resolved'));
       expect(resolvedChunk).toBeDefined();
-      expect(resolvedChunk).toContain('"tool":"resolve_treasure"');
+      expect(resolvedChunk).toContain('"tool":"resolve_planning"');
       expect(resolvedChunk).toContain('"found":true');
-      expect(resolvedChunk).toContain('"treasure_name":"Ruby Crown"');
+      expect(resolvedChunk).toContain('"focus_area":"Ruby Crown"');
 
       // Check complete event
       const completeChunk = chunks.find((c) => c.includes('event: message.complete'));
       expect(completeChunk).toBeDefined();
-      expect(completeChunk).toContain('"content":"Treasure found!"');
+      expect(completeChunk).toContain('"content":"Planning found!"');
     });
 
     it('does not emit activity.resolved when no resolution tool fires', async () => {
@@ -599,14 +599,14 @@ describe('OpenAIClient', () => {
     });
 
     it('emits tool.called and tool.done SSE events for specialist tools', async () => {
-      const conv = await client.createConversation({ mode: 'shanty' });
+      const conv = await client.createConversation({ mode: 'discovery' });
       const streamResult = makeStreamedRunResult(['Arr'], 'Arr', 'resp_specialist', {
-        specialistToolCall: 'shanty_specialist'
+        specialistToolCall: 'discovery_specialist'
       });
       mockRunFn.mockResolvedValue(streamResult);
 
       const chunks: string[] = [];
-      await client.sendMessageStream(conv.id, 'Sing me a shanty', (chunk) => {
+      await client.sendMessageStream(conv.id, 'Sing me a discovery', (chunk) => {
         chunks.push(chunk);
       });
 
@@ -614,9 +614,9 @@ describe('OpenAIClient', () => {
       const toolDoneChunk = chunks.find((chunk) => chunk.includes('event: tool.done'));
       const completeChunk = chunks.find((chunk) => chunk.includes('event: message.complete'));
 
-      expect(toolCalledChunk).toContain('"toolName":"shanty_specialist"');
+      expect(toolCalledChunk).toContain('"toolName":"discovery_specialist"');
       expect(chunks.some((chunk) => chunk.includes('event: message.delta'))).toBe(true);
-      expect(toolDoneChunk).toContain('"toolName":"shanty_specialist"');
+      expect(toolDoneChunk).toContain('"toolName":"discovery_specialist"');
       expect(completeChunk).toBeDefined();
     });
 
@@ -627,8 +627,8 @@ describe('OpenAIClient', () => {
       // but SHOULD emit activity.resolved
       const streamResult = makeStreamedRunResult(['Done'], 'Done', 'resp_res', {
         resolutionToolCall: {
-          name: 'resolve_shanty',
-          arguments: JSON.stringify({ winner: 'user', rounds: 3, best_verse: 'A fine verse' })
+          name: 'resolve_discovery',
+          arguments: JSON.stringify({ winner: 'user', rounds: 3, primary_need: 'A fine verse' })
         }
       });
       mockRunFn.mockResolvedValue(streamResult);
@@ -639,7 +639,7 @@ describe('OpenAIClient', () => {
       });
 
       const lifecycleEvents = chunks.filter((c) => c.includes('tool.called') || c.includes('tool.done'));
-      expect(lifecycleEvents.every((c) => c.includes('shanty_specialist'))).toBe(true);
+      expect(lifecycleEvents.every((c) => c.includes('discovery_specialist'))).toBe(true);
 
       // Should have activity.resolved
       const hasResolved = chunks.some((c) => c.includes('activity.resolved'));
@@ -647,9 +647,13 @@ describe('OpenAIClient', () => {
     });
 
     it('emits tool.called/tool.done for all three specialist tools', async () => {
-      for (const toolName of ['shanty_specialist', 'treasure_specialist', 'crew_specialist']) {
+      for (const toolName of ['discovery_specialist', 'planning_specialist', 'staffing_specialist']) {
         const mode =
-          toolName === 'treasure_specialist' ? 'treasure' : toolName === 'crew_specialist' ? 'crew' : 'shanty';
+          toolName === 'planning_specialist'
+            ? 'planning'
+            : toolName === 'staffing_specialist'
+              ? 'staffing'
+              : 'discovery';
         const conv = await client.createConversation({ mode });
         const streamResult = makeStreamedRunResult(['Response'], 'Response', `resp_${toolName}`, {
           specialistToolCall: toolName

@@ -1,5 +1,5 @@
 /**
- * HTTP/SSE client for the pirate-themed business API.
+ * HTTP/SSE client for the business activity API.
  *
  * Calls the business API endpoints defined in contracts/backend-api.openapi.yaml.
  * Supports both JSON responses and SSE streaming for parley.
@@ -17,25 +17,25 @@ import type {
   SSEEvent
 } from '../types.ts';
 
-export interface PirateClientConfig {
+export interface ActivityClientConfig {
   readonly baseUrl: string;
 }
 
-export class PirateApiError extends Error {
+export class ActivityApiError extends Error {
   constructor(
     public readonly status: number,
     public readonly code: string,
     public readonly details?: Record<string, unknown> | undefined
   ) {
     super(`API error ${String(status)}: ${code}`);
-    this.name = 'PirateApiError';
+    this.name = 'ActivityApiError';
   }
 }
 
-export class PirateClient {
+export class ActivityClient {
   private readonly baseUrl: string;
 
-  constructor(config: PirateClientConfig) {
+  constructor(config: ActivityClientConfig) {
     // Strip trailing slash
     this.baseUrl = config.baseUrl.replace(/\/+$/, '');
   }
@@ -43,30 +43,30 @@ export class PirateClient {
   // ---- Business operations: start adventures ----
 
   /**
-   * POST /api/pirate/shanty — Start a sea shanty battle.
+   * POST /api/activities/discovery — Start an opportunity discovery activity.
    */
-  async startShanty(): Promise<AdventureStarted> {
-    return this.startAdventure('shanty');
+  async startDiscovery(): Promise<AdventureStarted> {
+    return this.startAdventure('discovery');
   }
 
   /**
-   * POST /api/pirate/treasure — Start a treasure hunt.
+   * POST /api/activities/planning — Start an account planning activity.
    */
-  async seekTreasure(): Promise<AdventureStarted> {
-    return this.startAdventure('treasure');
+  async startPlanning(): Promise<AdventureStarted> {
+    return this.startAdventure('planning');
   }
 
   /**
-   * POST /api/pirate/crew/enlist — Enlist in a pirate crew.
+   * POST /api/activities/staffing — Start a staffing activity.
    */
-  async enlistInCrew(): Promise<AdventureStarted> {
-    return this.startAdventure('crew');
+  async startStaffing(): Promise<AdventureStarted> {
+    return this.startAdventure('staffing');
   }
 
   // ---- Adventure management ----
 
   /**
-   * GET /api/pirate/adventures — List adventures.
+   * GET /api/activities/adventures — List adventures.
    */
   async listAdventures(offset?: number, limit?: number): Promise<AdventureList> {
     const params = new URLSearchParams();
@@ -74,26 +74,26 @@ export class PirateClient {
     if (limit !== undefined) params.set('limit', String(limit));
 
     const query = params.toString();
-    const url = `${this.baseUrl}/pirate/adventures${query ? `?${query}` : ''}`;
+    const url = `${this.baseUrl}/activities/adventures${query ? `?${query}` : ''}`;
     const response = await fetch(url);
     return this.handleJson<AdventureList>(response);
   }
 
   /**
-   * GET /api/pirate/adventures/{adventureId} — Get adventure detail with messages.
+   * GET /api/activities/adventures/{adventureId} — Get adventure detail with messages.
    */
   async getAdventure(adventureId: string): Promise<AdventureDetail> {
-    const response = await fetch(`${this.baseUrl}/pirate/adventures/${encodeURIComponent(adventureId)}`);
+    const response = await fetch(`${this.baseUrl}/activities/adventures/${encodeURIComponent(adventureId)}`);
     return this.handleJson<AdventureDetail>(response);
   }
 
   // ---- Parley (send message) ----
 
   /**
-   * POST /api/pirate/adventures/{adventureId}/parley — Send a message (JSON response).
+   * POST /api/activities/adventures/{adventureId}/parley — Send a message (JSON response).
    */
   async parley(adventureId: string, message: string): Promise<ParleyMessage> {
-    const response = await fetch(`${this.baseUrl}/pirate/adventures/${encodeURIComponent(adventureId)}/parley`, {
+    const response = await fetch(`${this.baseUrl}/activities/adventures/${encodeURIComponent(adventureId)}/parley`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message })
@@ -102,7 +102,7 @@ export class PirateClient {
   }
 
   /**
-   * POST /api/pirate/adventures/{adventureId}/parley — Send a message (SSE streaming).
+   * POST /api/activities/adventures/{adventureId}/parley — Send a message (SSE streaming).
    *
    * Returns an async generator that yields SSE events as they arrive.
    * Uses fetch + ReadableStream (not EventSource, since parley is POST).
@@ -111,7 +111,7 @@ export class PirateClient {
    * or when the conversation is deleted).
    */
   async *parleyStream(adventureId: string, message: string, signal?: AbortSignal): AsyncGenerator<SSEEvent> {
-    const response = await fetch(`${this.baseUrl}/pirate/adventures/${encodeURIComponent(adventureId)}/parley`, {
+    const response = await fetch(`${this.baseUrl}/activities/adventures/${encodeURIComponent(adventureId)}/parley`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -126,7 +126,7 @@ export class PirateClient {
     }
 
     if (!response.body) {
-      throw new PirateApiError(response.status, 'no_body', undefined);
+      throw new ActivityApiError(response.status, 'no_body', undefined);
     }
 
     const reader = response.body.getReader();
@@ -169,10 +169,10 @@ export class PirateClient {
   // ---- Stats ----
 
   /**
-   * GET /api/pirate/stats — Get activity statistics.
+   * GET /api/activities/stats — Get activity statistics.
    */
   async getStats(): Promise<ActivityStats> {
-    const response = await fetch(`${this.baseUrl}/pirate/stats`);
+    const response = await fetch(`${this.baseUrl}/activities/stats`);
     return this.handleJson<ActivityStats>(response);
   }
 
@@ -182,7 +182,7 @@ export class PirateClient {
    * GET /health — Health check.
    */
   async getHealth(): Promise<HealthResponse> {
-    // Health is at root level, not under /pirate
+    // Health is at root level, not under /activities
     const healthUrl = this.baseUrl.replace(/\/api$/, '') + '/health';
     const response = await fetch(healthUrl);
     return this.handleJson<HealthResponse>(response);
@@ -191,7 +191,7 @@ export class PirateClient {
   // ---------- Private helpers ----------
 
   private async startAdventure(mode: AdventureMode): Promise<AdventureStarted> {
-    const endpoint = mode === 'crew' ? `${this.baseUrl}/pirate/crew/enlist` : `${this.baseUrl}/pirate/${mode}`;
+    const endpoint = `${this.baseUrl}/activities/${mode}`;
     const response = await fetch(endpoint, { method: 'POST' });
     return this.handleJson<AdventureStarted>(response);
   }
@@ -210,7 +210,11 @@ export class PirateClient {
     } catch {
       // Not JSON
     }
-    throw new PirateApiError(response.status, errorBody?.code ?? `http_${String(response.status)}`, errorBody?.details);
+    throw new ActivityApiError(
+      response.status,
+      errorBody?.code ?? `http_${String(response.status)}`,
+      errorBody?.details
+    );
   }
 
   /**
@@ -224,7 +228,7 @@ export class PirateClient {
    *   data: {"messageId": "...", "content": "...", "usage": {...}}
    *
    *   event: activity.resolved
-   *   data: {"tool": "resolve_shanty", "result": {"winner": "user", ...}}
+   *   data: {"tool": "resolve_discovery", "result": {"fit": "qualified", ...}}
    *
    *   event: error
    *   data: {"code": "...", "message": "..."}
@@ -312,6 +316,6 @@ export class PirateClient {
 }
 
 /** Default client instance using VITE_API_BASE_URL */
-export const pirateClient = new PirateClient({
+export const activityClient = new ActivityClient({
   baseUrl: import.meta.env['VITE_API_BASE_URL'] ?? '/api'
 });

@@ -9,7 +9,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Fastify from 'fastify';
 import { ApiClient } from '../src/helpers/api-client.ts';
 import type { AdventureMode, AdventureStarted } from '../src/helpers/api-client.ts';
-import { SCHEMAS } from '../src/fixtures/pirate-fixtures.ts';
+import { SCHEMAS } from '../src/fixtures/activity-fixtures.ts';
 import { validateSchema } from '../src/helpers/schema-validator.ts';
 
 // ─── Mock backend server ────────────────────────────────────────────────
@@ -54,26 +54,26 @@ function createMockBackend() {
     dependencies: [{ name: 'agent-container', status: 'healthy', latencyMs: 12 }]
   }));
 
-  // Start shanty
-  app.post('/api/pirate/shanty', async (_req, reply) => {
-    return startAdventure('shanty', reply);
+  // Start discovery
+  app.post('/api/activities/discovery', async (_req, reply) => {
+    return startAdventure('discovery', reply);
   });
 
-  // Start treasure
-  app.post('/api/pirate/treasure', async (_req, reply) => {
-    return startAdventure('treasure', reply);
+  // Start planning
+  app.post('/api/activities/planning', async (_req, reply) => {
+    return startAdventure('planning', reply);
   });
 
-  // Enlist in crew
-  app.post('/api/pirate/crew/enlist', async (_req, reply) => {
-    return startAdventure('crew', reply);
+  // Start staffing
+  app.post('/api/activities/staffing', async (_req, reply) => {
+    return startAdventure('staffing', reply);
   });
 
   // Synthetic messages (matches the real API's SYNTHETIC_MESSAGES)
   const syntheticMessages: Record<string, string> = {
-    shanty: 'Sing me a sea shanty and challenge me to a verse duel! Let us trade shanty verses back and forth.',
-    treasure: 'I seek buried treasure! Guide me on a treasure hunting adventure with choices and discoveries.',
-    crew: 'I want to join your pirate crew! Interview me and assign me a rank and role aboard your ship.'
+    discovery: 'Lead a short discovery conversation and qualify the opportunity.',
+    planning: 'Guide me through an account planning exercise with clear choices.',
+    staffing: 'Recommend the right team staffing coverage for this account.'
   };
 
   function startAdventure(
@@ -102,7 +102,7 @@ function createMockBackend() {
   }
 
   // List adventures
-  app.get('/api/pirate/adventures', async (req) => {
+  app.get('/api/activities/adventures', async (req) => {
     const query = req.query as { offset?: string; limit?: string };
     const offset = Number(query.offset ?? 0);
     const limit = Number(query.limit ?? 20);
@@ -124,7 +124,7 @@ function createMockBackend() {
   });
 
   // Get adventure detail
-  app.get<{ Params: { adventureId: string } }>('/api/pirate/adventures/:adventureId', async (req, reply) => {
+  app.get<{ Params: { adventureId: string } }>('/api/activities/adventures/:adventureId', async (req, reply) => {
     const adv = adventures.find((a) => a.id === req.params.adventureId);
     if (!adv) {
       return reply.status(404).send({ code: 'not_found', message: 'Adventure not found' });
@@ -142,75 +142,78 @@ function createMockBackend() {
   });
 
   // Parley (JSON + SSE)
-  app.post<{ Params: { adventureId: string } }>('/api/pirate/adventures/:adventureId/parley', async (req, reply) => {
-    const adv = adventures.find((a) => a.id === req.params.adventureId);
-    if (!adv) {
-      return reply.status(404).send({ code: 'not_found', message: 'Adventure not found' });
-    }
-
-    const body = req.body as { message: string };
-    if (!body.message) {
-      return reply.status(400).send({ code: 'bad_request', message: 'Message is required' });
-    }
-
-    const accept = req.headers.accept ?? 'application/json';
-    const now = new Date().toISOString();
-
-    // Add user message
-    const userMsg = {
-      id: msgId(),
-      role: 'user' as const,
-      content: body.message,
-      createdAt: now
-    };
-    adv.parleys.push(userMsg);
-
-    // Generate pirate response
-    const assistantMsg = {
-      id: msgId(),
-      role: 'assistant' as const,
-      content: 'Arr, that be a fine question, matey!',
-      createdAt: now,
-      usage: { promptTokens: 10, completionTokens: 8 }
-    };
-    adv.parleys.push(assistantMsg);
-    adv.messageCount = adv.parleys.length;
-    adv.lastParleyAt = now;
-
-    if (accept.includes('text/event-stream')) {
-      // SSE streaming
-      reply.raw.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        Connection: 'keep-alive'
-      });
-
-      reply.hijack();
-
-      const chunks = ['Arr, ', 'that be ', 'a fine question, ', 'matey!'];
-      for (const chunk of chunks) {
-        reply.raw.write(`event: message.delta\ndata: ${JSON.stringify({ content: chunk })}\n\n`);
+  app.post<{ Params: { adventureId: string } }>(
+    '/api/activities/adventures/:adventureId/parley',
+    async (req, reply) => {
+      const adv = adventures.find((a) => a.id === req.params.adventureId);
+      if (!adv) {
+        return reply.status(404).send({ code: 'not_found', message: 'Adventure not found' });
       }
 
-      reply.raw.write(
-        `event: message.complete\ndata: ${JSON.stringify({
-          messageId: assistantMsg.id,
-          content: assistantMsg.content,
-          usage: assistantMsg.usage
-        })}\n\n`
-      );
+      const body = req.body as { message: string };
+      if (!body.message) {
+        return reply.status(400).send({ code: 'bad_request', message: 'Message is required' });
+      }
 
-      reply.raw.write('data: [DONE]\n\n');
-      reply.raw.end();
-      return;
+      const accept = req.headers.accept ?? 'application/json';
+      const now = new Date().toISOString();
+
+      // Add user message
+      const userMsg = {
+        id: msgId(),
+        role: 'user' as const,
+        content: body.message,
+        createdAt: now
+      };
+      adv.parleys.push(userMsg);
+
+      // Generate assistant response
+      const assistantMsg = {
+        id: msgId(),
+        role: 'assistant' as const,
+        content: 'That is a strong next question.',
+        createdAt: now,
+        usage: { promptTokens: 10, completionTokens: 8 }
+      };
+      adv.parleys.push(assistantMsg);
+      adv.messageCount = adv.parleys.length;
+      adv.lastParleyAt = now;
+
+      if (accept.includes('text/event-stream')) {
+        // SSE streaming
+        reply.raw.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive'
+        });
+
+        reply.hijack();
+
+        const chunks = ['That ', 'is ', 'a strong ', 'next question.'];
+        for (const chunk of chunks) {
+          reply.raw.write(`event: message.delta\ndata: ${JSON.stringify({ content: chunk })}\n\n`);
+        }
+
+        reply.raw.write(
+          `event: message.complete\ndata: ${JSON.stringify({
+            messageId: assistantMsg.id,
+            content: assistantMsg.content,
+            usage: assistantMsg.usage
+          })}\n\n`
+        );
+
+        reply.raw.write('data: [DONE]\n\n');
+        reply.raw.end();
+        return;
+      }
+
+      // JSON response
+      return reply.send(assistantMsg);
     }
-
-    // JSON response
-    return reply.send(assistantMsg);
-  });
+  );
 
   // Stats
-  app.get('/api/pirate/stats', async () => {
+  app.get('/api/activities/stats', async () => {
     const byMode = (mode: AdventureMode) => {
       const matching = adventures.filter((a) => a.mode === mode);
       return {
@@ -224,9 +227,9 @@ function createMockBackend() {
       activeAdventures: adventures.filter((a) => a.status === 'active').length,
       resolvedAdventures: adventures.filter((a) => a.status === 'resolved').length,
       byMode: {
-        shanty: byMode('shanty'),
-        treasure: byMode('treasure'),
-        crew: byMode('crew')
+        discovery: byMode('discovery'),
+        planning: byMode('planning'),
+        staffing: byMode('staffing')
       }
     };
   });
@@ -268,12 +271,12 @@ describe('ApiClient', () => {
 
   // ─── Business Operations ────────────────────────────────────────────
 
-  describe('startShanty', () => {
-    it('creates a shanty adventure with 201', async () => {
-      const res = await client.startShanty();
+  describe('startDiscovery', () => {
+    it('creates a discovery adventure with 201', async () => {
+      const res = await client.startDiscovery();
       expect(res.status).toBe(201);
       expect(res.body.id).toBeDefined();
-      expect(res.body.mode).toBe('shanty');
+      expect(res.body.mode).toBe('discovery');
       expect(res.body.status).toBe('active');
       expect(res.body.syntheticMessage).toBeDefined();
       expect(res.body.syntheticMessage).toBeTruthy();
@@ -281,26 +284,26 @@ describe('ApiClient', () => {
     });
 
     it('response matches AdventureStarted schema', async () => {
-      const res = await client.startShanty();
+      const res = await client.startDiscovery();
       const validation = await validateSchema(SCHEMAS.AdventureStarted, res.body);
       expect(validation.valid).toBe(true);
     });
   });
 
-  describe('seekTreasure', () => {
-    it('creates a treasure adventure with 201', async () => {
-      const res = await client.seekTreasure();
+  describe('startPlanning', () => {
+    it('creates a planning adventure with 201', async () => {
+      const res = await client.startPlanning();
       expect(res.status).toBe(201);
-      expect(res.body.mode).toBe('treasure');
+      expect(res.body.mode).toBe('planning');
       expect(res.body.status).toBe('active');
     });
   });
 
-  describe('enlistInCrew', () => {
-    it('creates a crew adventure with 201', async () => {
-      const res = await client.enlistInCrew();
+  describe('startStaffing', () => {
+    it('creates a staffing adventure with 201', async () => {
+      const res = await client.startStaffing();
       expect(res.status).toBe(201);
-      expect(res.body.mode).toBe('crew');
+      expect(res.body.mode).toBe('staffing');
       expect(res.body.status).toBe('active');
     });
   });
@@ -337,19 +340,19 @@ describe('ApiClient', () => {
     let adventureId: string;
 
     beforeAll(async () => {
-      const res = await client.startShanty();
+      const res = await client.startDiscovery();
       adventureId = res.body.id;
     });
 
-    it('sends a message and gets a pirate response', async () => {
-      const res = await client.parley(adventureId, 'Ahoy!');
+    it('sends a message and gets an assistant response', async () => {
+      const res = await client.parley(adventureId, 'Hello team!');
       expect(res.status).toBe(200);
       expect(res.body.role).toBe('assistant');
       expect(res.body.content).toBeTruthy();
     });
 
     it('response matches ParleyMessage schema', async () => {
-      const res = await client.parley(adventureId, 'Tell me about treasure!');
+      const res = await client.parley(adventureId, 'Tell me about planning!');
       const validation = await validateSchema(SCHEMAS.ParleyMessage, res.body);
       expect(validation.valid).toBe(true);
     });
@@ -366,7 +369,7 @@ describe('ApiClient', () => {
     let adventureId: string;
 
     beforeAll(async () => {
-      const res = await client.startShanty();
+      const res = await client.startDiscovery();
       adventureId = res.body.id;
       // Send a message so there are parleys
       await client.parley(adventureId, 'Ahoy!');
@@ -376,7 +379,7 @@ describe('ApiClient', () => {
       const res = await client.getAdventure(adventureId);
       expect(res.status).toBe(200);
       expect(res.body.id).toBe(adventureId);
-      expect(res.body.mode).toBe('shanty');
+      expect(res.body.mode).toBe('discovery');
       expect(res.body.parleys).toBeInstanceOf(Array);
       expect(res.body.parleys.length).toBeGreaterThan(0);
     });
@@ -403,9 +406,9 @@ describe('ApiClient', () => {
       expect(typeof res.body.activeAdventures).toBe('number');
       expect(typeof res.body.resolvedAdventures).toBe('number');
       expect(res.body.byMode).toBeDefined();
-      expect(res.body.byMode.shanty).toBeDefined();
-      expect(res.body.byMode.treasure).toBeDefined();
-      expect(res.body.byMode.crew).toBeDefined();
+      expect(res.body.byMode.discovery).toBeDefined();
+      expect(res.body.byMode.planning).toBeDefined();
+      expect(res.body.byMode.staffing).toBeDefined();
     });
 
     it('response matches ActivityStats schema', async () => {

@@ -46,12 +46,12 @@ public class ConversationStoreTests
     public void Create_WithMetadata_StoresMetadata()
     {
         var store = CreateStore();
-        var metadata = new Dictionary<string, object> { ["mode"] = "shanty" };
+        var metadata = new Dictionary<string, object> { ["mode"] = "discovery" };
         var conv = store.Create(metadata);
 
         Assert.NotNull(conv.Metadata);
         Assert.True(conv.Metadata.ContainsKey("mode"));
-        Assert.Equal("shanty", conv.Metadata["mode"]?.ToString());
+        Assert.Equal("discovery", conv.Metadata["mode"]?.ToString());
     }
 
     [Fact]
@@ -162,7 +162,7 @@ public class ConversationStoreTests
     public void Get_IncludesMetadata()
     {
         var store = CreateStore();
-        var metadata = new Dictionary<string, object> { ["theme"] = "pirate" };
+        var metadata = new Dictionary<string, object> { ["theme"] = "sales" };
         var conv = store.Create(metadata);
 
         var detail = store.Get(conv.Id);
