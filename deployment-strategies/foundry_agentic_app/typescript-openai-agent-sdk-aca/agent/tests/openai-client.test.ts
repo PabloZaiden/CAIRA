@@ -369,7 +369,7 @@ describe('OpenAIClient', () => {
 
     it('routes planning conversations to the planning specialist agent', async () => {
       const conv = await client.createConversation({ mode: 'planning' });
-      mockRunFn.mockResolvedValue(makeRunResult('Buried riches await'));
+      mockRunFn.mockResolvedValue(makeRunResult('Planning guidance is ready.'));
 
       await client.sendMessage(conv.id, 'Guide me to planning');
 
@@ -379,7 +379,7 @@ describe('OpenAIClient', () => {
 
     it('routes staffing conversations to the staffing specialist agent', async () => {
       const conv = await client.createConversation({ mode: 'staffing' });
-      mockRunFn.mockResolvedValue(makeRunResult('State your rank'));
+      mockRunFn.mockResolvedValue(makeRunResult('Please share the required coverage.'));
 
       await client.sendMessage(conv.id, 'I want to join');
 
@@ -429,19 +429,27 @@ describe('OpenAIClient', () => {
       // The run result includes a tool_call_item with the resolution tool's rawItem.
       // extractResolutionFromItems() scans newItems for resolution tool calls.
       mockRunFn.mockResolvedValue(
-        makeRunResult('Ye won the discovery battle!', 'resp_001', {
+        makeRunResult('The opportunity is qualified.', 'resp_001', {
           resolution: {
             tool: 'resolve_discovery',
-            result: { winner: 'user', rounds: 4, primary_need: 'A verse about the sea' }
+            result: {
+              fit: 'qualified',
+              signals_reviewed: 4,
+              primary_need: 'Needs stronger executive sponsorship'
+            }
           }
         })
       );
 
-      const result = await client.sendMessage(conv.id, 'My final verse!');
+      const result = await client.sendMessage(conv.id, 'Please summarize the qualification.');
       expect(result).toBeDefined();
       expect(result!.resolution).toEqual({
         tool: 'resolve_discovery',
-        result: { winner: 'user', rounds: 4, primary_need: 'A verse about the sea' }
+        result: {
+          fit: 'qualified',
+          signals_reviewed: 4,
+          primary_need: 'Needs stronger executive sponsorship'
+        }
       });
     });
 
@@ -628,7 +636,11 @@ describe('OpenAIClient', () => {
       const streamResult = makeStreamedRunResult(['Done'], 'Done', 'resp_res', {
         resolutionToolCall: {
           name: 'resolve_discovery',
-          arguments: JSON.stringify({ winner: 'user', rounds: 3, primary_need: 'A fine verse' })
+          arguments: JSON.stringify({
+            fit: 'qualified',
+            signals_reviewed: 3,
+            primary_need: 'Needs executive sponsorship'
+          })
         }
       });
       mockRunFn.mockResolvedValue(streamResult);

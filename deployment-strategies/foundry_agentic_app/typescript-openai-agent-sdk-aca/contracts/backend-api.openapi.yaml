@@ -261,7 +261,7 @@ paths:
       responses:
         '200':
           description: |
-            Pirate response. Content type depends on the `Accept` header:
+            Activity response. Content type depends on the `Accept` header:
             - `text/event-stream` for SSE streaming
             - `application/json` for complete response
           content:

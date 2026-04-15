@@ -326,7 +326,7 @@ describe('validateSchema', () => {
           {
             id: 'msg_1',
             role: 'user',
-            content: 'Where be the planning?',
+            content: 'What should the account plan prioritize?',
             createdAt: '2026-01-15T10:30:00.000Z'
           }
         ]

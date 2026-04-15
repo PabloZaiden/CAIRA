@@ -26,7 +26,8 @@ const ADVENTURE_STARTED: AdventureStarted = {
   id: 'adv-new',
   mode: 'planning',
   status: 'active',
-  syntheticMessage: 'I seek buried planning! Guide me on a planning hunting adventure.',
+  syntheticMessage:
+    'I need an account plan for an active customer. Guide me through priorities, risks, and next steps, then conclude with a concise planning summary.',
   createdAt: '2026-01-01T00:00:00Z'
 };
 

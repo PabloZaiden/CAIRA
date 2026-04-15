@@ -29,7 +29,7 @@ async function main(): Promise<void> {
   process.on('SIGINT', () => void shutdown('SIGINT'));
 
   const address = await app.listen({ port: config.port, host: config.host });
-  app.log.info(`Pirate API listening at ${address}`);
+  app.log.info(`Business API listening at ${address}`);
 }
 
 void main();

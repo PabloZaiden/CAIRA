@@ -321,8 +321,8 @@ export class OpenAIClient {
 
     // Check if the coordinator called a resolution tool (e.g. resolve_discovery).
     // Resolution tools signal that an activity is complete — the frontend
-    // uses this to show outcomes like "You won the discovery battle!" with
-    // structured data (winner, rounds, etc.) rather than just free text.
+    // uses this to show outcomes like "The opportunity is qualified." with
+    // structured data (fit, signals_reviewed, etc.) rather than just free text.
     const cap = extractResolutionFromItems(result.newItems, this.log);
     const resolution: ActivityResolution | undefined = cap ? { tool: cap.tool, result: cap.result } : undefined;
 
@@ -699,7 +699,7 @@ export class OpenAIClient {
    *
    *   **Resolution tools** (resolve_discovery, resolve_planning, resolve_staffing)
    *   are FunctionTools that signal an activity is complete.  Their arguments
-   *   contain the structured outcome (e.g. { winner: "user", rounds: 4 }).
+   *   contain the structured outcome (e.g. { fit: "qualified", signals_reviewed: 4 }).
    *   We capture those args here and emit `activity.resolved` later when the
    *   tool_output confirms execution.
    */
@@ -727,7 +727,7 @@ export class OpenAIClient {
       );
     }
 
-    // Resolution tool → capture the structured arguments (e.g. { winner, rounds })
+    // Resolution tool -> capture the structured arguments (e.g. { fit, signals_reviewed })
     // so we can emit `activity.resolved` later when tool_output confirms execution.
     if (name && RESOLUTION_TOOLS.has(name)) {
       const argsStr = toolName?.['arguments'] as string | undefined;

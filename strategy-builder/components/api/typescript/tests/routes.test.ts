@@ -146,7 +146,7 @@ beforeAll(async () => {
     if (content.includes('resolve:discovery')) {
       resolution = {
         tool: 'resolve_discovery',
-        result: { winner: 'user', rounds: 4, primary_need: 'Through storms and gales...' }
+        result: { fit: 'qualified', signals_reviewed: 4, primary_need: 'Needs clearer qualification' }
       };
     } else if (content.includes('resolve:planning')) {
       resolution = {
@@ -394,7 +394,7 @@ describe('API auth middleware', () => {
 // ---------- Business operations ----------
 
 describe('POST /api/activities/discovery', () => {
-  it('starts a discovery battle adventure', async () => {
+  it('starts a discovery activity', async () => {
     const { status, data } = await apiRequest('POST', '/api/activities/discovery');
     expect(status).toBe(201);
     const started = data as {
@@ -421,7 +421,7 @@ describe('POST /api/activities/discovery', () => {
 });
 
 describe('POST /api/activities/planning', () => {
-  it('starts a planning hunt adventure', async () => {
+  it('starts a planning activity', async () => {
     const { status, data } = await apiRequest('POST', '/api/activities/planning');
     expect(status).toBe(201);
     const started = data as { id: string; mode: string; status: string };
@@ -431,7 +431,7 @@ describe('POST /api/activities/planning', () => {
 });
 
 describe('POST /api/activities/staffing', () => {
-  it('starts a staffing enlistment adventure', async () => {
+  it('starts a staffing activity', async () => {
     const { status, data } = await apiRequest('POST', '/api/activities/staffing');
     expect(status).toBe(201);
     const started = data as { id: string; mode: string; status: string };
@@ -572,7 +572,7 @@ describe('POST /api/activities/adventures/:id/parley (JSON)', () => {
     };
     expect(parley.resolution).toBeDefined();
     expect(parley.resolution?.tool).toBe('resolve_discovery');
-    expect(parley.resolution?.result).toHaveProperty('winner', 'user');
+    expect(parley.resolution?.result).toHaveProperty('fit', 'qualified');
 
     // Verify adventure store was updated
     const record = adventureStore.get(id);
@@ -631,7 +631,7 @@ describe('POST /api/activities/adventures/:id/parley (SSE)', () => {
     const record = adventureStore.get(id);
     expect(record?.status).toBe('resolved');
     expect(record?.outcome?.tool).toBe('resolve_discovery');
-    expect(record?.outcome?.result).toHaveProperty('winner', 'user');
+    expect(record?.outcome?.result).toHaveProperty('fit', 'qualified');
   });
 });
 
@@ -709,7 +709,7 @@ describe('Adventure detail with outcome', () => {
     expect(detail.outcome).toBeDefined();
     expect(detail.outcome?.tool).toBe('resolve_planning');
     expect(detail.outcome?.result).toHaveProperty('found', true);
-    expect(detail.outcome?.result).toHaveProperty('focus_area', "Coordinator's Gold");
+    expect(detail.outcome?.result).toHaveProperty('focus_area', 'Executive sponsor alignment');
   });
 });
 

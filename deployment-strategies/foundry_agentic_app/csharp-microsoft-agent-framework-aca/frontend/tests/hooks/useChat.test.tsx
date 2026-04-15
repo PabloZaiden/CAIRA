@@ -25,7 +25,7 @@ const RESOLVED_DETAIL: AdventureDetail = {
   status: 'resolved',
   outcome: {
     tool: 'resolve_discovery',
-    result: { winner: 'user', rounds: 4, primary_need: 'Needs clearer forecasting' }
+    result: { fit: 'qualified', signals_reviewed: 4, primary_need: 'Needs clearer forecasting' }
   }
 };
 
@@ -168,7 +168,7 @@ describe('useChat', () => {
         type: 'activity.resolved',
         outcome: {
           tool: 'resolve_discovery',
-          result: { winner: 'user', rounds: 4, primary_need: 'My verse' }
+          result: { fit: 'qualified', signals_reviewed: 4, primary_need: 'Needs account coverage' }
         }
       },
       {
@@ -197,12 +197,12 @@ describe('useChat', () => {
     });
 
     await act(async () => {
-      await result.current.sendMessage('Sing me a discovery');
+      await result.current.sendMessage('Please summarize the discovery.');
     });
 
     expect(result.current.outcome).toEqual({
       tool: 'resolve_discovery',
-      result: { winner: 'user', rounds: 4, primary_need: 'My verse' }
+      result: { fit: 'qualified', signals_reviewed: 4, primary_need: 'Needs account coverage' }
     });
   });
 
@@ -300,7 +300,7 @@ describe('useChat', () => {
       createdAt: '2026-01-02T00:00:00Z',
       resolution: {
         tool: 'resolve_discovery',
-        result: { winner: 'user', rounds: 3 }
+        result: { fit: 'qualified', signals_reviewed: 3 }
       }
     };
     (mockClient.parley as any).mockResolvedValue(response);
@@ -317,7 +317,7 @@ describe('useChat', () => {
 
     expect(result.current.outcome).toEqual({
       tool: 'resolve_discovery',
-      result: { winner: 'user', rounds: 3 }
+      result: { fit: 'qualified', signals_reviewed: 3 }
     });
   });
 
@@ -356,7 +356,7 @@ describe('useChat', () => {
         type: 'activity.resolved',
         outcome: {
           tool: 'resolve_discovery',
-          result: { winner: 'user', rounds: 3, primary_need: 'A fine verse' }
+          result: { fit: 'qualified', signals_reviewed: 3, primary_need: 'Needs executive sponsorship' }
         }
       },
       {
@@ -385,7 +385,7 @@ describe('useChat', () => {
     });
 
     await act(async () => {
-      await result.current.sendMessage('My final verse!');
+      await result.current.sendMessage('Please finalize the assessment.');
     });
 
     // Should have original 2 messages + user message, but NOT the empty assistant message
@@ -395,7 +395,7 @@ describe('useChat', () => {
     // Resolution should still be captured
     expect(result.current.outcome).toEqual({
       tool: 'resolve_discovery',
-      result: { winner: 'user', rounds: 3, primary_need: 'A fine verse' }
+      result: { fit: 'qualified', signals_reviewed: 3, primary_need: 'Needs executive sponsorship' }
     });
   });
 
@@ -407,7 +407,7 @@ describe('useChat', () => {
       createdAt: '2026-01-02T00:00:00Z',
       resolution: {
         tool: 'resolve_staffing',
-        result: { rank: 'Director', role: 'analyst', team_name: 'RevOps' }
+        result: { coverage_level: 'full', role: 'analyst', team_name: 'RevOps' }
       }
     };
     (mockClient.parley as any).mockResolvedValue(response);
@@ -419,7 +419,7 @@ describe('useChat', () => {
     });
 
     await act(async () => {
-      await result.current.sendMessage('I am ready to serve!');
+      await result.current.sendMessage('Please confirm the staffing plan.');
     });
 
     // Should have original 2 messages + user message, but NOT the empty assistant message
@@ -429,7 +429,7 @@ describe('useChat', () => {
     // Resolution should still be captured
     expect(result.current.outcome).toEqual({
       tool: 'resolve_staffing',
-      result: { rank: 'Director', role: 'analyst', team_name: 'RevOps' }
+      result: { coverage_level: 'full', role: 'analyst', team_name: 'RevOps' }
     });
   });
 
@@ -439,7 +439,7 @@ describe('useChat', () => {
       parleys: [
         { id: 'msg-1', role: 'user', content: 'Hello!', createdAt: '2026-01-01T12:00:00Z' },
         { id: 'msg-2', role: 'assistant', content: 'Welcome!', createdAt: '2026-01-01T12:00:01Z' },
-        { id: 'msg-3', role: 'user', content: 'Sing!', createdAt: '2026-01-01T12:00:02Z' },
+        { id: 'msg-3', role: 'user', content: 'Please summarize the activity.', createdAt: '2026-01-01T12:00:02Z' },
         { id: 'msg-4', role: 'assistant', content: '', createdAt: '2026-01-01T12:00:03Z' }
       ]
     };

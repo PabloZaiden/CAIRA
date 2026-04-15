@@ -451,18 +451,18 @@ describe('FoundryClient (without agent registration)', () => {
             {
               name: 'lookup_discovery_knowledge',
               callId: 'call_001',
-              arguments: JSON.stringify({ query: 'Sing a verse' })
+              arguments: JSON.stringify({ query: 'qualification signal' })
             }
           ]
         })
       );
 
       // Second call (tool output submission) returns final text
-      mockResponsesCreate.mockResolvedValueOnce(makeResponse('Here be a fine discovery!', 'resp_002'));
+      mockResponsesCreate.mockResolvedValueOnce(makeResponse('Here is the discovery summary.', 'resp_002'));
 
-      const result = await client.sendMessage(conv.id, 'Sing me a discovery');
+      const result = await client.sendMessage(conv.id, 'Summarize the discovery.');
       expect(result).toBeDefined();
-      expect(result!.content).toBe('Here be a fine discovery!');
+      expect(result!.content).toBe('Here is the discovery summary.');
       expect(mockResponsesCreate).toHaveBeenCalledTimes(2);
 
       // Check that the second call includes tool output and conversation param
@@ -484,9 +484,9 @@ describe('FoundryClient (without agent registration)', () => {
               name: 'resolve_discovery',
               callId: 'call_res_001',
               arguments: JSON.stringify({
-                winner: 'user',
-                rounds: 3,
-                primary_need: 'A mighty fine verse'
+                fit: 'qualified',
+                signals_reviewed: 3,
+                primary_need: 'Needs clearer qualification criteria'
               })
             }
           ]
@@ -494,13 +494,17 @@ describe('FoundryClient (without agent registration)', () => {
       );
 
       // Second call (after tool output submission) returns final text
-      mockResponsesCreate.mockResolvedValueOnce(makeResponse('Ye won the battle!', 'resp_002'));
+      mockResponsesCreate.mockResolvedValueOnce(makeResponse('Qualification assessment complete.', 'resp_002'));
 
-      const result = await client.sendMessage(conv.id, 'My final verse!');
+      const result = await client.sendMessage(conv.id, 'Finalize the qualification assessment.');
       expect(result).toBeDefined();
       expect(result!.resolution).toEqual({
         tool: 'resolve_discovery',
-        result: { winner: 'user', rounds: 3, primary_need: 'A mighty fine verse' }
+        result: {
+          fit: 'qualified',
+          signals_reviewed: 3,
+          primary_need: 'Needs clearer qualification criteria'
+        }
       });
     });
 
@@ -610,7 +614,7 @@ describe('FoundryClient (without agent registration)', () => {
           {
             name: 'lookup_discovery_knowledge',
             callId: 'call_spec_001',
-            arguments: JSON.stringify({ query: 'Sing a verse' })
+            arguments: JSON.stringify({ query: 'qualification signal' })
           }
         ]
       });
@@ -618,11 +622,11 @@ describe('FoundryClient (without agent registration)', () => {
       mockResponsesStream.mockReturnValueOnce(streamResult);
 
       // Second stream call (tool output submission) returns final text
-      const finalStream = makeStreamEvents(['Here be a verse!'], 'resp_final');
+      const finalStream = makeStreamEvents(['Here is the guidance.'], 'resp_final');
       mockResponsesStream.mockReturnValueOnce(finalStream);
 
       const chunks: string[] = [];
-      await client.sendMessageStream(conv.id, 'Sing me a discovery', (chunk: string) => {
+      await client.sendMessageStream(conv.id, 'Summarize the discovery', (chunk: string) => {
         chunks.push(chunk);
       });
 
@@ -645,15 +649,15 @@ describe('FoundryClient (without agent registration)', () => {
       const conv = await client.createConversation();
 
       // Stream that includes a resolution function call
-      const streamResult = makeStreamEvents(['Battle over!'], 'resp_resolve', {
+      const streamResult = makeStreamEvents(['Assessment complete.'], 'resp_resolve', {
         functionCalls: [
           {
             name: 'resolve_discovery',
             callId: 'call_res_001',
             arguments: JSON.stringify({
-              winner: 'user',
-              rounds: 4,
-              primary_need: 'A verse about the sea'
+              fit: 'qualified',
+              signals_reviewed: 4,
+              primary_need: 'Needs executive alignment'
             })
           }
         ]
@@ -662,11 +666,11 @@ describe('FoundryClient (without agent registration)', () => {
       mockResponsesStream.mockReturnValueOnce(streamResult);
 
       // Second stream (after tool output submission) returns final text
-      const finalStream = makeStreamEvents(['Ye won!'], 'resp_final');
+      const finalStream = makeStreamEvents(['The opportunity is qualified.'], 'resp_final');
       mockResponsesStream.mockReturnValueOnce(finalStream);
 
       const chunks: string[] = [];
-      await client.sendMessageStream(conv.id, 'My final verse!', (chunk: string) => {
+      await client.sendMessageStream(conv.id, 'Please complete the assessment.', (chunk: string) => {
         chunks.push(chunk);
       });
 
@@ -674,7 +678,7 @@ describe('FoundryClient (without agent registration)', () => {
       const resolvedChunk = chunks.find((c) => c.includes('activity.resolved'));
       expect(resolvedChunk).toBeDefined();
       expect(resolvedChunk).toContain('"tool":"resolve_discovery"');
-      expect(resolvedChunk).toContain('"winner":"user"');
+      expect(resolvedChunk).toContain('"fit":"qualified"');
 
       // Check complete event is present
       const completeChunk = chunks.find((c) => c.includes('message.complete'));
@@ -705,9 +709,9 @@ describe('FoundryClient (without agent registration)', () => {
             name: 'resolve_planning',
             callId: 'call_res_002',
             arguments: JSON.stringify({
-              found: true,
-              focus_area: 'Gold Crown',
-              location: 'Cave'
+              approved: true,
+              focus_area: 'Executive alignment',
+              next_step: 'Schedule planning workshop'
             })
           }
         ]
@@ -1015,7 +1019,7 @@ describe('FoundryClient (with agent registration)', () => {
               name: 'resolve_staffing',
               callId: 'call_res_001',
               arguments: JSON.stringify({
-                rank: 'Director',
+                coverage_level: 'full',
                 role: 'analyst',
                 team_name: 'RevOps'
               })
@@ -1030,7 +1034,7 @@ describe('FoundryClient (with agent registration)', () => {
       expect(result).toBeDefined();
       expect(result!.resolution).toEqual({
         tool: 'resolve_staffing',
-        result: { rank: 'Director', role: 'analyst', team_name: 'RevOps' }
+        result: { coverage_level: 'full', role: 'analyst', team_name: 'RevOps' }
       });
     });
   });
@@ -1073,12 +1077,12 @@ describe('FoundryClient (with agent registration)', () => {
     it('emits tool.called and tool.done for specialist tools', async () => {
       const conv = await client.createConversation({ mode: 'planning' });
 
-      const streamResult = makeStreamEvents(['Arr'], 'resp_specialist', {
+      const streamResult = makeStreamEvents(['Plan'], 'resp_specialist', {
         functionCalls: [
           {
             name: 'lookup_planning_knowledge',
             callId: 'call_spec_001',
-            arguments: JSON.stringify({ query: 'Describe a scene' })
+            arguments: JSON.stringify({ query: 'Describe the next planning milestone' })
           }
         ]
       });
@@ -1086,11 +1090,11 @@ describe('FoundryClient (with agent registration)', () => {
       mockResponsesStream.mockReturnValueOnce(streamResult);
 
       // Final stream after tool output
-      const finalStream = makeStreamEvents(['Enter the cave!'], 'resp_final');
+      const finalStream = makeStreamEvents(['Start with the executive review.'], 'resp_final');
       mockResponsesStream.mockReturnValueOnce(finalStream);
 
       const chunks: string[] = [];
-      await client.sendMessageStream(conv.id, 'Start planning hunt', (chunk: string) => {
+      await client.sendMessageStream(conv.id, 'Start account planning', (chunk: string) => {
         chunks.push(chunk);
       });
 
@@ -1110,15 +1114,15 @@ describe('FoundryClient (with agent registration)', () => {
     it('emits activity.resolved during streaming', async () => {
       const conv = await client.createConversation();
 
-      const streamResult = makeStreamEvents(['Battle over!'], 'resp_resolve', {
+      const streamResult = makeStreamEvents(['Assessment complete.'], 'resp_resolve', {
         functionCalls: [
           {
             name: 'resolve_discovery',
             callId: 'call_res_001',
             arguments: JSON.stringify({
-              winner: 'sales',
-              rounds: 2,
-              primary_need: 'The sea be wild!'
+              fit: 'follow_up',
+              signals_reviewed: 2,
+              primary_need: 'Needs broader stakeholder input'
             })
           }
         ]
@@ -1126,18 +1130,18 @@ describe('FoundryClient (with agent registration)', () => {
 
       mockResponsesStream.mockReturnValueOnce(streamResult);
 
-      const finalStream = makeStreamEvents(['I win!'], 'resp_final');
+      const finalStream = makeStreamEvents(['Follow-up is recommended.'], 'resp_final');
       mockResponsesStream.mockReturnValueOnce(finalStream);
 
       const chunks: string[] = [];
-      await client.sendMessageStream(conv.id, 'My verse', (chunk: string) => {
+      await client.sendMessageStream(conv.id, 'Summarize the assessment', (chunk: string) => {
         chunks.push(chunk);
       });
 
       const resolvedChunk = chunks.find((c) => c.includes('activity.resolved'));
       expect(resolvedChunk).toBeDefined();
       expect(resolvedChunk).toContain('"tool":"resolve_discovery"');
-      expect(resolvedChunk).toContain('"winner":"sales"');
+      expect(resolvedChunk).toContain('"fit":"follow_up"');
     });
 
     it('records assistant message in conversation after streaming', async () => {

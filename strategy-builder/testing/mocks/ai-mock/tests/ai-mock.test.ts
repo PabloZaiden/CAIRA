@@ -876,7 +876,7 @@ describe('Multi-agent handoff flow', () => {
 
   it('falls back to first transfer tool when no keyword match', async () => {
     const { body } = await post<Response>('/responses', {
-      input: 'Hello there team!',
+      input: 'Hello there!',
       tools: transferTools
     });
     const fnCall = body.output[0] as { name: string };
@@ -894,7 +894,7 @@ describe('Multi-agent handoff flow', () => {
 
   it('routes based on keyword "enlist" to Staffing', async () => {
     const { body } = await post<Response>('/responses', {
-      input: 'I want to join the account team',
+      input: 'I want to join the staffing interview',
       tools: transferTools
     });
     const fnCall = body.output[0] as { name: string };
@@ -907,7 +907,7 @@ describe('Multi-agent resolution tool flow', () => {
     {
       type: 'function' as const,
       name: 'resolve_discovery',
-      description: 'Resolve discovery battle',
+      description: 'Resolve discovery activity',
       parameters: { type: 'object', properties: {} }
     }
   ];
@@ -916,7 +916,7 @@ describe('Multi-agent resolution tool flow', () => {
     {
       type: 'function' as const,
       name: 'resolve_planning',
-      description: 'Resolve planning hunt',
+      description: 'Resolve planning activity',
       parameters: { type: 'object', properties: {} }
     }
   ];
@@ -933,7 +933,7 @@ describe('Multi-agent resolution tool flow', () => {
   it('returns text on FIRST specialist turn (post-handoff), not resolution tool', async () => {
     const { body } = await post<Response>('/responses', {
       input: [
-        { type: 'message', role: 'user', content: 'Sing me a discovery!' },
+        { type: 'message', role: 'user', content: 'Start opportunity discovery.' },
         { type: 'function_call_output', call_id: 'call_handoff', output: '' }
       ],
       tools: resolveDiscoveryTools,
@@ -942,14 +942,14 @@ describe('Multi-agent resolution tool flow', () => {
 
     expect(body.output.length).toBe(1);
     expect(body.output[0]?.type).toBe('message');
-    expect(body.output_text).toContain('verse');
+    expect(body.output_text).toContain('example');
   });
 
   it('calls resolve_discovery on SECOND specialist turn', async () => {
     // First specialist turn: returns text
     const { body: firstResp } = await post<Response>('/responses', {
       input: [
-        { type: 'message', role: 'user', content: 'Sing me a discovery!' },
+        { type: 'message', role: 'user', content: 'Start opportunity discovery.' },
         { type: 'function_call_output', call_id: 'call_handoff', output: '' }
       ],
       tools: resolveDiscoveryTools
@@ -959,7 +959,7 @@ describe('Multi-agent resolution tool flow', () => {
     // Second specialist turn: with previous_response_id pointing to text response
     const { body } = await post<Response>('/responses', {
       input: [
-        { type: 'message', role: 'user', content: 'Great verse!' },
+        { type: 'message', role: 'user', content: 'That summary works.' },
         { type: 'function_call_output', call_id: 'call_handoff2', output: '' }
       ],
       tools: resolveDiscoveryTools,
@@ -1547,7 +1547,7 @@ describe('Conversations API', () => {
       });
       // First specialist turn should return text (not call resolution tool)
       expect(r2.body.output[0]?.type).toBe('message');
-      expect(r2.body.output_text).toContain('verse');
+      expect(r2.body.output_text).toContain('example');
 
       // Turn 3: another parley — should now call the resolution tool
       const r3 = await post<{ id: string; output: Array<{ type: string; name?: string }> }>('/responses', {

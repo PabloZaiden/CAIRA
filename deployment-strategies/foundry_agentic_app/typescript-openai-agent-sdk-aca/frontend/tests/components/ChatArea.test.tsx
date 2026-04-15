@@ -20,12 +20,16 @@ const MESSAGES: ParleyMessage[] = [
 
 const DISCOVERY_OUTCOME: AdventureOutcome = {
   tool: 'resolve_discovery',
-  result: { winner: 'user', rounds: 4, primary_need: 'Needs clearer forecasting' }
+  result: { fit: 'qualified', signals_reviewed: 4, primary_need: 'Needs clearer forecasting' }
 };
 
 const PLANNING_OUTCOME: AdventureOutcome = {
   tool: 'resolve_planning',
-  result: { found: true, focus_area: 'Pipeline coverage', location: 'North America' }
+  result: {
+    approved: true,
+    focus_area: 'Pipeline coverage',
+    next_step: 'Coordinate the North America review'
+  }
 };
 
 describe('ChatArea', () => {
@@ -89,7 +93,7 @@ describe('ChatArea', () => {
     const details = screen.getByTestId('outcome-details');
     expect(details).toBeInTheDocument();
     expect(screen.getByText('Pipeline coverage')).toBeInTheDocument();
-    expect(screen.getByText('North America')).toBeInTheDocument();
+    expect(screen.getByText('Coordinate the North America review')).toBeInTheDocument();
   });
 
   // ---- Specialist activity indicator tests ----

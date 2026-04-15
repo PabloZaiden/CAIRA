@@ -112,7 +112,7 @@ describe('App', () => {
     });
   });
 
-  it('clicking Sea Discovery Battle calls startDiscovery and shows conversation', async () => {
+  it('clicking Opportunity Discovery calls startDiscovery and shows conversation', async () => {
     const started = makeAdventureStarted('discovery', 'adv-discovery');
     mockStartDiscovery.mockResolvedValue(started);
 

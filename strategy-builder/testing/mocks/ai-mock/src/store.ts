@@ -303,13 +303,13 @@ function generateResponseText(userText: string): string {
 /** Keywords used to route to specialist agents via transfer/specialist tools */
 const TRANSFER_KEYWORDS: Record<string, string[]> = {
   // OpenAI Agent SDK naming convention (transfer_to_*)
-  transfer_to_Discovery: ['discovery', 'sing', 'verse', 'song', 'duel', 'battle'],
-  transfer_to_Planning: ['planning', 'hunt', 'island', 'cave', 'map', 'gold'],
-  transfer_to_Staffing: ['staffing', 'enlist', 'join', 'interview', 'recruit', 'role'],
+  transfer_to_Discovery: ['discovery', 'qualify', 'opportunity', 'signal', 'customer', 'pipeline'],
+  transfer_to_Planning: ['planning', 'account', 'priority', 'risk', 'workstream', 'milestone'],
+  transfer_to_Staffing: ['staffing', 'team', 'coverage', 'interview', 'recruit', 'role'],
   // Foundry Agent Service naming convention (*_specialist)
-  discovery_specialist: ['discovery', 'sing', 'verse', 'song', 'duel', 'battle'],
-  planning_specialist: ['planning', 'hunt', 'island', 'cave', 'map', 'gold'],
-  staffing_specialist: ['staffing', 'enlist', 'join', 'interview', 'recruit', 'role']
+  discovery_specialist: ['discovery', 'qualify', 'opportunity', 'signal', 'customer', 'pipeline'],
+  planning_specialist: ['planning', 'account', 'priority', 'risk', 'workstream', 'milestone'],
+  staffing_specialist: ['staffing', 'team', 'coverage', 'interview', 'recruit', 'role']
 };
 
 /** Mock arguments for resolution tools (deterministic test data) */
@@ -515,7 +515,7 @@ function generateNamedFunctionCall(toolName: string): FunctionCallOutputItem {
 /**
  * Generate conversational opening text for a specialist agent.
  * This simulates the specialist's first response after a handoff —
- * an opening verse/description/question rather than immediately resolving.
+ * an opening prompt/description/question rather than immediately resolving.
  */
 function generateSpecialistText(
   tools: ToolDefinition[],
@@ -671,7 +671,7 @@ export function createResponse(body: CreateResponseRequest): Response {
       //
       // A real LLM wouldn't call the resolution tool immediately after a
       // handoff — it would start the activity with conversational text (e.g.,
-      // the opening discovery verse) and only resolve after multiple turns.
+      // the opening discovery prompt) and only resolve after multiple turns.
       //
       // We track this via specialistTextResponses: if the previous response
       // in this conversation chain already returned specialist text, the next

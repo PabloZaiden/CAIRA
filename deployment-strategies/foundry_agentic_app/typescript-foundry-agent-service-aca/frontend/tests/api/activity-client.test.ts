@@ -271,7 +271,7 @@ describe('ActivityClient', () => {
     it('handles activity.resolved SSE events', async () => {
       const stream = sseStream([
         'event: message.delta\ndata: {"content":"You win!"}\n\n',
-        'event: activity.resolved\ndata: {"tool":"resolve_discovery","result":{"winner":"user","rounds":4,"primary_need":"Through storms we sail"}}\n\n',
+        'event: activity.resolved\ndata: {"tool":"resolve_discovery","result":{"fit":"qualified","signals_reviewed":4,"primary_need":"Needs clearer forecasting"}}\n\n',
         'event: message.complete\ndata: {"messageId":"msg-5","content":"You win!","usage":{"promptTokens":10,"completionTokens":5}}\n\n'
       ]);
 
@@ -283,7 +283,7 @@ describe('ActivityClient', () => {
       );
 
       const events: unknown[] = [];
-      for await (const event of client.parleyStream('adv-1', 'My verse')) {
+      for await (const event of client.parleyStream('adv-1', 'Please summarize the discovery.')) {
         events.push(event);
       }
 
@@ -292,7 +292,7 @@ describe('ActivityClient', () => {
         type: 'activity.resolved',
         outcome: {
           tool: 'resolve_discovery',
-          result: { winner: 'user', rounds: 4, primary_need: 'Through storms we sail' }
+          result: { fit: 'qualified', signals_reviewed: 4, primary_need: 'Needs clearer forecasting' }
         }
       });
     });
@@ -313,7 +313,7 @@ describe('ActivityClient', () => {
       );
 
       const events: unknown[] = [];
-      for await (const event of client.parleyStream('adv-1', 'Sing!')) {
+      for await (const event of client.parleyStream('adv-1', 'Please summarize the discovery.')) {
         events.push(event);
       }
 

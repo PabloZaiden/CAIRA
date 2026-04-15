@@ -91,7 +91,7 @@ Flow:
 
 Constraints:
 - Be compact and operational.
-- Do not add extra rounds after resolving the plan.`;
+- Do not add extra turns after resolving the plan.`;
 
 const DEFAULT_STAFFING_INSTRUCTIONS = `You are the account team staffing specialist and you talk directly to the user.
 

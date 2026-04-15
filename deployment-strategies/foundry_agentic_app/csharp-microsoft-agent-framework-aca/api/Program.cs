@@ -85,7 +85,7 @@ public class Program
         var url = $"http://{config.Host}:{config.Port}";
         app.Urls.Add(url);
 
-        app.Logger.LogInformation("Pirate API listening at {Url}", url);
+        app.Logger.LogInformation("Business API listening at {Url}", url);
         app.Run();
     }
 }

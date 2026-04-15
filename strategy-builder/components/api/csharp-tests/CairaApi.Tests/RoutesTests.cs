@@ -389,15 +389,15 @@ public class RoutesTests : IClassFixture<RoutesTests.ApiFactory>, IDisposable
                 tool = "resolve_discovery",
                 result = new Dictionary<string, object>
                 {
-                    ["winner"] = "player",
-                    ["rounds"] = 3,
+                    ["fit"] = "qualified",
+                    ["signals_reviewed"] = 3,
                     ["primary_need"] = "Needs clearer qualification",
                 },
             },
         });
 
         var body = new StringContent(
-            JsonSerializer.Serialize(new { message = "Final verse" }),
+            JsonSerializer.Serialize(new { message = "Finalize the assessment" }),
             Encoding.UTF8, "application/json");
         var response = await _client.PostAsync("/api/activities/adventures/conv_resolve/parley", body);
 
