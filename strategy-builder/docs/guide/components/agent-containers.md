@@ -77,11 +77,11 @@ The implementations use **different orchestration patterns** to coordinate the t
 
 Each specialist agent defines an **activity-specific resolution tool** with domain-specific parameters:
 
-| Activity              | Tool               | Parameters                                                                 |
-|-----------------------|--------------------|----------------------------------------------------------------------------|
+| Activity              | Tool                | Parameters                                                                                         |
+|-----------------------|---------------------|----------------------------------------------------------------------------------------------------|
 | Opportunity discovery | `resolve_discovery` | `fit: "qualified"\|"unqualified"\|"follow_up"`, `signals_reviewed: number`, `primary_need: string` |
-| Account planning      | `resolve_planning`  | `approved: boolean`, `focus_area: string`, `next_step: string` |
-| Account-team staffing | `resolve_staffing`  | `coverage_level: string`, `role: string`, `team_name: string` |
+| Account planning      | `resolve_planning`  | `approved: boolean`, `focus_area: string`, `next_step: string`                                     |
+| Account-team staffing | `resolve_staffing`  | `coverage_level: string`, `role: string`, `team_name: string`                                      |
 
 When a specialist determines an activity is complete, it calls its resolution tool. The local handler captures the structured result and the streaming layer emits an `activity.resolved` SSE event. Conversations remain open after resolution.
 
@@ -89,7 +89,7 @@ When a specialist determines an activity is complete, it calls its resolution to
 
 | Aspect                  | OpenAI Agent SDK                                                  | Foundry Agent Service                                     | Microsoft Agent Framework                                             |
 |-------------------------|-------------------------------------------------------------------|-----------------------------------------------------------|-----------------------------------------------------------------------|
-| **Orchestration agent** | Coordinator agent (single conversational agent)                       | Triage agent (silent router)                              | None; one workflow is selected per mode                               |
+| **Orchestration agent** | Coordinator agent (single conversational agent)                   | Triage agent (silent router)                              | None; one workflow is selected per mode                               |
 | **Mechanism**           | Agent-as-tool (`.asTool()`) + resolution FunctionTools            | Connected agents (`ToolUtility.createConnectedAgentTool`) | One specialist executor + local tools inside a per-mode workflow      |
 | **Orchestration**       | Client-side (SDK run loop invokes specialist tools transparently) | Server-side (Azure AI Foundry handles delegation)         | Server-side workflow runner resumes the selected mode-specific graph  |
 | **Streaming**           | Emits `tool.called`/`tool.done` SSE events for specialist tools   | Completes normally after server-side orchestration        | Streams specialist output and workflow events from the selected graph |
@@ -149,9 +149,9 @@ The Foundry variant uses `@azure/ai-projects` v2 SDK for agent management and th
 | `AGENT_MODEL`                         | No                     | `gpt-5.2-chat`                      | Model deployment name                     |
 | `AGENT_NAME`                          | No                     | `caira-account-team-agent`          | Agent display name                        |
 | `SHARED_INSTRUCTIONS`                 | No                     | (built-in)                          | Shared system prompt for the triage agent |
-| `DISCOVERY_INSTRUCTIONS`                 | No                     | (built-in)                          | Opportunity discovery specialist prompt   |
+| `DISCOVERY_INSTRUCTIONS`              | No                     | (built-in)                          | Opportunity discovery specialist prompt   |
 | `PLANNING_INSTRUCTIONS`               | No                     | (built-in)                          | Account planning specialist prompt        |
-| `STAFFING_INSTRUCTIONS`                   | No                     | (built-in)                          | Account-team staffing specialist prompt   |
+| `STAFFING_INSTRUCTIONS`               | No                     | (built-in)                          | Account-team staffing specialist prompt   |
 | `LOG_LEVEL`                           | No                     | `info`                              | Pino log level                            |
 | `SKIP_AUTH`                           | No                     | `false`                             | Skip bearer token validation              |
 | `INBOUND_AUTH_TENANT_ID`              | When `SKIP_AUTH=false` | --                                  | Entra tenant used to derive valid issuers |
@@ -204,10 +204,10 @@ The OpenAI variant uses **client-side state** with the Responses API:
 | `AZURE_OPENAI_API_VERSION`            | No                     | `2025-03-01-preview`                | API version                                        |
 | `AGENT_MODEL`                         | No                     | `gpt-5.2-chat`                      | Model deployment name                              |
 | `AGENT_NAME`                          | No                     | `CAIRA Account Team Agent`          | Agent display name                                 |
-| `SHARED_INSTRUCTIONS`                | No                     | (built-in)                          | Shared system prompt for the coordinator agent         |
-| `DISCOVERY_INSTRUCTIONS`                 | No                     | (built-in)                          | Opportunity discovery specialist prompt            |
+| `SHARED_INSTRUCTIONS`                 | No                     | (built-in)                          | Shared system prompt for the coordinator agent     |
+| `DISCOVERY_INSTRUCTIONS`              | No                     | (built-in)                          | Opportunity discovery specialist prompt            |
 | `PLANNING_INSTRUCTIONS`               | No                     | (built-in)                          | Account planning specialist prompt                 |
-| `STAFFING_INSTRUCTIONS`                   | No                     | (built-in)                          | Account-team staffing specialist prompt            |
+| `STAFFING_INSTRUCTIONS`               | No                     | (built-in)                          | Account-team staffing specialist prompt            |
 | `LOG_LEVEL`                           | No                     | `info`                              | Pino log level                                     |
 | `SKIP_AUTH`                           | No                     | `false`                             | Skip bearer token validation                       |
 | `INBOUND_AUTH_TENANT_ID`              | When `SKIP_AUTH=false` | --                                  | Entra tenant used to derive valid issuers          |
@@ -262,10 +262,10 @@ This makes the C# variant conceptually similar to the others at the **HTTP contr
 | `AZURE_OPENAI_API_VERSION`            | No                     | `2025-03-01-preview`                | API version                                        |
 | `AGENT_MODEL`                         | No                     | `gpt-5.2-chat`                      | Model deployment name                              |
 | `AGENT_NAME`                          | No                     | `CAIRA Account Team Agent`          | Agent display name                                 |
-| `SHARED_INSTRUCTIONS`                | No                     | (built-in)                          | Shared instruction block prepended to specialists  |
-| `DISCOVERY_INSTRUCTIONS`                 | No                     | (built-in)                          | Opportunity discovery specialist prompt            |
+| `SHARED_INSTRUCTIONS`                 | No                     | (built-in)                          | Shared instruction block prepended to specialists  |
+| `DISCOVERY_INSTRUCTIONS`              | No                     | (built-in)                          | Opportunity discovery specialist prompt            |
 | `PLANNING_INSTRUCTIONS`               | No                     | (built-in)                          | Account planning specialist prompt                 |
-| `STAFFING_INSTRUCTIONS`                   | No                     | (built-in)                          | Account-team staffing specialist prompt            |
+| `STAFFING_INSTRUCTIONS`               | No                     | (built-in)                          | Account-team staffing specialist prompt            |
 | `LOG_LEVEL`                           | No                     | `Debug`                             | ASP.NET log level                                  |
 | `SKIP_AUTH`                           | No                     | `false`                             | Skip bearer token validation                       |
 | `INBOUND_AUTH_TENANT_ID`              | When `SKIP_AUTH=false` | --                                  | Entra tenant used to derive valid issuers          |

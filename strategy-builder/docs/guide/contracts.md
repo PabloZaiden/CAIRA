@@ -7,7 +7,7 @@ The contracts define the REST interfaces between components. They live in the `c
 There are two OpenAPI 3.1.0 specifications:
 
 | Contract     | File                                 | Who implements it                | Who calls it  |
-| ------------ | ------------------------------------ | -------------------------------- | ------------- |
+|--------------|--------------------------------------|----------------------------------|---------------|
 | Agent API    | `contracts/agent-api.openapi.yaml`   | Agent containers (both variants) | API container |
 | Business API | `contracts/backend-api.openapi.yaml` | API container                    | Frontend      |
 
@@ -16,7 +16,7 @@ There are two OpenAPI 3.1.0 specifications:
 The generic conversation API that all agent implementations must conform to. This is the swappability layer -- any agent that implements this contract can be placed behind the API container.
 
 | Endpoint                                   | Method | Description                                          |
-| ------------------------------------------ | ------ | ---------------------------------------------------- |
+|--------------------------------------------|--------|------------------------------------------------------|
 | `/conversations`                           | POST   | Create a new conversation                            |
 | `/conversations`                           | GET    | List conversations (paginated: `?offset=0&limit=20`) |
 | `/conversations/{conversationId}`          | GET    | Get conversation details + message history           |
@@ -77,7 +77,7 @@ The public business API that the frontend calls. The current sample domain is a 
 > **WS-12 rework:** These endpoints replace the previous `recruit`, `staffing`, `staffing/{id}/parley`, and `planning` endpoints.
 
 | Endpoint                                      | Method | Description                                  | Maps to agent API                   |
-| --------------------------------------------- | ------ | -------------------------------------------- | ----------------------------------- |
+|-----------------------------------------------|--------|----------------------------------------------|-------------------------------------|
 | `POST /api/activities/discovery`              | POST   | Start an opportunity discovery flow          | `POST /conversations`               |
 | `POST /api/activities/planning`               | POST   | Start an account planning flow               | `POST /conversations`               |
 | `POST /api/activities/staffing`               | POST   | Start an account-team staffing flow          | `POST /conversations`               |
