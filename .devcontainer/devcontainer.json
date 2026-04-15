@@ -26,7 +26,6 @@
     "git-safe-dir": "git config --global --add safe.directory ${containerWorkspaceFolder}"
   },
   "workspaceMount": "source=${localWorkspaceFolder},target=${containerWorkspaceFolder},type=bind,consistency=cached",
-  "workspaceFolder": "/workspace",
   "privileged": true,
   "remoteEnv": {
     "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}",
