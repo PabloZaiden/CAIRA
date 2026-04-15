@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "version": "0.1.0",
-  "description": "CAIRA Frontend — React/TypeScript chat UI (Agentic Pirates)",
+  "description": "CAIRA Frontend — React/TypeScript chat UI (Account Team Workspace)",
   "scripts": {
     "start": "node src/server.ts",
     "dev": "vite",

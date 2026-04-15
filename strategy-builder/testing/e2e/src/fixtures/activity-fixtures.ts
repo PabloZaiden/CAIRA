@@ -1,9 +1,9 @@
 /**
- * Canned pirate messages and expected response patterns for E2E tests.
+ * Canned business messages and expected response patterns for E2E tests.
  *
  * These fixtures provide:
- * - Sample user messages to send to the pirate API
- * - Expected response patterns for validating pirate-themed responses
+ * - Sample user messages to send to the business API
+ * - Expected response patterns for validating business-oriented responses
  * - Schema names for OpenAPI validation
  * - SSE event type sequences
  */
@@ -11,19 +11,19 @@
 // ─── User messages ──────────────────────────────────────────────────────
 
 /** Sample user messages for parley tests */
-export const PIRATE_MESSAGES = {
+export const ACTIVITY_MESSAGES = {
   /** Generic greeting — works for any activity mode */
-  greeting: 'Ahoy there! What be happening?',
-  /** Shanty-flavored message */
-  shanty: 'Give me yer best verse, ye salty dog!',
-  /** Treasure-flavored message */
-  treasure: 'I see a cave ahead — should we explore it?',
-  /** Crew-flavored message */
-  crew: 'I can tie a bowline and swab the deck!',
+  greeting: 'Hello team, what should we focus on?',
+  /** Discovery-flavored message */
+  discovery: 'Help me qualify this new customer opportunity.',
+  /** Planning-flavored message */
+  planning: 'Which account plan should we prioritize next?',
+  /** Staffing-flavored message */
+  staffing: 'Recommend the right team coverage for this engagement.',
   /** Short message for echo/regression tests */
-  short: 'Arr!',
+  short: 'Thanks.',
   /** Long message for stress tests */
-  long: 'Tell me a long tale about your adventures on the seven seas, including every port you visited and every ship you plundered along the way.'
+  long: 'Walk me through a detailed account strategy, including stakeholders, milestones, risks, and staffing recommendations.'
 } as const;
 
 // ─── Schema names (matching backend-api.openapi.yaml components/schemas) ─

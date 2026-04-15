@@ -8,7 +8,7 @@
 ///
 /// Mirrors the TypeScript routes.test.ts patterns:
 ///   - Health endpoint returns status from agent health check
-///   - Start adventure (shanty/treasure/crew) creates conversation and returns 201
+///   - Start adventure (discovery/planning/staffing) creates conversation and returns 201
 ///   - List adventures, get adventure detail
 ///   - Parley (JSON and SSE modes)
 ///   - Stats computed from adventure state
@@ -107,7 +107,7 @@ public class RoutesTests : IClassFixture<RoutesTests.ApiFactory>, IDisposable
         using var authFactory = new AuthApiFactory();
         using var client = authFactory.CreateClient();
 
-        var response = await client.GetAsync("/api/pirate/adventures");
+        var response = await client.GetAsync("/api/activities/adventures");
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -150,7 +150,7 @@ public class RoutesTests : IClassFixture<RoutesTests.ApiFactory>, IDisposable
         });
         using var client = authFactory.CreateClient();
 
-        var request = new HttpRequestMessage(HttpMethod.Get, "/api/pirate/adventures");
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/activities/adventures");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "bff-token");
         var response = await client.SendAsync(request);
 
@@ -167,7 +167,7 @@ public class RoutesTests : IClassFixture<RoutesTests.ApiFactory>, IDisposable
         using var authFactory = new AuthApiFactory();
         using var client = authFactory.CreateClient();
 
-        var request = new HttpRequestMessage(HttpMethod.Get, "/api/pirate/adventures");
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/activities/adventures");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "wrong-token");
         var response = await client.SendAsync(request);
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
@@ -182,9 +182,9 @@ public class RoutesTests : IClassFixture<RoutesTests.ApiFactory>, IDisposable
     // ========================================================================
 
     [Theory]
-    [InlineData("/api/pirate/shanty", "shanty")]
-    [InlineData("/api/pirate/treasure", "treasure")]
-    [InlineData("/api/pirate/crew/enlist", "crew")]
+    [InlineData("/api/activities/discovery", "discovery")]
+    [InlineData("/api/activities/planning", "planning")]
+    [InlineData("/api/activities/staffing", "staffing")]
     public async Task StartAdventure_Returns201WithAdventureData(string endpoint, string expectedMode)
     {
         _factory.AgentHandler.Enqueue(HttpStatusCode.Created, new
@@ -212,7 +212,7 @@ public class RoutesTests : IClassFixture<RoutesTests.ApiFactory>, IDisposable
         _factory.AgentHandler.Enqueue(HttpStatusCode.InternalServerError,
             new { code = "agent_error", message = "Internal error" });
 
-        var response = await _client.PostAsync("/api/pirate/shanty", null);
+        var response = await _client.PostAsync("/api/activities/discovery", null);
 
         Assert.Equal(HttpStatusCode.BadGateway, response.StatusCode);
     }
@@ -227,10 +227,10 @@ public class RoutesTests : IClassFixture<RoutesTests.ApiFactory>, IDisposable
             updatedAt = "2026-01-01T00:00:00Z",
         });
 
-        await _client.PostAsync("/api/pirate/shanty", null);
+        await _client.PostAsync("/api/activities/discovery", null);
 
         Assert.True(Routes.AdventureStore.ContainsKey("conv_stored_1"));
-        Assert.Equal("shanty", Routes.AdventureStore["conv_stored_1"].Mode);
+        Assert.Equal("discovery", Routes.AdventureStore["conv_stored_1"].Mode);
         Assert.Equal("active", Routes.AdventureStore["conv_stored_1"].Status);
     }
 
@@ -242,7 +242,7 @@ public class RoutesTests : IClassFixture<RoutesTests.ApiFactory>, IDisposable
     public async Task GetAdventures_ReturnsListFromAgent()
     {
         // Seed adventure store
-        Routes.AdventureStore["conv_a"] = new AdventureRecord { Mode = "shanty" };
+        Routes.AdventureStore["conv_a"] = new AdventureRecord { Mode = "discovery" };
 
         _factory.AgentHandler.Enqueue(HttpStatusCode.OK, new
         {
@@ -255,14 +255,14 @@ public class RoutesTests : IClassFixture<RoutesTests.ApiFactory>, IDisposable
             total = 1,
         });
 
-        var response = await _client.GetAsync("/api/pirate/adventures");
+        var response = await _client.GetAsync("/api/activities/adventures");
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(1, body.GetProperty("total").GetInt32());
         var adventures = body.GetProperty("adventures");
         Assert.Equal(1, adventures.GetArrayLength());
-        Assert.Equal("shanty", adventures[0].GetProperty("mode").GetString());
+        Assert.Equal("discovery", adventures[0].GetProperty("mode").GetString());
     }
 
     [Fact]
@@ -276,7 +276,7 @@ public class RoutesTests : IClassFixture<RoutesTests.ApiFactory>, IDisposable
             total = 0,
         });
 
-        var response = await _client.GetAsync("/api/pirate/adventures?offset=5&limit=10");
+        var response = await _client.GetAsync("/api/activities/adventures?offset=5&limit=10");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         // Verify the agent handler got the right query params
@@ -292,7 +292,7 @@ public class RoutesTests : IClassFixture<RoutesTests.ApiFactory>, IDisposable
     [Fact]
     public async Task GetAdventureDetail_ReturnsDetailFromAgent()
     {
-        Routes.AdventureStore["conv_detail"] = new AdventureRecord { Mode = "treasure" };
+        Routes.AdventureStore["conv_detail"] = new AdventureRecord { Mode = "planning" };
 
         _factory.AgentHandler.Enqueue(HttpStatusCode.OK, new
         {
@@ -302,16 +302,16 @@ public class RoutesTests : IClassFixture<RoutesTests.ApiFactory>, IDisposable
             messages = new[]
             {
                 new { id = "msg_1", role = "user", content = "Hello", createdAt = "2026-01-01T00:00:01Z" },
-                new { id = "msg_2", role = "assistant", content = "Ahoy!", createdAt = "2026-01-01T00:00:02Z" },
+                new { id = "msg_2", role = "assistant", content = "Hello!", createdAt = "2026-01-01T00:00:02Z" },
             },
         });
 
-        var response = await _client.GetAsync("/api/pirate/adventures/conv_detail");
+        var response = await _client.GetAsync("/api/activities/adventures/conv_detail");
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("conv_detail", body.GetProperty("id").GetString());
-        Assert.Equal("treasure", body.GetProperty("mode").GetString());
+        Assert.Equal("planning", body.GetProperty("mode").GetString());
         Assert.Equal(2, body.GetProperty("messageCount").GetInt32());
         Assert.Equal(2, body.GetProperty("parleys").GetArrayLength());
     }
@@ -322,7 +322,7 @@ public class RoutesTests : IClassFixture<RoutesTests.ApiFactory>, IDisposable
         _factory.AgentHandler.Enqueue(HttpStatusCode.NotFound,
             new { code = "not_found", message = "Conversation not found" });
 
-        var response = await _client.GetAsync("/api/pirate/adventures/conv_missing");
+        var response = await _client.GetAsync("/api/activities/adventures/conv_missing");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -335,7 +335,7 @@ public class RoutesTests : IClassFixture<RoutesTests.ApiFactory>, IDisposable
     public async Task Parley_Returns400WhenMessageMissing()
     {
         var content = new StringContent("{}", Encoding.UTF8, "application/json");
-        var response = await _client.PostAsync("/api/pirate/adventures/conv_1/parley", content);
+        var response = await _client.PostAsync("/api/activities/adventures/conv_1/parley", content);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
@@ -346,7 +346,7 @@ public class RoutesTests : IClassFixture<RoutesTests.ApiFactory>, IDisposable
     public async Task Parley_Returns400WhenBodyEmpty()
     {
         var content = new StringContent("", Encoding.UTF8, "application/json");
-        var response = await _client.PostAsync("/api/pirate/adventures/conv_1/parley", content);
+        var response = await _client.PostAsync("/api/activities/adventures/conv_1/parley", content);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -358,14 +358,14 @@ public class RoutesTests : IClassFixture<RoutesTests.ApiFactory>, IDisposable
         {
             id = "msg_parley_1",
             role = "assistant",
-            content = "Yo ho ho!",
+            content = "Thanks for the update!",
             createdAt = "2026-01-01T00:00:00Z",
         });
 
         var body = new StringContent(
-            JsonSerializer.Serialize(new { message = "Sing me a shanty" }),
+            JsonSerializer.Serialize(new { message = "Sing me a discovery" }),
             Encoding.UTF8, "application/json");
-        var response = await _client.PostAsync("/api/pirate/adventures/conv_1/parley", body);
+        var response = await _client.PostAsync("/api/activities/adventures/conv_1/parley", body);
         var result = await response.Content.ReadFromJsonAsync<JsonElement>();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -376,30 +376,30 @@ public class RoutesTests : IClassFixture<RoutesTests.ApiFactory>, IDisposable
     [Fact]
     public async Task Parley_UpdatesAdventureStatusOnResolution()
     {
-        Routes.AdventureStore["conv_resolve"] = new AdventureRecord { Mode = "shanty" };
+        Routes.AdventureStore["conv_resolve"] = new AdventureRecord { Mode = "discovery" };
 
         _factory.AgentHandler.Enqueue(HttpStatusCode.OK, new
         {
             id = "msg_res_1",
             role = "assistant",
-            content = "Battle over!",
+            content = "Assessment complete!",
             createdAt = "2026-01-01T00:00:00Z",
             resolution = new
             {
-                tool = "resolve_shanty",
+                tool = "resolve_discovery",
                 result = new Dictionary<string, object>
                 {
-                    ["winner"] = "player",
-                    ["rounds"] = 3,
-                    ["best_verse"] = "A fine verse",
+                    ["fit"] = "qualified",
+                    ["signals_reviewed"] = 3,
+                    ["primary_need"] = "Needs clearer qualification",
                 },
             },
         });
 
         var body = new StringContent(
-            JsonSerializer.Serialize(new { message = "Final verse" }),
+            JsonSerializer.Serialize(new { message = "Finalize the assessment" }),
             Encoding.UTF8, "application/json");
-        var response = await _client.PostAsync("/api/pirate/adventures/conv_resolve/parley", body);
+        var response = await _client.PostAsync("/api/activities/adventures/conv_resolve/parley", body);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("resolved", Routes.AdventureStore["conv_resolve"].Status);
@@ -413,14 +413,14 @@ public class RoutesTests : IClassFixture<RoutesTests.ApiFactory>, IDisposable
     [Fact]
     public async Task Parley_SSE_ReturnsEventStream()
     {
-        var sseContent = "event: message.delta\ndata: {\"delta\":\"Ahoy\"}\n\nevent: message.complete\ndata: {\"id\":\"msg_1\",\"content\":\"Ahoy\",\"role\":\"assistant\"}\n\n";
+        var sseContent = "event: message.delta\ndata: {\"delta\":\"Hello\"}\n\nevent: message.complete\ndata: {\"id\":\"msg_1\",\"content\":\"Hello\",\"role\":\"assistant\"}\n\n";
         var agentResponse = new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent(sseContent, Encoding.UTF8, "text/event-stream"),
         };
         _factory.AgentHandler.Enqueue(agentResponse);
 
-        var request = new HttpRequestMessage(HttpMethod.Post, "/api/pirate/adventures/conv_sse/parley")
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/activities/adventures/conv_sse/parley")
         {
             Content = new StringContent(
                 JsonSerializer.Serialize(new { message = "Hello" }),
@@ -446,9 +446,9 @@ public class RoutesTests : IClassFixture<RoutesTests.ApiFactory>, IDisposable
     public async Task GetStats_ReturnsComputedStats()
     {
         // Seed adventure store
-        Routes.AdventureStore["conv_s1"] = new AdventureRecord { Mode = "shanty" };
-        Routes.AdventureStore["conv_s2"] = new AdventureRecord { Mode = "shanty", Status = "resolved" };
-        Routes.AdventureStore["conv_t1"] = new AdventureRecord { Mode = "treasure" };
+        Routes.AdventureStore["conv_s1"] = new AdventureRecord { Mode = "discovery" };
+        Routes.AdventureStore["conv_s2"] = new AdventureRecord { Mode = "discovery", Status = "resolved" };
+        Routes.AdventureStore["conv_t1"] = new AdventureRecord { Mode = "planning" };
 
         _factory.AgentHandler.Enqueue(HttpStatusCode.OK, new
         {
@@ -463,7 +463,7 @@ public class RoutesTests : IClassFixture<RoutesTests.ApiFactory>, IDisposable
             total = 3,
         });
 
-        var response = await _client.GetAsync("/api/pirate/stats");
+        var response = await _client.GetAsync("/api/activities/stats");
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -472,8 +472,8 @@ public class RoutesTests : IClassFixture<RoutesTests.ApiFactory>, IDisposable
         Assert.Equal(1, body.GetProperty("resolvedAdventures").GetInt32());
 
         var byMode = body.GetProperty("byMode");
-        Assert.Equal(2, byMode.GetProperty("shanty").GetProperty("total").GetInt32());
-        Assert.Equal(1, byMode.GetProperty("treasure").GetProperty("total").GetInt32());
+        Assert.Equal(2, byMode.GetProperty("discovery").GetProperty("total").GetInt32());
+        Assert.Equal(1, byMode.GetProperty("planning").GetProperty("total").GetInt32());
     }
 
     // ========================================================================

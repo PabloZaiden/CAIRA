@@ -110,6 +110,10 @@ resource "azapi_resource" "ai_foundry_project_capability_host" {
 
   replace_triggers_external_values = var.agent_capability_host_connections
 
+  timeouts {
+    create = "60m"
+  }
+
   depends_on = [
     azapi_resource.cosmosdb_connection,
     azapi_resource.storage_connection,

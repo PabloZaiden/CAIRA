@@ -3,7 +3,7 @@
   "type": "frontend",
   "variant": "react-typescript",
   "language": "typescript",
-  "description": "React/TypeScript chat UI with pirate theme",
+  "description": "React/TypeScript chat UI with sales theme",
   "port": 8080,
   "healthEndpoint": "/health",
   "requiredEnv": ["API_BASE_URL"],

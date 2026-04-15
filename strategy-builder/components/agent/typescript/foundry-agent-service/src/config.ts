@@ -2,9 +2,9 @@
  * Configuration loader for the Azure AI Foundry Agent Service container.
  *
  * Supports a discrete specialist-agent architecture:
- *   - one shanty agent for opportunity discovery
- *   - one treasure agent for account planning
- *   - one crew agent for account-team staffing
+ *   - one discovery agent for opportunity discovery
+ *   - one planning agent for account planning
+ *   - one staffing agent for account-team staffing
  *
  * Each specialist talks to the user directly for its own activity, uses a
  * local knowledge tool, and calls its own resolution tool when the activity ends.
@@ -20,16 +20,16 @@ export interface Config {
   readonly azureEndpoint: string;
   /** Model deployment name (e.g., gpt-5.2-chat) */
   readonly model: string;
-  /** Agent display name (legacy env kept for compatibility) */
+  /** Agent display name */
   readonly agentName: string;
   /** Shared system instructions applied to every specialist */
-  readonly captainInstructions: string;
-  /** System instructions for the shanty specialist */
-  readonly shantyInstructions: string;
-  /** System instructions for the treasure specialist */
-  readonly treasureInstructions: string;
-  /** System instructions for the crew specialist */
-  readonly crewInstructions: string;
+  readonly sharedInstructions: string;
+  /** System instructions for the discovery specialist */
+  readonly discoveryInstructions: string;
+  /** System instructions for the planning specialist */
+  readonly planningInstructions: string;
+  /** System instructions for the staffing specialist */
+  readonly staffingInstructions: string;
   /** Application Insights connection string for Azure Monitor OTEL export */
   readonly applicationInsightsConnectionString: string | undefined;
   /** Pino log level */
@@ -46,11 +46,7 @@ export interface Config {
   readonly inboundAuthAuthorityHost: string;
 }
 
-// ---------------------------------------------------------------------------
-// Default system prompts
-// ---------------------------------------------------------------------------
-
-const DEFAULT_CAPTAIN_INSTRUCTIONS = `This is a sample application with three discrete specialist chat agents for a fictional sales/account-team scenario.
+const DEFAULT_SHARED_INSTRUCTIONS = `This is a sample application with three discrete specialist chat agents for a fictional sales/account-team scenario.
 
 General rules for every specialist:
 - Stay in neutral, enterprise-friendly sample narration.
@@ -59,68 +55,60 @@ General rules for every specialist:
 - Keep exchanges concise and interactive.
 - Treat all customers, teams, and data as fictional.`;
 
-const DEFAULT_SHANTY_INSTRUCTIONS = `You are the opportunity discovery specialist and you talk directly to the user.
+const DEFAULT_DISCOVERY_INSTRUCTIONS = `You are the opportunity discovery specialist and you talk directly to the user.
 
 Tools:
-- Use \`lookup_shanty_knowledge\` before asking discovery questions or summarizing qualification signals.
-- Call \`resolve_shanty\` when the discovery activity ends.
+- Use \`lookup_discovery_knowledge\` before asking discovery questions or summarizing qualification signals.
+- Call \`resolve_discovery\` when the discovery activity ends.
 
 Flow:
 1. Open with a short discovery setup and ask exactly three focused qualification questions.
 2. After the user replies, summarize the fit in one short sentence.
-3. End by calling \`resolve_shanty\` with:
-   - \`winner\` = one of \`user\`, \`pirate\`, or \`draw\` to represent strong fit, weak fit, or needs follow-up
-   - \`rounds\` = the number of qualification signals reviewed
-   - \`best_verse\` = the single most important customer need or buying signal
+3. End by calling \`resolve_discovery\` with:
+   - \`fit\` = one of \`qualified\`, \`unqualified\`, or \`follow_up\`
+   - \`signals_reviewed\` = the number of qualification signals reviewed
+   - \`primary_need\` = the single most important customer need or buying signal
 
 Constraints:
 - Be concise, practical, and businesslike.
 - Do not ask unrelated follow-up questions.`;
 
-const DEFAULT_TREASURE_INSTRUCTIONS = `You are the account planning specialist and you talk directly to the user.
+const DEFAULT_PLANNING_INSTRUCTIONS = `You are the account planning specialist and you talk directly to the user.
 
 Tools:
-- Use \`lookup_treasure_knowledge\` before proposing priorities, risks, or next steps.
-- Call \`resolve_treasure\` when the account planning activity ends.
+- Use \`lookup_planning_knowledge\` before proposing priorities, risks, or next steps.
+- Call \`resolve_planning\` when the account planning activity ends.
 
 Flow:
 1. Present an account planning scenario with exactly three options labelled A, B, and C.
 2. After the user chooses, explain the consequence in two or three sentences.
-3. End by calling \`resolve_treasure\` with:
-   - \`found\` = whether the plan should advance now
-   - \`treasure_name\` = the primary focus area
-   - \`location\` = the next milestone, meeting, or workstream
+3. End by calling \`resolve_planning\` with:
+   - \`approved\` = whether the plan should advance now
+   - \`focus_area\` = the primary focus area
+   - \`next_step\` = the next milestone, meeting, or workstream
 
 Constraints:
 - Be compact and operational.
-- Do not add extra rounds after resolving the plan.`;
+- Do not add extra turns after resolving the plan.`;
 
-const DEFAULT_CREW_INSTRUCTIONS = `You are the account team staffing specialist and you talk directly to the user.
+const DEFAULT_STAFFING_INSTRUCTIONS = `You are the account team staffing specialist and you talk directly to the user.
 
 Tools:
-- Use \`lookup_crew_knowledge\` before assigning roles, coverage levels, or team shapes.
-- Call \`resolve_crew\` when the staffing conversation ends.
+- Use \`lookup_staffing_knowledge\` before assigning roles, coverage levels, or team shapes.
+- Call \`resolve_staffing\` when the staffing conversation ends.
 
 Flow:
 1. Ask exactly three numbered questions about the engagement scope, required skills, and customer context.
 2. After the user answers, give a short staffing evaluation.
-3. End by calling \`resolve_crew\` with:
-   - \`rank\` = the recommended coverage level
+3. End by calling \`resolve_staffing\` with:
+   - \`coverage_level\` = the recommended coverage level
    - \`role\` = the recommended owner role
-   - \`ship_name\` = the fictional account team name
+   - \`team_name\` = the fictional account team name
 
 Constraints:
 - Accept any answer and still recommend a role.
 - Keep the interview brisk and focused.`;
 
-// ---------------------------------------------------------------------------
-// Config loader
-// ---------------------------------------------------------------------------
-
-/**
- * Load configuration from environment variables.
- * Throws if required variables are missing.
- */
 export function loadConfig(env: Record<string, string | undefined> = process.env): Config {
   const azureEndpoint = env['AZURE_AI_PROJECT_ENDPOINT'];
   if (!azureEndpoint) {
@@ -160,10 +148,10 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     azureEndpoint: azureEndpoint.replace(/\/+$/, ''),
     model: env['AGENT_MODEL'] ?? 'gpt-5.2-chat',
     agentName: env['AGENT_NAME'] ?? 'caira-account-team-agent',
-    captainInstructions: env['CAPTAIN_INSTRUCTIONS'] ?? env['TRIAGE_INSTRUCTIONS'] ?? DEFAULT_CAPTAIN_INSTRUCTIONS,
-    shantyInstructions: env['SHANTY_INSTRUCTIONS'] ?? DEFAULT_SHANTY_INSTRUCTIONS,
-    treasureInstructions: env['TREASURE_INSTRUCTIONS'] ?? DEFAULT_TREASURE_INSTRUCTIONS,
-    crewInstructions: env['CREW_INSTRUCTIONS'] ?? DEFAULT_CREW_INSTRUCTIONS,
+    sharedInstructions: env['SHARED_INSTRUCTIONS'] ?? DEFAULT_SHARED_INSTRUCTIONS,
+    discoveryInstructions: env['DISCOVERY_INSTRUCTIONS'] ?? DEFAULT_DISCOVERY_INSTRUCTIONS,
+    planningInstructions: env['PLANNING_INSTRUCTIONS'] ?? DEFAULT_PLANNING_INSTRUCTIONS,
+    staffingInstructions: env['STAFFING_INSTRUCTIONS'] ?? DEFAULT_STAFFING_INSTRUCTIONS,
     applicationInsightsConnectionString: env['APPLICATIONINSIGHTS_CONNECTION_STRING'],
     logLevel: env['LOG_LEVEL'] ?? 'debug',
     skipAuth,

@@ -7,32 +7,36 @@ const MESSAGES: ParleyMessage[] = [
   {
     id: 'msg-1',
     role: 'user',
-    content: 'Ahoy!',
+    content: 'Hello!',
     createdAt: '2026-01-01T12:00:00Z'
   },
   {
     id: 'msg-2',
     role: 'assistant',
-    content: 'Welcome aboard!',
+    content: 'Welcome to the workspace!',
     createdAt: '2026-01-01T12:00:01Z'
   }
 ];
 
-const SHANTY_OUTCOME: AdventureOutcome = {
-  tool: 'resolve_shanty',
-  result: { winner: 'user', rounds: 4, best_verse: 'Through storms we sail' }
+const DISCOVERY_OUTCOME: AdventureOutcome = {
+  tool: 'resolve_discovery',
+  result: { fit: 'qualified', signals_reviewed: 4, primary_need: 'Needs clearer forecasting' }
 };
 
-const TREASURE_OUTCOME: AdventureOutcome = {
-  tool: 'resolve_treasure',
-  result: { found: true, treasure_name: 'Golden Chalice', location: 'Skeleton Cove' }
+const PLANNING_OUTCOME: AdventureOutcome = {
+  tool: 'resolve_planning',
+  result: {
+    approved: true,
+    focus_area: 'Pipeline coverage',
+    next_step: 'Coordinate the North America review'
+  }
 };
 
 describe('ChatArea', () => {
   it('renders messages', () => {
     render(<ChatArea messages={MESSAGES} streamingContent='' isLoading={false} error={null} />);
-    expect(screen.getByText('Ahoy!')).toBeInTheDocument();
-    expect(screen.getByText('Welcome aboard!')).toBeInTheDocument();
+    expect(screen.getByText('Hello!')).toBeInTheDocument();
+    expect(screen.getByText('Welcome to the workspace!')).toBeInTheDocument();
   });
 
   it('shows empty state when no messages', () => {
@@ -47,9 +51,11 @@ describe('ChatArea', () => {
   });
 
   it('shows streaming content', () => {
-    render(<ChatArea messages={MESSAGES} streamingContent='Arr, let me tell ye...' isLoading={true} error={null} />);
+    render(
+      <ChatArea messages={MESSAGES} streamingContent='Let me walk through that...' isLoading={true} error={null} />
+    );
     expect(screen.getByTestId('streaming-message')).toBeInTheDocument();
-    expect(screen.getByText('Arr, let me tell ye...')).toBeInTheDocument();
+    expect(screen.getByText('Let me walk through that...')).toBeInTheDocument();
   });
 
   it('shows error state', () => {
@@ -68,7 +74,7 @@ describe('ChatArea', () => {
 
   it('renders outcome card when outcome is provided', () => {
     render(
-      <ChatArea messages={MESSAGES} streamingContent='' isLoading={false} error={null} outcome={SHANTY_OUTCOME} />
+      <ChatArea messages={MESSAGES} streamingContent='' isLoading={false} error={null} outcome={DISCOVERY_OUTCOME} />
     );
     expect(screen.getByTestId('outcome-card')).toBeInTheDocument();
     expect(screen.getByText('Discovery Summary')).toBeInTheDocument();
@@ -79,22 +85,28 @@ describe('ChatArea', () => {
     expect(screen.queryByTestId('outcome-card')).not.toBeInTheDocument();
   });
 
-  it('renders outcome card with treasure result details', () => {
+  it('renders outcome card with planning result details', () => {
     render(
-      <ChatArea messages={MESSAGES} streamingContent='' isLoading={false} error={null} outcome={TREASURE_OUTCOME} />
+      <ChatArea messages={MESSAGES} streamingContent='' isLoading={false} error={null} outcome={PLANNING_OUTCOME} />
     );
     expect(screen.getByText('Account Plan Summary')).toBeInTheDocument();
     const details = screen.getByTestId('outcome-details');
     expect(details).toBeInTheDocument();
-    expect(screen.getByText('Golden Chalice')).toBeInTheDocument();
-    expect(screen.getByText('Skeleton Cove')).toBeInTheDocument();
+    expect(screen.getByText('Pipeline coverage')).toBeInTheDocument();
+    expect(screen.getByText('Coordinate the North America review')).toBeInTheDocument();
   });
 
   // ---- Specialist activity indicator tests ----
 
   it('shows specialist-specific loading text when activeSpecialist is set', () => {
     render(
-      <ChatArea messages={[]} streamingContent='' isLoading={true} error={null} activeSpecialist='shanty_specialist' />
+      <ChatArea
+        messages={[]}
+        streamingContent=''
+        isLoading={true}
+        error={null}
+        activeSpecialist='discovery_specialist'
+      />
     );
     expect(screen.getByTestId('chat-area-loading')).toBeInTheDocument();
     expect(screen.getByText('The discovery specialist is working...')).toBeInTheDocument();
@@ -105,22 +117,28 @@ describe('ChatArea', () => {
     expect(screen.getByText('The coordinator is thinking...')).toBeInTheDocument();
   });
 
-  it('shows treasure specialist loading text', () => {
+  it('shows planning specialist loading text', () => {
     render(
       <ChatArea
         messages={[]}
         streamingContent=''
         isLoading={true}
         error={null}
-        activeSpecialist='treasure_specialist'
+        activeSpecialist='planning_specialist'
       />
     );
     expect(screen.getByText('The account planning specialist is working...')).toBeInTheDocument();
   });
 
-  it('shows crew specialist loading text', () => {
+  it('shows staffing specialist loading text', () => {
     render(
-      <ChatArea messages={[]} streamingContent='' isLoading={true} error={null} activeSpecialist='crew_specialist' />
+      <ChatArea
+        messages={[]}
+        streamingContent=''
+        isLoading={true}
+        error={null}
+        activeSpecialist='staffing_specialist'
+      />
     );
     expect(screen.getByText('The staffing specialist is working...')).toBeInTheDocument();
   });

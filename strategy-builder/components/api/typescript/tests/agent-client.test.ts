@@ -85,11 +85,11 @@ beforeAll(async () => {
       createdAt: '2026-01-01T00:00:00Z',
       updatedAt: '2026-01-01T12:00:00Z',
       messages: [
-        { id: 'msg_1', role: 'user', content: 'Ahoy!', createdAt: '2026-01-01T00:00:01Z' },
+        { id: 'msg_1', role: 'user', content: 'Hello!', createdAt: '2026-01-01T00:00:01Z' },
         {
           id: 'msg_2',
           role: 'assistant',
-          content: 'Arr, welcome aboard!',
+          content: 'Welcome to the workspace!',
           createdAt: '2026-01-01T00:00:02Z',
           usage: { promptTokens: 5, completionTokens: 8 }
         }
@@ -117,10 +117,10 @@ beforeAll(async () => {
         'Cache-Control': 'no-cache',
         Connection: 'keep-alive'
       });
-      reply.raw.write('event: message.delta\ndata: {"content":"Arr, "}\n\n');
+      reply.raw.write('event: message.delta\ndata: {"content":"Welcome "}\n\n');
       reply.raw.write('event: message.delta\ndata: {"content":"welcome!"}\n\n');
       reply.raw.write(
-        'event: message.complete\ndata: {"messageId":"msg_3","content":"Arr, welcome!","usage":{"promptTokens":5,"completionTokens":4}}\n\n'
+        'event: message.complete\ndata: {"messageId":"msg_3","content":"Welcome back!","usage":{"promptTokens":5,"completionTokens":4}}\n\n'
       );
       reply.raw.write('event: done\ndata: [DONE]\n\n');
       reply.raw.end();
@@ -172,9 +172,9 @@ describe('AgentClient', () => {
 
     it('passes metadata through', async () => {
       const client = createClient();
-      const result = await client.createConversation({ theme: 'pirate' });
+      const result = await client.createConversation({ theme: 'sales' });
       expect(result.ok).toBe(true);
-      expect(result.data?.metadata).toEqual({ theme: 'pirate' });
+      expect(result.data?.metadata).toEqual({ theme: 'sales' });
     });
   });
 
@@ -218,16 +218,16 @@ describe('AgentClient', () => {
   describe('sendMessage', () => {
     it('sends a message and gets JSON response', async () => {
       const client = createClient();
-      const result = await client.sendMessage('test-conv', 'Hello pirate!');
+      const result = await client.sendMessage('test-conv', 'Hello sales team!');
       expect(result.ok).toBe(true);
-      expect(result.data?.content).toContain('Hello pirate!');
+      expect(result.data?.content).toContain('Hello sales team!');
     });
   });
 
   describe('sendMessageStream', () => {
     it('returns raw Response for SSE streaming', async () => {
       const client = createClient();
-      const response = await client.sendMessageStream('test-conv', 'Ahoy!');
+      const response = await client.sendMessageStream('test-conv', 'Hello!');
       expect(response.status).toBe(200);
       expect(response.headers.get('content-type')).toBe('text/event-stream');
 

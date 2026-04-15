@@ -1,23 +1,23 @@
 /**
- * Typed HTTP client for the CAIRA backend API (pirate theme).
+ * Typed HTTP client for the CAIRA backend API.
  *
  * Maps to the endpoints defined in contracts/backend-api.openapi.yaml v2.0.0.
  * Provides typed request/response methods for each operation.
  *
  * Multi-agent endpoints:
- *   POST /api/pirate/shanty          — start a sea shanty battle
- *   POST /api/pirate/treasure        — start a treasure hunt
- *   POST /api/pirate/crew/enlist     — enlist in pirate crew
- *   GET  /api/pirate/adventures      — list all adventures
- *   GET  /api/pirate/adventures/:id  — get adventure detail
- *   POST /api/pirate/adventures/:id/parley — continue chatting
- *   GET  /api/pirate/stats           — activity stats
+ *   POST /api/activities/discovery       — start opportunity discovery
+ *   POST /api/activities/planning        — start account planning
+ *   POST /api/activities/staffing        — start team staffing
+ *   GET  /api/activities/adventures      — list all adventures
+ *   GET  /api/activities/adventures/:id  — get adventure detail
+ *   POST /api/activities/adventures/:id/parley — continue chatting
+ *   GET  /api/activities/stats           — activity stats
  *   GET  /health                     — health check
  */
 
 // ─── Response types (matching OpenAPI schemas) ──────────────────────────
 
-export type AdventureMode = 'shanty' | 'treasure' | 'crew';
+export type AdventureMode = 'discovery' | 'planning' | 'staffing';
 export type AdventureStatus = 'active' | 'resolved';
 
 export interface AdventureOutcome {
@@ -79,9 +79,9 @@ export interface ActivityStats {
   activeAdventures: number;
   resolvedAdventures: number;
   byMode: {
-    shanty: ModeStats;
-    treasure: ModeStats;
-    crew: ModeStats;
+    discovery: ModeStats;
+    planning: ModeStats;
+    staffing: ModeStats;
   };
 }
 
@@ -129,24 +129,24 @@ export class ApiClient {
 
   // ─── Business Operations (start adventures) ─────────────────────────
 
-  /** POST /api/pirate/shanty — start a sea shanty battle */
-  async startShanty(): Promise<ApiResponse<AdventureStarted>> {
-    return this.request<AdventureStarted>('/api/pirate/shanty', { method: 'POST' });
+  /** POST /api/activities/discovery — start opportunity discovery */
+  async startDiscovery(): Promise<ApiResponse<AdventureStarted>> {
+    return this.request<AdventureStarted>('/api/activities/discovery', { method: 'POST' });
   }
 
-  /** POST /api/pirate/treasure — start a treasure hunt */
-  async seekTreasure(): Promise<ApiResponse<AdventureStarted>> {
-    return this.request<AdventureStarted>('/api/pirate/treasure', { method: 'POST' });
+  /** POST /api/activities/planning — start account planning */
+  async startPlanning(): Promise<ApiResponse<AdventureStarted>> {
+    return this.request<AdventureStarted>('/api/activities/planning', { method: 'POST' });
   }
 
-  /** POST /api/pirate/crew/enlist — enlist in pirate crew */
-  async enlistInCrew(): Promise<ApiResponse<AdventureStarted>> {
-    return this.request<AdventureStarted>('/api/pirate/crew/enlist', { method: 'POST' });
+  /** POST /api/activities/staffing — start team staffing */
+  async startStaffing(): Promise<ApiResponse<AdventureStarted>> {
+    return this.request<AdventureStarted>('/api/activities/staffing', { method: 'POST' });
   }
 
   // ─── Adventure Management ───────────────────────────────────────────
 
-  /** GET /api/pirate/adventures — list all adventures */
+  /** GET /api/activities/adventures — list all adventures */
   async listAdventures(options?: {
     offset?: number | undefined;
     limit?: number | undefined;
@@ -155,19 +155,19 @@ export class ApiClient {
     if (options?.offset !== undefined) params.set('offset', String(options.offset));
     if (options?.limit !== undefined) params.set('limit', String(options.limit));
     const qs = params.toString();
-    return this.request<AdventureList>(`/api/pirate/adventures${qs ? `?${qs}` : ''}`);
+    return this.request<AdventureList>(`/api/activities/adventures${qs ? `?${qs}` : ''}`);
   }
 
-  /** GET /api/pirate/adventures/{adventureId} — get adventure detail with parleys */
+  /** GET /api/activities/adventures/{adventureId} — get adventure detail with parleys */
   async getAdventure(adventureId: string): Promise<ApiResponse<AdventureDetail>> {
-    return this.request<AdventureDetail>(`/api/pirate/adventures/${adventureId}`);
+    return this.request<AdventureDetail>(`/api/activities/adventures/${adventureId}`);
   }
 
   // ─── Parley (continue chatting) ─────────────────────────────────────
 
-  /** POST /api/pirate/adventures/{adventureId}/parley — send a message (JSON response) */
+  /** POST /api/activities/adventures/{adventureId}/parley — send a message (JSON response) */
   async parley(adventureId: string, message: string): Promise<ApiResponse<ParleyMessage>> {
-    return this.request<ParleyMessage>(`/api/pirate/adventures/${adventureId}/parley`, {
+    return this.request<ParleyMessage>(`/api/activities/adventures/${adventureId}/parley`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -178,7 +178,7 @@ export class ApiClient {
   }
 
   /**
-   * POST /api/pirate/adventures/{adventureId}/parley — send a message (SSE stream).
+   * POST /api/activities/adventures/{adventureId}/parley — send a message (SSE stream).
    *
    * Returns the raw Response object for SSE processing.
    * Use `sseCollector` to collect events from the response.
@@ -188,7 +188,7 @@ export class ApiClient {
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
 
     try {
-      const response = await fetch(`${this.baseUrl}/api/pirate/adventures/${adventureId}/parley`, {
+      const response = await fetch(`${this.baseUrl}/api/activities/adventures/${adventureId}/parley`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -210,9 +210,9 @@ export class ApiClient {
 
   // ─── Stats ──────────────────────────────────────────────────────────
 
-  /** GET /api/pirate/stats — get activity statistics */
+  /** GET /api/activities/stats — get activity statistics */
   async getStats(): Promise<ApiResponse<ActivityStats>> {
-    return this.request<ActivityStats>('/api/pirate/stats');
+    return this.request<ActivityStats>('/api/activities/stats');
   }
 
   // ─── Health ─────────────────────────────────────────────────────────

@@ -17,7 +17,7 @@
 
 import { useCallback, useMemo, useRef, useState } from 'react';
 import type { AdventureOutcome, ParleyMessage } from '../types.ts';
-import type { PirateClient } from '../api/pirate-client.ts';
+import type { ActivityClient } from '../api/activity-client.ts';
 
 // ---------------------------------------------------------------------------
 // ChatState — the per-conversation state shape
@@ -34,7 +34,7 @@ export interface ChatState {
   error: string | null;
   /** Resolution outcome, if the adventure has been resolved. */
   outcome: AdventureOutcome | null;
-  /** Active specialist tool name (e.g. "shanty_specialist"), or null. */
+  /** Active specialist tool name (e.g. "discovery_specialist"), or null. */
   activeSpecialist: string | null;
   /** Whether the initial message load from the server has completed. */
   loaded: boolean;
@@ -77,7 +77,7 @@ export interface UseConversationStatesResult {
 // ---------------------------------------------------------------------------
 
 export function useConversationStates(
-  client: PirateClient,
+  client: ActivityClient,
   options: { streaming: boolean }
 ): UseConversationStatesResult {
   // The state map lives in a ref so mutations don't cause re-renders.

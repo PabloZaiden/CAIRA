@@ -2,13 +2,13 @@
  * Fastify route definitions for the fictional sales/account-team sample API.
  *
  * Maps business endpoints to agent container operations:
- *   POST /api/pirate/shanty              -> create conv + send synthetic first msg
- *   POST /api/pirate/treasure            -> create conv + send synthetic first msg
- *   POST /api/pirate/crew/enlist         -> create conv + send synthetic first msg
- *   GET  /api/pirate/adventures          -> GET  /conversations (enriched)
- *   GET  /api/pirate/adventures/:id      -> GET  /conversations/:id (enriched)
- *   POST /api/pirate/adventures/:id/parley -> POST /conversations/:id/messages (SSE parsed)
- *   GET  /api/pirate/stats               -> computed from adventures
+ *   POST /api/activities/discovery              -> create conv + send synthetic first msg
+ *   POST /api/activities/planning            -> create conv + send synthetic first msg
+ *   POST /api/activities/staffing                -> create conv + send synthetic first msg
+ *   GET  /api/activities/adventures          -> GET  /conversations (enriched)
+ *   GET  /api/activities/adventures/:id      -> GET  /conversations/:id (enriched)
+ *   POST /api/activities/adventures/:id/parley -> POST /conversations/:id/messages (SSE parsed)
+ *   GET  /api/activities/stats               -> computed from adventures
  *   GET  /health                         -> checks agent /health
  *   GET  /health/deep                    -> auth-required check of agent business endpoint
  */
@@ -59,11 +59,12 @@ export function resetAdventureStore(): void {
 // ---------- Synthetic first messages ----------
 
 const SYNTHETIC_MESSAGES: Record<AdventureMode, string> = {
-  shanty:
+  discovery:
     'I am qualifying a new customer opportunity. Lead a short discovery conversation, ask targeted questions, and conclude with a concise qualification summary.',
-  treasure:
+  planning:
     'I need an account plan for an active customer. Guide me through priorities, risks, and next steps, then conclude with a concise planning summary.',
-  crew: 'I need to staff an account team for a customer engagement. Interview me for the needed context and conclude with a clear staffing recommendation.'
+  staffing:
+    'I need to staff an account team for a customer engagement. Interview me for the needed context and conclude with a clear staffing recommendation.'
 };
 
 // ---------- Helpers ----------
@@ -117,8 +118,8 @@ function conversationDetailToAdventureDetail(
 
 function extractModeFromMetadata(metadata: Record<string, unknown> | undefined): AdventureMode {
   const mode = metadata?.['mode'];
-  if (mode === 'shanty' || mode === 'treasure' || mode === 'crew') return mode;
-  return 'shanty'; // fallback
+  if (mode === 'discovery' || mode === 'planning' || mode === 'staffing') return mode;
+  return 'discovery'; // fallback
 }
 
 /**
@@ -328,23 +329,23 @@ export function registerRoutes(app: FastifyInstance, agentClient: AgentClient): 
     await reply.status(201).send(response);
   }
 
-  // POST /api/pirate/shanty
-  app.post('/api/pirate/shanty', async (req, reply) => {
-    await handleStartAdventure('shanty', req, reply);
+  // POST /api/activities/discovery
+  app.post('/api/activities/discovery', async (req, reply) => {
+    await handleStartAdventure('discovery', req, reply);
   });
 
-  // POST /api/pirate/treasure
-  app.post('/api/pirate/treasure', async (req, reply) => {
-    await handleStartAdventure('treasure', req, reply);
+  // POST /api/activities/planning
+  app.post('/api/activities/planning', async (req, reply) => {
+    await handleStartAdventure('planning', req, reply);
   });
 
-  // POST /api/pirate/crew/enlist
-  app.post('/api/pirate/crew/enlist', async (req, reply) => {
-    await handleStartAdventure('crew', req, reply);
+  // POST /api/activities/staffing
+  app.post('/api/activities/staffing', async (req, reply) => {
+    await handleStartAdventure('staffing', req, reply);
   });
 
-  // ---- GET /api/pirate/adventures ----
-  app.get('/api/pirate/adventures', async (req, reply) => {
+  // ---- GET /api/activities/adventures ----
+  app.get('/api/activities/adventures', async (req, reply) => {
     const query = req.query as Record<string, string | undefined>;
     const offset = query['offset'] !== undefined ? parseInt(query['offset'], 10) : undefined;
     const limit = query['limit'] !== undefined ? parseInt(query['limit'], 10) : undefined;
@@ -373,8 +374,8 @@ export function registerRoutes(app: FastifyInstance, agentClient: AgentClient): 
     await reply.send(list);
   });
 
-  // ---- GET /api/pirate/adventures/:adventureId ----
-  app.get('/api/pirate/adventures/:adventureId', async (req, reply) => {
+  // ---- GET /api/activities/adventures/:adventureId ----
+  app.get('/api/activities/adventures/:adventureId', async (req, reply) => {
     const { adventureId } = req.params as { adventureId: string };
 
     const result = await agentClient.getConversation(adventureId);
@@ -393,8 +394,8 @@ export function registerRoutes(app: FastifyInstance, agentClient: AgentClient): 
     await reply.send(detail);
   });
 
-  // ---- POST /api/pirate/adventures/:adventureId/parley ----
-  app.post('/api/pirate/adventures/:adventureId/parley', async (req: FastifyRequest, reply: FastifyReply) => {
+  // ---- POST /api/activities/adventures/:adventureId/parley ----
+  app.post('/api/activities/adventures/:adventureId/parley', async (req: FastifyRequest, reply: FastifyReply) => {
     const { adventureId } = req.params as { adventureId: string };
     const body = req.body as Record<string, unknown> | null;
     const traceId = generateTraceId();
@@ -533,8 +534,8 @@ export function registerRoutes(app: FastifyInstance, agentClient: AgentClient): 
     }
   });
 
-  // ---- GET /api/pirate/stats ----
-  app.get('/api/pirate/stats', async (_req, reply) => {
+  // ---- GET /api/activities/stats ----
+  app.get('/api/activities/stats', async (_req, reply) => {
     // Get all conversations to compute stats
     const result = await agentClient.listConversations(0, 100);
     if (!result.ok || !result.data) {
@@ -550,9 +551,9 @@ export function registerRoutes(app: FastifyInstance, agentClient: AgentClient): 
 
     const modeInit = () => ({ total: 0, active: 0, resolved: 0 });
     const counts = {
-      shanty: modeInit(),
-      treasure: modeInit(),
-      crew: modeInit()
+      discovery: modeInit(),
+      planning: modeInit(),
+      staffing: modeInit()
     };
 
     let totalAdventures = 0;

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { PirateClient, PirateApiError } from '../../src/api/pirate-client.ts';
+import { ActivityClient, ActivityApiError } from '../../src/api/activity-client.ts';
 import type {
   Adventure,
   AdventureList,
@@ -17,7 +17,7 @@ const BASE_URL = 'http://localhost:4000/api';
 
 const ADVENTURE: Adventure = {
   id: 'adv-1',
-  mode: 'shanty',
+  mode: 'discovery',
   status: 'active',
   createdAt: '2026-01-01T00:00:00Z',
   lastParleyAt: '2026-01-02T00:00:00Z',
@@ -37,13 +37,13 @@ const ADVENTURE_DETAIL: AdventureDetail = {
     {
       id: 'msg-1',
       role: 'user',
-      content: 'Ahoy!',
+      content: 'Hello!',
       createdAt: '2026-01-02T00:00:00Z'
     },
     {
       id: 'msg-2',
       role: 'assistant',
-      content: 'Arr, welcome aboard!',
+      content: 'Welcome to the workspace!',
       createdAt: '2026-01-02T00:00:01Z'
     }
   ]
@@ -51,7 +51,7 @@ const ADVENTURE_DETAIL: AdventureDetail = {
 
 const ADVENTURE_STARTED: AdventureStarted = {
   id: 'adv-new',
-  mode: 'shanty',
+  mode: 'discovery',
   status: 'active',
   syntheticMessage:
     'I am qualifying a new customer opportunity. Lead a short discovery conversation, ask targeted questions, and conclude with a concise qualification summary.',
@@ -61,7 +61,7 @@ const ADVENTURE_STARTED: AdventureStarted = {
 const PARLEY_MESSAGE: ParleyMessage = {
   id: 'msg-3',
   role: 'assistant',
-  content: 'Shiver me timbers!',
+  content: 'Thanks for the update!',
   createdAt: '2026-01-02T00:01:00Z'
 };
 
@@ -70,9 +70,9 @@ const STATS: ActivityStats = {
   activeAdventures: 7,
   resolvedAdventures: 3,
   byMode: {
-    shanty: { total: 4, active: 3, resolved: 1 },
-    treasure: { total: 3, active: 2, resolved: 1 },
-    crew: { total: 3, active: 2, resolved: 1 }
+    discovery: { total: 4, active: 3, resolved: 1 },
+    planning: { total: 3, active: 2, resolved: 1 },
+    staffing: { total: 3, active: 2, resolved: 1 }
   }
 };
 
@@ -109,12 +109,12 @@ function sseStream(events: string[]): ReadableStream<Uint8Array> {
 
 // ---------- Tests ----------
 
-describe('PirateClient', () => {
-  let client: PirateClient;
+describe('ActivityClient', () => {
+  let client: ActivityClient;
   let fetchSpy: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    client = new PirateClient({ baseUrl: BASE_URL });
+    client = new ActivityClient({ baseUrl: BASE_URL });
     fetchSpy = vi.fn();
     globalThis.fetch = fetchSpy as any;
   });
@@ -123,50 +123,56 @@ describe('PirateClient', () => {
     vi.restoreAllMocks();
   });
 
-  // ---- startShanty ----
+  // ---- startDiscovery ----
 
-  describe('startShanty', () => {
-    it('starts a shanty adventure', async () => {
+  describe('startDiscovery', () => {
+    it('starts a discovery adventure', async () => {
       fetchSpy.mockResolvedValueOnce(jsonResponse(ADVENTURE_STARTED, 200));
 
-      const result = await client.startShanty();
+      const result = await client.startDiscovery();
       expect(result).toEqual(ADVENTURE_STARTED);
-      expect(fetchSpy).toHaveBeenCalledWith(`${BASE_URL}/pirate/shanty`, expect.objectContaining({ method: 'POST' }));
+      expect(fetchSpy).toHaveBeenCalledWith(
+        `${BASE_URL}/activities/discovery`,
+        expect.objectContaining({ method: 'POST' })
+      );
     });
 
-    it('throws PirateApiError on server error', async () => {
+    it('throws ActivityApiError on server error', async () => {
       fetchSpy.mockResolvedValueOnce(errorResponse(500, 'agent_error', 'Something went wrong'));
 
-      const err = await client.startShanty().catch((e: unknown) => e);
-      expect(err).toBeInstanceOf(PirateApiError);
+      const err = await client.startDiscovery().catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(ActivityApiError);
       expect(err).toMatchObject({ status: 500, code: 'agent_error' });
     });
   });
 
-  // ---- seekTreasure ----
+  // ---- startPlanning ----
 
-  describe('seekTreasure', () => {
-    it('starts a treasure adventure', async () => {
-      const started: AdventureStarted = { ...ADVENTURE_STARTED, mode: 'treasure' };
+  describe('startPlanning', () => {
+    it('starts a planning adventure', async () => {
+      const started: AdventureStarted = { ...ADVENTURE_STARTED, mode: 'planning' };
       fetchSpy.mockResolvedValueOnce(jsonResponse(started, 200));
 
-      const result = await client.seekTreasure();
+      const result = await client.startPlanning();
       expect(result).toEqual(started);
-      expect(fetchSpy).toHaveBeenCalledWith(`${BASE_URL}/pirate/treasure`, expect.objectContaining({ method: 'POST' }));
+      expect(fetchSpy).toHaveBeenCalledWith(
+        `${BASE_URL}/activities/planning`,
+        expect.objectContaining({ method: 'POST' })
+      );
     });
   });
 
-  // ---- enlistInCrew ----
+  // ---- startStaffing ----
 
-  describe('enlistInCrew', () => {
-    it('starts a crew adventure', async () => {
-      const started: AdventureStarted = { ...ADVENTURE_STARTED, mode: 'crew' };
+  describe('startStaffing', () => {
+    it('starts a staffing adventure', async () => {
+      const started: AdventureStarted = { ...ADVENTURE_STARTED, mode: 'staffing' };
       fetchSpy.mockResolvedValueOnce(jsonResponse(started, 200));
 
-      const result = await client.enlistInCrew();
+      const result = await client.startStaffing();
       expect(result).toEqual(started);
       expect(fetchSpy).toHaveBeenCalledWith(
-        `${BASE_URL}/pirate/crew/enlist`,
+        `${BASE_URL}/activities/staffing`,
         expect.objectContaining({ method: 'POST' })
       );
     });
@@ -180,14 +186,14 @@ describe('PirateClient', () => {
 
       const result = await client.listAdventures();
       expect(result).toEqual(ADVENTURE_LIST);
-      expect(fetchSpy).toHaveBeenCalledWith(`${BASE_URL}/pirate/adventures`);
+      expect(fetchSpy).toHaveBeenCalledWith(`${BASE_URL}/activities/adventures`);
     });
 
     it('lists adventures with offset and limit', async () => {
       fetchSpy.mockResolvedValueOnce(jsonResponse(ADVENTURE_LIST));
 
       await client.listAdventures(10, 5);
-      expect(fetchSpy).toHaveBeenCalledWith(`${BASE_URL}/pirate/adventures?offset=10&limit=5`);
+      expect(fetchSpy).toHaveBeenCalledWith(`${BASE_URL}/activities/adventures?offset=10&limit=5`);
     });
   });
 
@@ -199,13 +205,13 @@ describe('PirateClient', () => {
 
       const result = await client.getAdventure('adv-1');
       expect(result).toEqual(ADVENTURE_DETAIL);
-      expect(fetchSpy).toHaveBeenCalledWith(`${BASE_URL}/pirate/adventures/adv-1`);
+      expect(fetchSpy).toHaveBeenCalledWith(`${BASE_URL}/activities/adventures/adv-1`);
     });
 
     it('throws on 404', async () => {
       fetchSpy.mockResolvedValueOnce(errorResponse(404, 'not_found', 'Adventure not found'));
 
-      await expect(client.getAdventure('unknown')).rejects.toThrow(PirateApiError);
+      await expect(client.getAdventure('unknown')).rejects.toThrow(ActivityApiError);
     });
   });
 
@@ -215,13 +221,13 @@ describe('PirateClient', () => {
     it('sends a message and gets JSON response', async () => {
       fetchSpy.mockResolvedValueOnce(jsonResponse(PARLEY_MESSAGE));
 
-      const result = await client.parley('adv-1', 'Ahoy!');
+      const result = await client.parley('adv-1', 'Hello!');
       expect(result).toEqual(PARLEY_MESSAGE);
       expect(fetchSpy).toHaveBeenCalledWith(
-        `${BASE_URL}/pirate/adventures/adv-1/parley`,
+        `${BASE_URL}/activities/adventures/adv-1/parley`,
         expect.objectContaining({
           method: 'POST',
-          body: JSON.stringify({ message: 'Ahoy!' })
+          body: JSON.stringify({ message: 'Hello!' })
         })
       );
     });
@@ -232,9 +238,9 @@ describe('PirateClient', () => {
   describe('parleyStream', () => {
     it('streams SSE events', async () => {
       const stream = sseStream([
-        'event: message.delta\ndata: {"content":"Arr, "}\n\n',
-        'event: message.delta\ndata: {"content":"welcome "}\n\n',
-        'event: message.complete\ndata: {"messageId":"msg-4","content":"Arr, welcome aboard!","usage":{"promptTokens":10,"completionTokens":8}}\n\n'
+        'event: message.delta\ndata: {"content":"Welcome "}\n\n',
+        'event: message.delta\ndata: {"content":"back!"}\n\n',
+        'event: message.complete\ndata: {"messageId":"msg-4","content":"Welcome back!","usage":{"promptTokens":10,"completionTokens":8}}\n\n'
       ]);
 
       fetchSpy.mockResolvedValueOnce(
@@ -245,18 +251,18 @@ describe('PirateClient', () => {
       );
 
       const events: unknown[] = [];
-      for await (const event of client.parleyStream('adv-1', 'Ahoy!')) {
+      for await (const event of client.parleyStream('adv-1', 'Hello!')) {
         events.push(event);
       }
 
       expect(events).toHaveLength(3);
-      expect(events[0]).toEqual({ type: 'delta', content: 'Arr, ' });
-      expect(events[1]).toEqual({ type: 'delta', content: 'welcome ' });
+      expect(events[0]).toEqual({ type: 'delta', content: 'Welcome ' });
+      expect(events[1]).toEqual({ type: 'delta', content: 'back!' });
       expect(events[2]).toMatchObject({
         type: 'complete',
         message: expect.objectContaining({
           id: 'msg-4',
-          content: 'Arr, welcome aboard!',
+          content: 'Welcome back!',
           role: 'assistant'
         })
       });
@@ -265,7 +271,7 @@ describe('PirateClient', () => {
     it('handles activity.resolved SSE events', async () => {
       const stream = sseStream([
         'event: message.delta\ndata: {"content":"You win!"}\n\n',
-        'event: activity.resolved\ndata: {"tool":"resolve_shanty","result":{"winner":"user","rounds":4,"best_verse":"Through storms we sail"}}\n\n',
+        'event: activity.resolved\ndata: {"tool":"resolve_discovery","result":{"fit":"qualified","signals_reviewed":4,"primary_need":"Needs clearer forecasting"}}\n\n',
         'event: message.complete\ndata: {"messageId":"msg-5","content":"You win!","usage":{"promptTokens":10,"completionTokens":5}}\n\n'
       ]);
 
@@ -277,7 +283,7 @@ describe('PirateClient', () => {
       );
 
       const events: unknown[] = [];
-      for await (const event of client.parleyStream('adv-1', 'My verse')) {
+      for await (const event of client.parleyStream('adv-1', 'Please summarize the discovery.')) {
         events.push(event);
       }
 
@@ -285,17 +291,17 @@ describe('PirateClient', () => {
       expect(events[1]).toEqual({
         type: 'activity.resolved',
         outcome: {
-          tool: 'resolve_shanty',
-          result: { winner: 'user', rounds: 4, best_verse: 'Through storms we sail' }
+          tool: 'resolve_discovery',
+          result: { fit: 'qualified', signals_reviewed: 4, primary_need: 'Needs clearer forecasting' }
         }
       });
     });
 
     it('handles tool.called and tool.done SSE events', async () => {
       const stream = sseStream([
-        'event: tool.called\ndata: {"toolName":"shanty_specialist"}\n\n',
+        'event: tool.called\ndata: {"toolName":"discovery_specialist"}\n\n',
         'event: message.delta\ndata: {"content":"Singing..."}\n\n',
-        'event: tool.done\ndata: {"toolName":"shanty_specialist"}\n\n',
+        'event: tool.done\ndata: {"toolName":"discovery_specialist"}\n\n',
         'event: message.complete\ndata: {"messageId":"msg-6","content":"Singing...","usage":{"promptTokens":10,"completionTokens":5}}\n\n'
       ]);
 
@@ -307,17 +313,19 @@ describe('PirateClient', () => {
       );
 
       const events: unknown[] = [];
-      for await (const event of client.parleyStream('adv-1', 'Sing!')) {
+      for await (const event of client.parleyStream('adv-1', 'Please summarize the discovery.')) {
         events.push(event);
       }
 
       expect(events).toHaveLength(4);
-      expect(events[0]).toEqual({ type: 'tool.called', toolName: 'shanty_specialist' });
-      expect(events[2]).toEqual({ type: 'tool.done', toolName: 'shanty_specialist' });
+      expect(events[0]).toEqual({ type: 'tool.called', toolName: 'discovery_specialist' });
+      expect(events[2]).toEqual({ type: 'tool.done', toolName: 'discovery_specialist' });
     });
 
     it('handles SSE error events', async () => {
-      const stream = sseStream(['event: error\ndata: {"code":"agent_error","message":"The seas be rough today"}\n\n']);
+      const stream = sseStream([
+        'event: error\ndata: {"code":"agent_error","message":"The service is temporarily unavailable today"}\n\n'
+      ]);
 
       fetchSpy.mockResolvedValueOnce(
         new Response(stream, {
@@ -327,7 +335,7 @@ describe('PirateClient', () => {
       );
 
       const events: unknown[] = [];
-      for await (const event of client.parleyStream('adv-1', 'Ahoy!')) {
+      for await (const event of client.parleyStream('adv-1', 'Hello!')) {
         events.push(event);
       }
 
@@ -335,22 +343,22 @@ describe('PirateClient', () => {
       expect(events[0]).toEqual({
         type: 'error',
         code: 'agent_error',
-        message: 'The seas be rough today'
+        message: 'The service is temporarily unavailable today'
       });
     });
 
     it('throws on HTTP error response', async () => {
       fetchSpy.mockResolvedValueOnce(errorResponse(500, 'agent_error', 'Server error'));
 
-      const gen = client.parleyStream('adv-1', 'Ahoy!');
-      await expect(gen.next()).rejects.toThrow(PirateApiError);
+      const gen = client.parleyStream('adv-1', 'Hello!');
+      await expect(gen.next()).rejects.toThrow(ActivityApiError);
     });
 
     it('throws on missing response body', async () => {
       fetchSpy.mockResolvedValueOnce(new Response(null, { status: 200 }));
 
-      const gen = client.parleyStream('adv-1', 'Ahoy!');
-      await expect(gen.next()).rejects.toThrow(PirateApiError);
+      const gen = client.parleyStream('adv-1', 'Hello!');
+      await expect(gen.next()).rejects.toThrow(ActivityApiError);
     });
 
     it('sends Accept: text/event-stream header', async () => {
@@ -358,12 +366,12 @@ describe('PirateClient', () => {
       fetchSpy.mockResolvedValueOnce(new Response(stream, { status: 200 }));
 
       const events: unknown[] = [];
-      for await (const event of client.parleyStream('adv-1', 'Ahoy!')) {
+      for await (const event of client.parleyStream('adv-1', 'Hello!')) {
         events.push(event);
       }
 
       expect(fetchSpy).toHaveBeenCalledWith(
-        `${BASE_URL}/pirate/adventures/adv-1/parley`,
+        `${BASE_URL}/activities/adventures/adv-1/parley`,
         expect.objectContaining({
           headers: expect.objectContaining({
             Accept: 'text/event-stream'
@@ -381,7 +389,7 @@ describe('PirateClient', () => {
 
       const result = await client.getStats();
       expect(result).toEqual(STATS);
-      expect(fetchSpy).toHaveBeenCalledWith(`${BASE_URL}/pirate/stats`);
+      expect(fetchSpy).toHaveBeenCalledWith(`${BASE_URL}/activities/stats`);
     });
   });
 
@@ -405,16 +413,16 @@ describe('PirateClient', () => {
     it('handles non-JSON error responses', async () => {
       fetchSpy.mockResolvedValueOnce(new Response('Internal Server Error', { status: 500 }));
 
-      const err = await client.startShanty().catch((e: unknown) => e);
-      expect(err).toBeInstanceOf(PirateApiError);
+      const err = await client.startDiscovery().catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(ActivityApiError);
       expect(err).toMatchObject({ status: 500, code: 'http_500' });
     });
 
     it('strips trailing slashes from baseUrl', () => {
-      const c = new PirateClient({ baseUrl: 'http://example.com/api///' });
+      const c = new ActivityClient({ baseUrl: 'http://example.com/api///' });
       fetchSpy.mockResolvedValueOnce(jsonResponse(ADVENTURE_LIST));
       void c.listAdventures();
-      expect(fetchSpy).toHaveBeenCalledWith('http://example.com/api/pirate/adventures');
+      expect(fetchSpy).toHaveBeenCalledWith('http://example.com/api/activities/adventures');
     });
   });
 });

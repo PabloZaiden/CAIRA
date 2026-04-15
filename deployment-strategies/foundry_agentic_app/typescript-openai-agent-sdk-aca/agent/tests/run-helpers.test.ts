@@ -65,12 +65,12 @@ describe('formatSSE', () => {
 
   it('handles complex objects', () => {
     const result = formatSSE('activity.resolved', {
-      tool: 'resolve_shanty',
-      result: { winner: 'user', rounds: 3 }
+      tool: 'resolve_discovery',
+      result: { fit: 'qualified', signals_reviewed: 3 }
     });
     expect(result).toContain('event: activity.resolved');
-    expect(result).toContain('"tool":"resolve_shanty"');
-    expect(result).toContain('"winner":"user"');
+    expect(result).toContain('"tool":"resolve_discovery"');
+    expect(result).toContain('"fit":"qualified"');
   });
 });
 
@@ -143,16 +143,24 @@ describe('extractResolutionFromItems', () => {
         type: 'tool_call_item',
         rawItem: {
           type: 'function_call',
-          name: 'resolve_shanty',
-          arguments: JSON.stringify({ winner: 'user', rounds: 3, best_verse: 'A verse' }),
+          name: 'resolve_discovery',
+          arguments: JSON.stringify({
+            fit: 'qualified',
+            signals_reviewed: 3,
+            primary_need: 'Needs executive sponsorship'
+          }),
           callId: 'call_1'
         }
       }
     ]);
     const result = extractResolutionFromItems(items, noopLog);
     expect(result).toEqual({
-      tool: 'resolve_shanty',
-      result: { winner: 'user', rounds: 3, best_verse: 'A verse' }
+      tool: 'resolve_discovery',
+      result: {
+        fit: 'qualified',
+        signals_reviewed: 3,
+        primary_need: 'Needs executive sponsorship'
+      }
     });
   });
 
@@ -183,7 +191,7 @@ describe('extractResolutionFromItems', () => {
         type: 'tool_call_item',
         rawItem: {
           type: 'function_call',
-          name: 'resolve_treasure',
+          name: 'resolve_planning',
           arguments: 'not valid json{{{',
           callId: 'call_1'
         }
@@ -199,8 +207,8 @@ describe('extractResolutionFromItems', () => {
         type: 'tool_call_item',
         rawItem: {
           type: 'function_call',
-          name: 'resolve_shanty',
-          arguments: JSON.stringify({ winner: 'user', rounds: 1, best_verse: 'v1' }),
+          name: 'resolve_discovery',
+          arguments: JSON.stringify({ fit: 'qualified', signals_reviewed: 1, primary_need: 'v1' }),
           callId: 'call_1'
         }
       },
@@ -208,14 +216,18 @@ describe('extractResolutionFromItems', () => {
         type: 'tool_call_item',
         rawItem: {
           type: 'function_call',
-          name: 'resolve_treasure',
-          arguments: JSON.stringify({ found: true, treasure_name: 'Gold', location: 'Cave' }),
+          name: 'resolve_planning',
+          arguments: JSON.stringify({
+            approved: true,
+            focus_area: 'Executive alignment',
+            next_step: 'Schedule follow-up workshop'
+          }),
           callId: 'call_2'
         }
       }
     ]);
     const result = extractResolutionFromItems(items, noopLog);
-    expect(result!.tool).toBe('resolve_shanty');
+    expect(result!.tool).toBe('resolve_discovery');
   });
 
   it('skips non-tool_call_item types', () => {
@@ -225,16 +237,20 @@ describe('extractResolutionFromItems', () => {
         type: 'tool_call_item',
         rawItem: {
           type: 'function_call',
-          name: 'resolve_crew',
-          arguments: JSON.stringify({ rank: 'Captain', role: 'Navigator', ship_name: 'Dawn' }),
+          name: 'resolve_staffing',
+          arguments: JSON.stringify({
+            coverage_level: 'full',
+            role: 'Analyst',
+            team_name: 'Dawn'
+          }),
           callId: 'call_1'
         }
       }
     ]);
     const result = extractResolutionFromItems(items, noopLog);
     expect(result).toEqual({
-      tool: 'resolve_crew',
-      result: { rank: 'Captain', role: 'Navigator', ship_name: 'Dawn' }
+      tool: 'resolve_staffing',
+      result: { coverage_level: 'full', role: 'Analyst', team_name: 'Dawn' }
     });
   });
 });

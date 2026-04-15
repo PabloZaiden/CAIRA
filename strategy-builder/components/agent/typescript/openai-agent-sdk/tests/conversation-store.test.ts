@@ -22,8 +22,8 @@ describe('ConversationStore', () => {
 
     it('includes metadata when provided', () => {
       const store = new ConversationStore();
-      const conv = store.create({ topic: 'pirates' });
-      expect(conv.metadata).toEqual({ topic: 'pirates' });
+      const conv = store.create({ topic: 'sales' });
+      expect(conv.metadata).toEqual({ topic: 'sales' });
     });
 
     it('omits metadata key when none provided', () => {

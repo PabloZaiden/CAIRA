@@ -143,10 +143,10 @@ describe('routes', () => {
       const resp = await app.inject({
         method: 'POST',
         url: '/conversations',
-        payload: { metadata: { topic: 'pirates' } }
+        payload: { metadata: { topic: 'sales' } }
       });
       expect(resp.statusCode).toBe(201);
-      expect(resp.json().metadata).toEqual({ topic: 'pirates' });
+      expect(resp.json().metadata).toEqual({ topic: 'sales' });
     });
 
     it('increments conversations_created metric', async () => {
@@ -254,12 +254,12 @@ describe('routes', () => {
         method: 'POST',
         url: `/conversations/${id}/messages`,
         headers: { accept: 'application/json' },
-        payload: { content: 'Hello pirate!' }
+        payload: { content: 'Hello sales team!' }
       });
       expect(resp.statusCode).toBe(200);
       const body = resp.json();
       expect(body.role).toBe('assistant');
-      expect(body.content).toContain('Response to: Hello pirate!');
+      expect(body.content).toContain('Response to: Hello sales team!');
     });
 
     it('returns 400 for missing content', async () => {

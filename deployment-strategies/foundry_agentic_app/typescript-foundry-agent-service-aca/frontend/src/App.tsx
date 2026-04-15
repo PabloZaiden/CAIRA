@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { PirateClient } from './api/pirate-client.ts';
+import { ActivityClient } from './api/activity-client.ts';
 import { ActivityPicker } from './components/ActivityPicker.tsx';
 import { ConversationList } from './components/ConversationList.tsx';
 import { ChatArea } from './components/ChatArea.tsx';
@@ -13,7 +13,7 @@ import './styles/index.css';
 export function App() {
   const client = useMemo(
     () =>
-      new PirateClient({
+      new ActivityClient({
         baseUrl: import.meta.env['VITE_API_BASE_URL'] ?? '/api'
       }),
     []

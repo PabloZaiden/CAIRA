@@ -440,6 +440,6 @@ describe('validateContainer (Docker integration)', () => {
     });
 
     expect(result.passed).toBe(true);
-    expect(result.healthBody).toContain('ahoy_matey');
+    expect(result.healthBody).toContain('hello_team');
   }, 120_000);
 });

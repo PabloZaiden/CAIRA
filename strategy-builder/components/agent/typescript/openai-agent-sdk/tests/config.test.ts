@@ -20,10 +20,10 @@ describe('loadConfig', () => {
     expect(config.apiVersion).toBe('2025-03-01-preview');
     expect(config.model).toBe('gpt-5.2-chat');
     expect(config.agentName).toBe('CAIRA Account Team Agent');
-    expect(config.captainInstructions).toContain('discrete specialist');
-    expect(config.shantyInstructions).toContain('opportunity discovery');
-    expect(config.treasureInstructions).toContain('account planning');
-    expect(config.crewInstructions).toContain('account team staffing');
+    expect(config.sharedInstructions).toContain('discrete specialist');
+    expect(config.discoveryInstructions).toContain('opportunity discovery');
+    expect(config.planningInstructions).toContain('account planning');
+    expect(config.staffingInstructions).toContain('account team staffing');
     expect(config.applicationInsightsConnectionString).toBeUndefined();
     expect(config.logLevel).toBe('info');
     expect(config.skipAuth).toBe(false);
@@ -45,10 +45,10 @@ describe('loadConfig', () => {
       AZURE_OPENAI_API_VERSION: '2024-12-01-preview',
       AGENT_MODEL: 'gpt-5.2-chat',
       AGENT_NAME: 'Test Agent',
-      CAPTAIN_INSTRUCTIONS: 'Custom captain prompt.',
-      SHANTY_INSTRUCTIONS: 'Custom shanty prompt.',
-      TREASURE_INSTRUCTIONS: 'Custom treasure prompt.',
-      CREW_INSTRUCTIONS: 'Custom crew prompt.',
+      SHARED_INSTRUCTIONS: 'Custom shared prompt.',
+      DISCOVERY_INSTRUCTIONS: 'Custom discovery prompt.',
+      PLANNING_INSTRUCTIONS: 'Custom planning prompt.',
+      STAFFING_INSTRUCTIONS: 'Custom staffing prompt.',
       APPLICATIONINSIGHTS_CONNECTION_STRING: 'InstrumentationKey=test',
       LOG_LEVEL: 'debug',
       SKIP_AUTH: 'true',
@@ -60,10 +60,10 @@ describe('loadConfig', () => {
     expect(config.apiVersion).toBe('2024-12-01-preview');
     expect(config.model).toBe('gpt-5.2-chat');
     expect(config.agentName).toBe('Test Agent');
-    expect(config.captainInstructions).toBe('Custom captain prompt.');
-    expect(config.shantyInstructions).toBe('Custom shanty prompt.');
-    expect(config.treasureInstructions).toBe('Custom treasure prompt.');
-    expect(config.crewInstructions).toBe('Custom crew prompt.');
+    expect(config.sharedInstructions).toBe('Custom shared prompt.');
+    expect(config.discoveryInstructions).toBe('Custom discovery prompt.');
+    expect(config.planningInstructions).toBe('Custom planning prompt.');
+    expect(config.staffingInstructions).toBe('Custom staffing prompt.');
     expect(config.applicationInsightsConnectionString).toBe('InstrumentationKey=test');
     expect(config.logLevel).toBe('debug');
     expect(config.skipAuth).toBe(true);

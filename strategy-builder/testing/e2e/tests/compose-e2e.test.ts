@@ -21,7 +21,7 @@ import { ApiClient } from '../src/helpers/api-client.ts';
 import type { AdventureStarted } from '../src/helpers/api-client.ts';
 import { collectSSEEvents } from '../src/helpers/sse-collector.ts';
 import type { SSEEvent } from '../src/helpers/sse-collector.ts';
-import { PIRATE_MESSAGES, SSE_EVENT_SEQUENCE } from '../src/fixtures/pirate-fixtures.ts';
+import { ACTIVITY_MESSAGES, SSE_EVENT_SEQUENCE } from '../src/fixtures/activity-fixtures.ts';
 
 // ─── Configuration ──────────────────────────────────────────────────────
 
@@ -56,17 +56,17 @@ describeCompose('Full-stack E2E (compose)', () => {
     });
   });
 
-  // ─── Shanty adventure flow ────────────────────────────────────────────
+  // ─── Discovery adventure flow ────────────────────────────────────────────
 
-  describe('shanty adventure flow', () => {
+  describe('discovery adventure flow', () => {
     let adventure: AdventureStarted;
 
-    describe('start shanty', () => {
-      it('creates a shanty adventure', async () => {
-        const res = await client.startShanty();
+    describe('start discovery', () => {
+      it('creates a discovery adventure', async () => {
+        const res = await client.startDiscovery();
         expect(res.status).toBe(201);
         expect(res.body.id).toBeTruthy();
-        expect(res.body.mode).toBe('shanty');
+        expect(res.body.mode).toBe('discovery');
         // Both mocks now correctly return 'active' on the first specialist
         // interaction (conversational text), matching real agent behavior.
         expect(res.body.status).toBe('active');
@@ -80,8 +80,8 @@ describeCompose('Full-stack E2E (compose)', () => {
 
     // Parley (JSON response)
     describe('parley (JSON)', () => {
-      it('sends a message and receives a pirate response', async () => {
-        const res = await client.parley(adventure.id, PIRATE_MESSAGES.shanty);
+      it('sends a message and receives an assistant response', async () => {
+        const res = await client.parley(adventure.id, ACTIVITY_MESSAGES.discovery);
         expect(res.status).toBe(200);
         expect(res.body.role).toBe('assistant');
         // Content is always non-empty in mock mode; against a real LLM the
@@ -98,7 +98,7 @@ describeCompose('Full-stack E2E (compose)', () => {
         it('mock response returns non-empty content (not blank)', async () => {
           // Regression test: the mock must return substantive content, not
           // an empty string (which was the old extractUserText bug).
-          const res = await client.parley(adventure.id, PIRATE_MESSAGES.short);
+          const res = await client.parley(adventure.id, ACTIVITY_MESSAGES.short);
           expect(res.status).toBe(200);
           expect(res.body.content).toBeTruthy();
           // Content should be a non-trivial string (at least 5 chars)
@@ -112,7 +112,7 @@ describeCompose('Full-stack E2E (compose)', () => {
       let sseEvents: SSEEvent[];
 
       it('streams a response with message.delta and message.complete events', async () => {
-        const response = await client.parleyStream(adventure.id, PIRATE_MESSAGES.greeting);
+        const response = await client.parleyStream(adventure.id, ACTIVITY_MESSAGES.greeting);
         expect(response.status).toBe(200);
 
         const contentType = response.headers.get('content-type') ?? '';
@@ -130,7 +130,7 @@ describeCompose('Full-stack E2E (compose)', () => {
       it('has at least one message.delta event', () => {
         // In mock mode, the model always produces text. Against a real LLM,
         // the model may go straight from specialist tool calls to resolution
-        // without producing user-facing text (e.g. the shanty SSE test is
+        // without producing user-facing text (e.g. the discovery SSE test is
         // the 3rd exchange on the same conversation where the model often
         // judges + resolves back-to-back).
         const deltaEvents = sseEvents.filter((e) => e.event === 'message.delta');
@@ -185,16 +185,16 @@ describeCompose('Full-stack E2E (compose)', () => {
     });
   });
 
-  // ─── Treasure adventure flow ──────────────────────────────────────────
+  // ─── Planning adventure flow ──────────────────────────────────────────
 
-  describe('treasure adventure flow', () => {
-    it('creates a treasure adventure and sends a message', async () => {
-      const startRes = await client.seekTreasure();
+  describe('planning adventure flow', () => {
+    it('creates a planning adventure and sends a message', async () => {
+      const startRes = await client.startPlanning();
       expect(startRes.status).toBe(201);
-      expect(startRes.body.mode).toBe('treasure');
+      expect(startRes.body.mode).toBe('planning');
       expect(startRes.body.syntheticMessage).toBeTruthy();
 
-      const parleyRes = await client.parley(startRes.body.id, PIRATE_MESSAGES.treasure);
+      const parleyRes = await client.parley(startRes.body.id, ACTIVITY_MESSAGES.planning);
       expect(parleyRes.status).toBe(200);
       // Content is always non-empty in mock mode; against a real LLM the
       // model may resolve an activity without producing user-facing text.
@@ -205,16 +205,16 @@ describeCompose('Full-stack E2E (compose)', () => {
     });
   });
 
-  // ─── Crew enlistment flow ─────────────────────────────────────────────
+  // ─── Staffing enlistment flow ─────────────────────────────────────────────
 
-  describe('crew enlistment flow', () => {
-    it('creates a crew adventure and sends a message', async () => {
-      const startRes = await client.enlistInCrew();
+  describe('staffing enlistment flow', () => {
+    it('creates a staffing adventure and sends a message', async () => {
+      const startRes = await client.startStaffing();
       expect(startRes.status).toBe(201);
-      expect(startRes.body.mode).toBe('crew');
+      expect(startRes.body.mode).toBe('staffing');
       expect(startRes.body.syntheticMessage).toBeTruthy();
 
-      const parleyRes = await client.parley(startRes.body.id, PIRATE_MESSAGES.crew);
+      const parleyRes = await client.parley(startRes.body.id, ACTIVITY_MESSAGES.staffing);
       expect(parleyRes.status).toBe(200);
       // Content is always non-empty in mock mode; against a real LLM the
       // model may resolve an activity without producing user-facing text.
@@ -232,13 +232,13 @@ describeCompose('Full-stack E2E (compose)', () => {
       const res = await client.listAdventures();
       expect(res.status).toBe(200);
       expect(res.body.adventures).toBeInstanceOf(Array);
-      expect(res.body.total).toBeGreaterThanOrEqual(3); // shanty + treasure + crew
+      expect(res.body.total).toBeGreaterThanOrEqual(3); // discovery + planning + staffing
 
       // Check that all three modes are represented
       const modes = new Set(res.body.adventures.map((a) => a.mode));
-      expect(modes.has('shanty')).toBe(true);
-      expect(modes.has('treasure')).toBe(true);
-      expect(modes.has('crew')).toBe(true);
+      expect(modes.has('discovery')).toBe(true);
+      expect(modes.has('planning')).toBe(true);
+      expect(modes.has('staffing')).toBe(true);
     });
 
     it('supports pagination', async () => {
@@ -254,21 +254,21 @@ describeCompose('Full-stack E2E (compose)', () => {
   describe('adventure detail', () => {
     it('returns the adventure with parleys', async () => {
       // Create an adventure and parley so we have messages
-      const startRes = await client.startShanty();
-      await client.parley(startRes.body.id, PIRATE_MESSAGES.shanty);
+      const startRes = await client.startDiscovery();
+      await client.parley(startRes.body.id, ACTIVITY_MESSAGES.discovery);
 
       const res = await client.getAdventure(startRes.body.id);
       expect(res.status).toBe(200);
       expect(res.body.id).toBe(startRes.body.id);
-      expect(res.body.mode).toBe('shanty');
+      expect(res.body.mode).toBe('discovery');
       expect(res.body.parleys).toBeInstanceOf(Array);
       // Opening message + user message + assistant response = at least 3
       expect(res.body.parleys.length).toBeGreaterThanOrEqual(1);
     });
 
     it('message count reflects activity', async () => {
-      const startRes = await client.startShanty();
-      await client.parley(startRes.body.id, 'Ahoy!');
+      const startRes = await client.startDiscovery();
+      await client.parley(startRes.body.id, 'Hello!');
 
       const res = await client.getAdventure(startRes.body.id);
       expect(res.body.messageCount).toBeGreaterThanOrEqual(1);
@@ -289,11 +289,11 @@ describeCompose('Full-stack E2E (compose)', () => {
     it('stats response has expected shape', async () => {
       const res = await client.getStats();
       expect(res.body.byMode).toBeDefined();
-      expect(typeof res.body.byMode.shanty.total).toBe('number');
-      expect(typeof res.body.byMode.shanty.active).toBe('number');
-      expect(typeof res.body.byMode.shanty.resolved).toBe('number');
-      expect(typeof res.body.byMode.treasure.total).toBe('number');
-      expect(typeof res.body.byMode.crew.total).toBe('number');
+      expect(typeof res.body.byMode.discovery.total).toBe('number');
+      expect(typeof res.body.byMode.discovery.active).toBe('number');
+      expect(typeof res.body.byMode.discovery.resolved).toBe('number');
+      expect(typeof res.body.byMode.planning.total).toBe('number');
+      expect(typeof res.body.byMode.staffing.total).toBe('number');
     });
   });
 
@@ -301,10 +301,10 @@ describeCompose('Full-stack E2E (compose)', () => {
 
   const describeLifecycle = MOCK_MODE ? describe : describe.skip;
 
-  describeLifecycle('full lifecycle — shanty resolution', () => {
-    it('starts shanty, parleys via SSE, and resolves the adventure', async () => {
-      // 1. Start shanty adventure (create-only, no message sent to agent)
-      const startRes = await client.startShanty();
+  describeLifecycle('full lifecycle — discovery resolution', () => {
+    it('starts discovery, parleys via SSE, and resolves the adventure', async () => {
+      // 1. Start discovery adventure (create-only, no message sent to agent)
+      const startRes = await client.startDiscovery();
       expect(startRes.status).toBe(201);
       expect(startRes.body.status).toBe('active');
       const adventureId = startRes.body.id;
@@ -316,7 +316,7 @@ describeCompose('Full-stack E2E (compose)', () => {
       expect(openingResult.done).toBe(true);
 
       // 3. Send a follow-up parley via SSE stream — this should trigger resolution
-      const sseResponse = await client.parleyStream(adventureId, PIRATE_MESSAGES.shanty);
+      const sseResponse = await client.parleyStream(adventureId, ACTIVITY_MESSAGES.discovery);
       expect(sseResponse.status).toBe(200);
 
       const result = await collectSSEEvents(sseResponse, { timeoutMs: SSE_TIMEOUT_MS });
@@ -329,7 +329,7 @@ describeCompose('Full-stack E2E (compose)', () => {
         tool?: string;
         result?: Record<string, unknown>;
       };
-      expect(resolvedData.tool).toBe('resolve_shanty');
+      expect(resolvedData.tool).toBe('resolve_discovery');
       expect(resolvedData.result).toBeDefined();
 
       // 5. Verify adventure detail shows resolved status
@@ -337,20 +337,20 @@ describeCompose('Full-stack E2E (compose)', () => {
       expect(detailRes.status).toBe(200);
       expect(detailRes.body.status).toBe('resolved');
       expect(detailRes.body.outcome).toBeDefined();
-      expect(detailRes.body.outcome?.tool).toBe('resolve_shanty');
+      expect(detailRes.body.outcome?.tool).toBe('resolve_discovery');
 
       // 6. Verify stats reflect the resolution
       const statsRes = await client.getStats();
       expect(statsRes.status).toBe(200);
       expect(statsRes.body.resolvedAdventures).toBeGreaterThanOrEqual(1);
-      expect(statsRes.body.byMode.shanty.resolved).toBeGreaterThanOrEqual(1);
+      expect(statsRes.body.byMode.discovery.resolved).toBeGreaterThanOrEqual(1);
     });
   });
 
-  describeLifecycle('full lifecycle — treasure resolution', () => {
-    it('starts treasure, parleys via SSE, and resolves the adventure', async () => {
-      // 1. Start treasure adventure (create-only)
-      const startRes = await client.seekTreasure();
+  describeLifecycle('full lifecycle — planning resolution', () => {
+    it('starts planning, parleys via SSE, and resolves the adventure', async () => {
+      // 1. Start planning adventure (create-only)
+      const startRes = await client.startPlanning();
       expect(startRes.status).toBe(201);
       expect(startRes.body.status).toBe('active');
       const adventureId = startRes.body.id;
@@ -362,7 +362,7 @@ describeCompose('Full-stack E2E (compose)', () => {
       expect(openingResult.done).toBe(true);
 
       // 3. Send a follow-up parley via SSE stream — this should trigger resolution
-      const sseResponse = await client.parleyStream(adventureId, PIRATE_MESSAGES.treasure);
+      const sseResponse = await client.parleyStream(adventureId, ACTIVITY_MESSAGES.planning);
       expect(sseResponse.status).toBe(200);
 
       const result = await collectSSEEvents(sseResponse, { timeoutMs: SSE_TIMEOUT_MS });
@@ -375,7 +375,7 @@ describeCompose('Full-stack E2E (compose)', () => {
         tool?: string;
         result?: Record<string, unknown>;
       };
-      expect(resolvedData.tool).toBe('resolve_treasure');
+      expect(resolvedData.tool).toBe('resolve_planning');
       expect(resolvedData.result).toBeDefined();
 
       // 5. Verify adventure detail shows resolved status
@@ -383,19 +383,19 @@ describeCompose('Full-stack E2E (compose)', () => {
       expect(detailRes.status).toBe(200);
       expect(detailRes.body.status).toBe('resolved');
       expect(detailRes.body.outcome).toBeDefined();
-      expect(detailRes.body.outcome?.tool).toBe('resolve_treasure');
+      expect(detailRes.body.outcome?.tool).toBe('resolve_planning');
 
       // 6. Verify stats reflect the resolution
       const statsRes = await client.getStats();
       expect(statsRes.status).toBe(200);
-      expect(statsRes.body.byMode.treasure.resolved).toBeGreaterThanOrEqual(1);
+      expect(statsRes.body.byMode.planning.resolved).toBeGreaterThanOrEqual(1);
     });
   });
 
-  describeLifecycle('full lifecycle — crew resolution', () => {
-    it('starts crew, parleys via SSE, and resolves the adventure', async () => {
-      // 1. Start crew adventure (create-only)
-      const startRes = await client.enlistInCrew();
+  describeLifecycle('full lifecycle — staffing resolution', () => {
+    it('starts staffing, parleys via SSE, and resolves the adventure', async () => {
+      // 1. Start staffing adventure (create-only)
+      const startRes = await client.startStaffing();
       expect(startRes.status).toBe(201);
       expect(startRes.body.status).toBe('active');
       const adventureId = startRes.body.id;
@@ -407,7 +407,7 @@ describeCompose('Full-stack E2E (compose)', () => {
       expect(openingResult.done).toBe(true);
 
       // 3. Send a follow-up parley via SSE stream — this should trigger resolution
-      const sseResponse = await client.parleyStream(adventureId, PIRATE_MESSAGES.crew);
+      const sseResponse = await client.parleyStream(adventureId, ACTIVITY_MESSAGES.staffing);
       expect(sseResponse.status).toBe(200);
 
       const result = await collectSSEEvents(sseResponse, { timeoutMs: SSE_TIMEOUT_MS });
@@ -420,7 +420,7 @@ describeCompose('Full-stack E2E (compose)', () => {
         tool?: string;
         result?: Record<string, unknown>;
       };
-      expect(resolvedData.tool).toBe('resolve_crew');
+      expect(resolvedData.tool).toBe('resolve_staffing');
       expect(resolvedData.result).toBeDefined();
 
       // 5. Verify adventure detail shows resolved status
@@ -428,12 +428,12 @@ describeCompose('Full-stack E2E (compose)', () => {
       expect(detailRes.status).toBe(200);
       expect(detailRes.body.status).toBe('resolved');
       expect(detailRes.body.outcome).toBeDefined();
-      expect(detailRes.body.outcome?.tool).toBe('resolve_crew');
+      expect(detailRes.body.outcome?.tool).toBe('resolve_staffing');
 
       // 6. Verify stats reflect the resolution
       const statsRes = await client.getStats();
       expect(statsRes.status).toBe(200);
-      expect(statsRes.body.byMode.crew.resolved).toBeGreaterThanOrEqual(1);
+      expect(statsRes.body.byMode.staffing.resolved).toBeGreaterThanOrEqual(1);
     });
   });
 

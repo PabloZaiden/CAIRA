@@ -16,7 +16,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       data-role={message.role}
     >
       <div className='mb-1 text-[0.7rem] font-medium tracking-wide text-zinc-400 uppercase'>
-        {isUser ? 'You' : 'Captain'}
+        {isUser ? 'You' : 'Assistant'}
       </div>
       <div className='whitespace-pre-wrap text-[0.95rem] leading-relaxed text-zinc-200'>{message.content}</div>
       <div className='mt-1 text-right text-[0.65rem] text-zinc-500'>

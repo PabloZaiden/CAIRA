@@ -5,26 +5,26 @@ interface OutcomeCardProps {
 }
 
 const MODE_LABELS: Record<string, string> = {
-  resolve_shanty: 'Discovery Summary',
-  resolve_treasure: 'Account Plan Summary',
-  resolve_crew: 'Staffing Recommendation'
+  resolve_discovery: 'Discovery Summary',
+  resolve_planning: 'Account Plan Summary',
+  resolve_staffing: 'Staffing Recommendation'
 };
 
 const FIELD_LABELS: Record<string, Record<string, string>> = {
-  resolve_shanty: {
-    winner: 'Disposition',
-    rounds: 'Signals reviewed',
-    best_verse: 'Key insight'
+  resolve_discovery: {
+    fit: 'Disposition',
+    signals_reviewed: 'Signals reviewed',
+    primary_need: 'Key insight'
   },
-  resolve_treasure: {
-    found: 'Advance',
-    treasure_name: 'Focus area',
-    location: 'Next milestone'
+  resolve_planning: {
+    approved: 'Advance',
+    focus_area: 'Focus area',
+    next_step: 'Next step'
   },
-  resolve_crew: {
-    rank: 'Coverage level',
+  resolve_staffing: {
+    coverage_level: 'Coverage level',
     role: 'Recommended role',
-    ship_name: 'Team name'
+    team_name: 'Team name'
   }
 };
 

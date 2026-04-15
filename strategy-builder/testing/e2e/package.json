@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "version": "0.1.0",
-  "description": "End-to-end test suite for the CAIRA backend API — tests the pirate-themed business API against running services or mock-backed stacks",
+  "description": "End-to-end test suite for the CAIRA backend API — tests the business-oriented business API against running services or mock-backed stacks",
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",

@@ -5,9 +5,9 @@ import { OutcomeCard } from './OutcomeCard.tsx';
 
 /** Map specialist tool names to human-readable labels. */
 const SPECIALIST_LABELS: Record<string, string> = {
-  shanty_specialist: 'The discovery specialist',
-  treasure_specialist: 'The account planning specialist',
-  crew_specialist: 'The staffing specialist'
+  discovery_specialist: 'The discovery specialist',
+  planning_specialist: 'The account planning specialist',
+  staffing_specialist: 'The staffing specialist'
 };
 
 interface ChatAreaProps {

@@ -16,10 +16,10 @@ describe('MessageInput', () => {
     render(<MessageInput onSend={onSend} />);
 
     const textarea = screen.getByTestId('message-input-textarea');
-    await user.type(textarea, '  Ahoy!  ');
+    await user.type(textarea, '  Hello!  ');
     await user.click(screen.getByTestId('message-input-send'));
 
-    expect(onSend).toHaveBeenCalledWith('Ahoy!');
+    expect(onSend).toHaveBeenCalledWith('Hello!');
   });
 
   it('clears input after send', async () => {

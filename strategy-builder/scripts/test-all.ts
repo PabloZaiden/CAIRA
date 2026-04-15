@@ -845,7 +845,7 @@ function buildMockEnv(component: ComponentInfo, mockPort: number): Record<string
  */
 const L3_SKIP_PATHS: Record<string, string[]> = {
   agent: ['/conversations/{conversationId}', '/conversations/{conversationId}/messages'],
-  api: ['/api/pirate/adventures/{adventureId}', '/api/pirate/adventures/{adventureId}/parley']
+  api: ['/api/activities/adventures/{adventureId}', '/api/activities/adventures/{adventureId}/parley']
 };
 
 /**

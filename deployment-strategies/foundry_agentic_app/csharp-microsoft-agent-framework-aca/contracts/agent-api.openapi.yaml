@@ -24,7 +24,7 @@ info:
     data: {"content": "token text"}
 
     event: activity.resolved
-    data: {"tool": "resolve_shanty", "result": {"winner": "user", "rounds": 4, "best_verse": "..."}}
+    data: {"tool": "resolve_discovery", "result": {"fit": "qualified", "signals_reviewed": 4, "primary_need": "..."}}
 
     event: message.complete
     data: {"messageId": "...", "content": "full response", "usage": {"promptTokens": 10, "completionTokens": 42}}
@@ -35,8 +35,8 @@ info:
 
     ### Activity Resolution
 
-    When a specialist agent calls a resolution tool (e.g., `resolve_shanty`,
-    `resolve_treasure`, `resolve_crew`), the agent container emits an
+    When a specialist agent calls a resolution tool (e.g., `resolve_discovery`,
+    `resolve_planning`, `resolve_staffing`), the agent container emits an
     `activity.resolved` SSE event with the tool name and structured result.
     This event appears in the stream between `message.delta` events and
     the final `message.complete` event. The `result` field is an opaque
@@ -160,7 +160,7 @@ paths:
 
         **`activity.resolved`**
         ```json
-        {"tool": "resolve_shanty", "result": {"winner": "user", "rounds": 4, "best_verse": "..."}}
+        {"tool": "resolve_discovery", "result": {"fit": "qualified", "signals_reviewed": 4, "primary_need": "..."}}
         ```
 
         **`message.complete`**
@@ -421,7 +421,7 @@ components:
       properties:
         tool:
           type: string
-          description: The resolution tool that was called (e.g., resolve_shanty)
+          description: The resolution tool that was called (e.g., resolve_discovery)
         result:
           type: object
           description: Domain-specific outcome data from the resolution tool

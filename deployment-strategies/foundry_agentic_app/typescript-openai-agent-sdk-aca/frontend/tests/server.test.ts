@@ -27,7 +27,7 @@ beforeAll(async () => {
 
   apiMock = Fastify({ logger: false });
 
-  apiMock.get('/api/pirate/adventures', async (request, reply) => {
+  apiMock.get('/api/activities/adventures', async (request, reply) => {
     lastAuthorizationHeader = readAuthorizationHeader(request.headers['authorization']);
     if (lastAuthorizationHeader !== 'Bearer test-api-token' && lastAuthorizationHeader !== undefined) {
       await reply.status(401).send({
@@ -102,7 +102,7 @@ afterAll(async () => {
 
 describe('BFF server inter-service auth', () => {
   it('injects Authorization when proxying /api requests', async () => {
-    const response = await fetch(`${bffBaseUrl}/api/pirate/adventures`);
+    const response = await fetch(`${bffBaseUrl}/api/activities/adventures`);
     expect(response.status).toBe(200);
     expect(lastAuthorizationHeader).toBe('Bearer test-api-token');
   });
@@ -122,7 +122,7 @@ describe('BFF server inter-service auth', () => {
   });
 
   it('omits Authorization when auth bypass is enabled', async () => {
-    const response = await fetch(`${bffSkipAuthBaseUrl}/api/pirate/adventures`);
+    const response = await fetch(`${bffSkipAuthBaseUrl}/api/activities/adventures`);
     expect(response.status).toBe(200);
     expect(lastAuthorizationHeader).toBeUndefined();
   });

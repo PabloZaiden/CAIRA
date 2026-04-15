@@ -1,7 +1,7 @@
 /// <summary>
 /// Agent container entry point — ASP.NET Core Minimal API.
 ///
-/// Starts the CAIRA pirate agent using the Microsoft Agent Framework (MAF)
+/// Starts the CAIRA sales agent using the Microsoft Agent Framework (MAF)
 /// Workflow engine for agent orchestration. The selected specialist workflow
 /// handles the user-facing exchange for the current activity mode.
 ///
@@ -43,7 +43,7 @@ builder.Services.AddSingleton<IIncomingTokenValidator>(
 
 var app = builder.Build();
 
-// Create agent hierarchy — this builds the captain agent, specialist
+// Create agent hierarchy — this builds the coordinator agent, specialist
 // sub-agents, resolution tools, MAF Workflow, and CheckpointManager.
 AgentSetupResult? setup = null;
 try

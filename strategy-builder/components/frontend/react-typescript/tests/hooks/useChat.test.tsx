@@ -4,18 +4,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useChat } from '../../src/hooks/useChat.ts';
 import { useConversationStates } from '../../src/hooks/useConversationStates.ts';
-import type { PirateClient } from '../../src/api/pirate-client.ts';
+import type { ActivityClient } from '../../src/api/activity-client.ts';
 import type { AdventureDetail, SSEEvent } from '../../src/types.ts';
 
 const ADVENTURE_DETAIL: AdventureDetail = {
   id: 'adv-1',
-  mode: 'shanty',
+  mode: 'discovery',
   status: 'active',
   createdAt: '2026-01-01T00:00:00Z',
   lastParleyAt: '2026-01-02T00:00:00Z',
   messageCount: 2,
   parleys: [
-    { id: 'msg-1', role: 'user', content: 'Ahoy!', createdAt: '2026-01-01T12:00:00Z' },
+    { id: 'msg-1', role: 'user', content: 'Hello!', createdAt: '2026-01-01T12:00:00Z' },
     { id: 'msg-2', role: 'assistant', content: 'Welcome!', createdAt: '2026-01-01T12:00:01Z' }
   ]
 };
@@ -24,17 +24,17 @@ const RESOLVED_DETAIL: AdventureDetail = {
   ...ADVENTURE_DETAIL,
   status: 'resolved',
   outcome: {
-    tool: 'resolve_shanty',
-    result: { winner: 'user', rounds: 4, best_verse: 'Through storms we sail' }
+    tool: 'resolve_discovery',
+    result: { fit: 'qualified', signals_reviewed: 4, primary_need: 'Needs clearer forecasting' }
   }
 };
 
-function createMockClient(): PirateClient {
+function createMockClient(): ActivityClient {
   return {
     listAdventures: vi.fn(),
-    startShanty: vi.fn(),
-    seekTreasure: vi.fn(),
-    enlistInCrew: vi.fn(),
+    startDiscovery: vi.fn(),
+    startPlanning: vi.fn(),
+    startStaffing: vi.fn(),
     getAdventure: vi.fn().mockResolvedValue(ADVENTURE_DETAIL),
     parley: vi.fn(),
     parleyStream: vi.fn(),
@@ -48,7 +48,7 @@ function createMockClient(): PirateClient {
  * This mirrors how App.tsx uses them.
  */
 function useIntegrated(
-  client: PirateClient,
+  client: ActivityClient,
   conversationId: string | null,
   options: {
     streaming?: boolean;
@@ -69,7 +69,7 @@ function useIntegrated(
 }
 
 describe('useChat', () => {
-  let mockClient: PirateClient;
+  let mockClient: ActivityClient;
 
   beforeEach(() => {
     mockClient = createMockClient();
@@ -119,14 +119,14 @@ describe('useChat', () => {
 
   it('sends message and processes SSE stream', async () => {
     const sseEvents: SSEEvent[] = [
-      { type: 'delta', content: 'Arr, ' },
-      { type: 'delta', content: 'welcome!' },
+      { type: 'delta', content: 'Welcome ' },
+      { type: 'delta', content: 'back!' },
       {
         type: 'complete',
         message: {
           id: 'msg-3',
           role: 'assistant',
-          content: 'Arr, welcome!',
+          content: 'Welcome back!',
           createdAt: '2026-01-02T00:00:00Z'
         }
       }
@@ -147,7 +147,7 @@ describe('useChat', () => {
     });
 
     await act(async () => {
-      await result.current.sendMessage('Ahoy!');
+      await result.current.sendMessage('Hello!');
     });
 
     // Should have original messages + user message + assistant message
@@ -157,7 +157,7 @@ describe('useChat', () => {
     ] as (typeof result.current.messages)[number];
     expect(lastMsg).toBeDefined();
     expect(lastMsg.role).toBe('assistant');
-    expect(lastMsg.content).toBe('Arr, welcome!');
+    expect(lastMsg.content).toBe('Welcome back!');
     expect(result.current.streamingContent).toBe('');
   });
 
@@ -167,8 +167,8 @@ describe('useChat', () => {
       {
         type: 'activity.resolved',
         outcome: {
-          tool: 'resolve_shanty',
-          result: { winner: 'user', rounds: 4, best_verse: 'My verse' }
+          tool: 'resolve_discovery',
+          result: { fit: 'qualified', signals_reviewed: 4, primary_need: 'Needs account coverage' }
         }
       },
       {
@@ -197,18 +197,22 @@ describe('useChat', () => {
     });
 
     await act(async () => {
-      await result.current.sendMessage('Sing me a shanty');
+      await result.current.sendMessage('Please summarize the discovery.');
     });
 
     expect(result.current.outcome).toEqual({
-      tool: 'resolve_shanty',
-      result: { winner: 'user', rounds: 4, best_verse: 'My verse' }
+      tool: 'resolve_discovery',
+      result: { fit: 'qualified', signals_reviewed: 4, primary_need: 'Needs account coverage' }
     });
   });
 
   it('handles SSE error events', async () => {
     async function* mockStream(): AsyncGenerator<SSEEvent> {
-      yield { type: 'error', code: 'agent_error', message: 'The seas be rough' };
+      yield {
+        type: 'error',
+        code: 'agent_error',
+        message: 'The service is temporarily unavailable'
+      };
     }
 
     (mockClient.parleyStream as any).mockReturnValue(mockStream());
@@ -220,10 +224,10 @@ describe('useChat', () => {
     });
 
     await act(async () => {
-      await result.current.sendMessage('Ahoy!');
+      await result.current.sendMessage('Hello!');
     });
 
-    expect(result.current.error).toBe('The seas be rough');
+    expect(result.current.error).toBe('The service is temporarily unavailable');
   });
 
   it('handles send failure', async () => {
@@ -238,7 +242,7 @@ describe('useChat', () => {
     });
 
     await act(async () => {
-      await result.current.sendMessage('Ahoy!');
+      await result.current.sendMessage('Hello!');
     });
 
     expect(result.current.error).toBe('Network error');
@@ -249,7 +253,7 @@ describe('useChat', () => {
     const { result } = renderHook(() => useIntegrated(mockClient, null));
 
     await act(async () => {
-      await result.current.sendMessage('Ahoy!');
+      await result.current.sendMessage('Hello!');
     });
 
     expect(mockClient.parleyStream).not.toHaveBeenCalled();
@@ -262,7 +266,7 @@ describe('useChat', () => {
     const response = {
       id: 'msg-3',
       role: 'assistant' as const,
-      content: 'Arr, welcome aboard!',
+      content: 'Welcome to the workspace!',
       createdAt: '2026-01-02T00:00:00Z'
     };
     (mockClient.parley as any).mockResolvedValue(response);
@@ -274,17 +278,17 @@ describe('useChat', () => {
     });
 
     await act(async () => {
-      await result.current.sendMessage('Ahoy!');
+      await result.current.sendMessage('Hello!');
     });
 
-    expect(mockClient.parley).toHaveBeenCalledWith('adv-1', 'Ahoy!');
+    expect(mockClient.parley).toHaveBeenCalledWith('adv-1', 'Hello!');
     expect(mockClient.parleyStream).not.toHaveBeenCalled();
 
     // Should have original messages + user message + assistant message
     expect(result.current.messages).toHaveLength(4);
     const lastMsg = result.current.messages.at(-1);
     expect(lastMsg?.role).toBe('assistant');
-    expect(lastMsg?.content).toBe('Arr, welcome aboard!');
+    expect(lastMsg?.content).toBe('Welcome to the workspace!');
     expect(result.current.streamingContent).toBe('');
   });
 
@@ -292,11 +296,11 @@ describe('useChat', () => {
     const response = {
       id: 'msg-3',
       role: 'assistant' as const,
-      content: 'You won the shanty battle!',
+      content: 'The discovery summary is ready.',
       createdAt: '2026-01-02T00:00:00Z',
       resolution: {
-        tool: 'resolve_shanty',
-        result: { winner: 'user', rounds: 3 }
+        tool: 'resolve_discovery',
+        result: { fit: 'qualified', signals_reviewed: 3 }
       }
     };
     (mockClient.parley as any).mockResolvedValue(response);
@@ -308,12 +312,12 @@ describe('useChat', () => {
     });
 
     await act(async () => {
-      await result.current.sendMessage('Sing louder!');
+      await result.current.sendMessage('Please summarize it.');
     });
 
     expect(result.current.outcome).toEqual({
-      tool: 'resolve_shanty',
-      result: { winner: 'user', rounds: 3 }
+      tool: 'resolve_discovery',
+      result: { fit: 'qualified', signals_reviewed: 3 }
     });
   });
 
@@ -327,7 +331,7 @@ describe('useChat', () => {
     });
 
     await act(async () => {
-      await result.current.sendMessage('Ahoy!');
+      await result.current.sendMessage('Hello!');
     });
 
     expect(result.current.error).toBe('Server error');
@@ -337,7 +341,7 @@ describe('useChat', () => {
     const { result } = renderHook(() => useIntegrated(mockClient, null, { streaming: false }));
 
     await act(async () => {
-      await result.current.sendMessage('Ahoy!');
+      await result.current.sendMessage('Hello!');
     });
 
     expect(mockClient.parley).not.toHaveBeenCalled();
@@ -351,8 +355,8 @@ describe('useChat', () => {
       {
         type: 'activity.resolved',
         outcome: {
-          tool: 'resolve_shanty',
-          result: { winner: 'user', rounds: 3, best_verse: 'A fine verse' }
+          tool: 'resolve_discovery',
+          result: { fit: 'qualified', signals_reviewed: 3, primary_need: 'Needs executive sponsorship' }
         }
       },
       {
@@ -381,7 +385,7 @@ describe('useChat', () => {
     });
 
     await act(async () => {
-      await result.current.sendMessage('My final verse!');
+      await result.current.sendMessage('Please finalize the assessment.');
     });
 
     // Should have original 2 messages + user message, but NOT the empty assistant message
@@ -390,8 +394,8 @@ describe('useChat', () => {
     expect(lastMsg?.role).toBe('user');
     // Resolution should still be captured
     expect(result.current.outcome).toEqual({
-      tool: 'resolve_shanty',
-      result: { winner: 'user', rounds: 3, best_verse: 'A fine verse' }
+      tool: 'resolve_discovery',
+      result: { fit: 'qualified', signals_reviewed: 3, primary_need: 'Needs executive sponsorship' }
     });
   });
 
@@ -402,8 +406,8 @@ describe('useChat', () => {
       content: '',
       createdAt: '2026-01-02T00:00:00Z',
       resolution: {
-        tool: 'resolve_crew',
-        result: { rank: 'Quartermaster', role: 'navigator', ship_name: 'The Agentic' }
+        tool: 'resolve_staffing',
+        result: { coverage_level: 'full', role: 'analyst', team_name: 'RevOps' }
       }
     };
     (mockClient.parley as any).mockResolvedValue(response);
@@ -415,7 +419,7 @@ describe('useChat', () => {
     });
 
     await act(async () => {
-      await result.current.sendMessage('I am ready to serve!');
+      await result.current.sendMessage('Please confirm the staffing plan.');
     });
 
     // Should have original 2 messages + user message, but NOT the empty assistant message
@@ -424,8 +428,8 @@ describe('useChat', () => {
     expect(lastMsg?.role).toBe('user');
     // Resolution should still be captured
     expect(result.current.outcome).toEqual({
-      tool: 'resolve_crew',
-      result: { rank: 'Quartermaster', role: 'navigator', ship_name: 'The Agentic' }
+      tool: 'resolve_staffing',
+      result: { coverage_level: 'full', role: 'analyst', team_name: 'RevOps' }
     });
   });
 
@@ -433,9 +437,9 @@ describe('useChat', () => {
     const detailWithEmpty: AdventureDetail = {
       ...ADVENTURE_DETAIL,
       parleys: [
-        { id: 'msg-1', role: 'user', content: 'Ahoy!', createdAt: '2026-01-01T12:00:00Z' },
+        { id: 'msg-1', role: 'user', content: 'Hello!', createdAt: '2026-01-01T12:00:00Z' },
         { id: 'msg-2', role: 'assistant', content: 'Welcome!', createdAt: '2026-01-01T12:00:01Z' },
-        { id: 'msg-3', role: 'user', content: 'Sing!', createdAt: '2026-01-01T12:00:02Z' },
+        { id: 'msg-3', role: 'user', content: 'Please summarize the activity.', createdAt: '2026-01-01T12:00:02Z' },
         { id: 'msg-4', role: 'assistant', content: '', createdAt: '2026-01-01T12:00:03Z' }
       ]
     };
@@ -456,15 +460,15 @@ describe('useChat', () => {
 
   it('sets activeSpecialist on tool.called and clears on tool.done', async () => {
     const sseEvents: SSEEvent[] = [
-      { type: 'tool.called', toolName: 'shanty_specialist' },
-      { type: 'delta', content: 'A shanty for ye!' },
-      { type: 'tool.done', toolName: 'shanty_specialist' },
+      { type: 'tool.called', toolName: 'discovery_specialist' },
+      { type: 'delta', content: 'A discovery for ye!' },
+      { type: 'tool.done', toolName: 'discovery_specialist' },
       {
         type: 'complete',
         message: {
           id: 'msg-3',
           role: 'assistant',
-          content: 'A shanty for ye!',
+          content: 'A discovery for ye!',
           createdAt: '2026-01-02T00:00:00Z'
         }
       }
@@ -488,7 +492,7 @@ describe('useChat', () => {
     expect(result.current.activeSpecialist).toBeNull();
 
     await act(async () => {
-      await result.current.sendMessage('Sing me a shanty!');
+      await result.current.sendMessage('Sing me a discovery!');
     });
 
     // After stream completes, activeSpecialist should be cleared
@@ -521,14 +525,14 @@ describe('useChat', () => {
 
   it('streams first message via parleyStream when pendingFirstMessage is set', async () => {
     const sseEvents: SSEEvent[] = [
-      { type: 'delta', content: 'Arr, ' },
-      { type: 'delta', content: 'welcome!' },
+      { type: 'delta', content: 'Welcome ' },
+      { type: 'delta', content: 'back!' },
       {
         type: 'complete',
         message: {
           id: 'msg-opening',
           role: 'assistant',
-          content: 'Arr, welcome!',
+          content: 'Welcome back!',
           createdAt: '2026-01-02T00:00:00Z'
         }
       }
@@ -545,7 +549,7 @@ describe('useChat', () => {
     const onConsumed = vi.fn();
     const { result } = renderHook(() =>
       useIntegrated(mockClient, 'adv-new', {
-        pendingFirstMessage: 'Start a shanty!',
+        pendingFirstMessage: 'Start a discovery!',
         onPendingFirstMessageConsumed: onConsumed
       })
     );
@@ -558,14 +562,14 @@ describe('useChat', () => {
     expect(mockClient.getAdventure).not.toHaveBeenCalled();
 
     // Should have called parleyStream with the pending message
-    expect(mockClient.parleyStream).toHaveBeenCalledWith('adv-new', 'Start a shanty!', expect.any(AbortSignal));
+    expect(mockClient.parleyStream).toHaveBeenCalledWith('adv-new', 'Start a discovery!', expect.any(AbortSignal));
 
     // Should have the user message + the assistant response
     expect(result.current.messages).toHaveLength(2);
     expect(result.current.messages[0]?.role).toBe('user');
-    expect(result.current.messages[0]?.content).toBe('Start a shanty!');
+    expect(result.current.messages[0]?.content).toBe('Start a discovery!');
     expect(result.current.messages[1]?.role).toBe('assistant');
-    expect(result.current.messages[1]?.content).toBe('Arr, welcome!');
+    expect(result.current.messages[1]?.content).toBe('Welcome back!');
 
     // onConsumed should have been called to clear the pending message
     expect(onConsumed).toHaveBeenCalledTimes(1);
@@ -575,7 +579,7 @@ describe('useChat', () => {
     const response = {
       id: 'msg-opening',
       role: 'assistant' as const,
-      content: 'Arr, welcome aboard!',
+      content: 'Welcome to the workspace!',
       createdAt: '2026-01-02T00:00:00Z'
     };
     (mockClient.parley as any).mockResolvedValue(response);
@@ -584,7 +588,7 @@ describe('useChat', () => {
     const { result } = renderHook(() =>
       useIntegrated(mockClient, 'adv-new', {
         streaming: false,
-        pendingFirstMessage: 'Start a shanty!',
+        pendingFirstMessage: 'Start a discovery!',
         onPendingFirstMessageConsumed: onConsumed
       })
     );
@@ -597,14 +601,14 @@ describe('useChat', () => {
     expect(mockClient.getAdventure).not.toHaveBeenCalled();
 
     // Should have called parley (JSON) with the pending message
-    expect(mockClient.parley).toHaveBeenCalledWith('adv-new', 'Start a shanty!');
+    expect(mockClient.parley).toHaveBeenCalledWith('adv-new', 'Start a discovery!');
 
     // Should have user message + assistant response
     expect(result.current.messages).toHaveLength(2);
     expect(result.current.messages[0]?.role).toBe('user');
-    expect(result.current.messages[0]?.content).toBe('Start a shanty!');
+    expect(result.current.messages[0]?.content).toBe('Start a discovery!');
     expect(result.current.messages[1]?.role).toBe('assistant');
-    expect(result.current.messages[1]?.content).toBe('Arr, welcome aboard!');
+    expect(result.current.messages[1]?.content).toBe('Welcome to the workspace!');
 
     expect(onConsumed).toHaveBeenCalledTimes(1);
   });
@@ -634,7 +638,7 @@ describe('useChat', () => {
     const onConsumed = vi.fn();
     const { result } = renderHook(() =>
       useIntegrated(mockClient, 'adv-new', {
-        pendingFirstMessage: 'Start a shanty!',
+        pendingFirstMessage: 'Start a discovery!',
         onPendingFirstMessageConsumed: onConsumed
       })
     );

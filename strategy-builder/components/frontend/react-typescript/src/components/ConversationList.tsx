@@ -8,15 +8,15 @@ interface ConversationListProps {
 }
 
 const MODE_LABELS: Record<AdventureMode, string> = {
-  shanty: 'Discovery',
-  treasure: 'Account Plan',
-  crew: 'Staffing'
+  discovery: 'Discovery',
+  planning: 'Account Plan',
+  staffing: 'Staffing'
 };
 
 const MODE_COLORS: Record<AdventureMode, string> = {
-  shanty: 'bg-amber-500/20 text-amber-400',
-  treasure: 'bg-emerald-500/20 text-emerald-400',
-  crew: 'bg-sky-500/20 text-sky-400'
+  discovery: 'bg-amber-500/20 text-amber-400',
+  planning: 'bg-emerald-500/20 text-emerald-400',
+  staffing: 'bg-sky-500/20 text-sky-400'
 };
 
 /** Format an ISO timestamp as a relative time string (e.g., "2 min ago"). */

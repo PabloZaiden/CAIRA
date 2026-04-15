@@ -72,7 +72,7 @@ export interface AgentErrorResponse {
 
 // ---------- Business API types (what we return to the frontend) ----------
 
-export type AdventureMode = 'shanty' | 'treasure' | 'crew';
+export type AdventureMode = 'discovery' | 'planning' | 'staffing';
 
 export type AdventureStatus = 'active' | 'resolved';
 
@@ -137,9 +137,9 @@ export interface ActivityStats {
   readonly activeAdventures: number;
   readonly resolvedAdventures: number;
   readonly byMode: {
-    readonly shanty: ModeStats;
-    readonly treasure: ModeStats;
-    readonly crew: ModeStats;
+    readonly discovery: ModeStats;
+    readonly planning: ModeStats;
+    readonly staffing: ModeStats;
   };
 }
 

@@ -188,13 +188,13 @@ const specialistTextResponses = new Set<string>();
 /**
  * Maps response IDs to the specialist transfer tool that was selected for them.
  * When a response contains a `transfer_to_*` function call, we record
- * `responseId → toolName` (e.g., `"resp_001" → "transfer_to_Crew"`).
+ * `responseId → toolName` (e.g., `"resp_001" → "transfer_to_Staffing"`).
  *
  * This solves the problem where the @openai/agents SDK doesn't chain
  * `previous_response_id` within the first `run()` call. Without this cache,
  * the second `run()` (parley) can't find the original transfer call by walking
  * the `previous_response_id` chain, so it falls back to keyword matching —
- * which fails for messages like "I can tie a bowline" (no crew keywords).
+ * which fails for messages like "I can support adoption planning" (no staffing keywords).
  *
  * On subsequent requests, `selectTransferTool()` walks the chain and checks
  * this map first, falling back to keywords only for truly new conversations.
@@ -303,31 +303,31 @@ function generateResponseText(userText: string): string {
 /** Keywords used to route to specialist agents via transfer/specialist tools */
 const TRANSFER_KEYWORDS: Record<string, string[]> = {
   // OpenAI Agent SDK naming convention (transfer_to_*)
-  transfer_to_Shanty: ['shanty', 'sing', 'verse', 'song', 'duel', 'battle'],
-  transfer_to_Treasure: ['treasure', 'hunt', 'island', 'cave', 'map', 'gold'],
-  transfer_to_Crew: ['crew', 'enlist', 'join', 'interview', 'recruit', 'role'],
+  transfer_to_Discovery: ['discovery', 'qualify', 'opportunity', 'signal', 'customer', 'pipeline'],
+  transfer_to_Planning: ['planning', 'account', 'priority', 'risk', 'workstream', 'milestone'],
+  transfer_to_Staffing: ['staffing', 'team', 'coverage', 'interview', 'recruit', 'role'],
   // Foundry Agent Service naming convention (*_specialist)
-  shanty_specialist: ['shanty', 'sing', 'verse', 'song', 'duel', 'battle'],
-  treasure_specialist: ['treasure', 'hunt', 'island', 'cave', 'map', 'gold'],
-  crew_specialist: ['crew', 'enlist', 'join', 'interview', 'recruit', 'role']
+  discovery_specialist: ['discovery', 'qualify', 'opportunity', 'signal', 'customer', 'pipeline'],
+  planning_specialist: ['planning', 'account', 'priority', 'risk', 'workstream', 'milestone'],
+  staffing_specialist: ['staffing', 'team', 'coverage', 'interview', 'recruit', 'role']
 };
 
 /** Mock arguments for resolution tools (deterministic test data) */
 const RESOLUTION_MOCK_ARGS: Record<string, Record<string, unknown>> = {
-  resolve_shanty: {
-    winner: 'user',
-    rounds: 4,
-    best_verse: 'Through storms and gales we sail with glee, no finer crew upon the sea!'
+  resolve_discovery: {
+    fit: 'qualified',
+    signals_reviewed: 4,
+    primary_need: 'Executive visibility into account risk.'
   },
-  resolve_treasure: {
-    found: true,
-    treasure_name: "Captain Blackwood's Golden Chalice",
-    location: 'Skeleton Cove, beneath the twisted palm'
+  resolve_planning: {
+    approved: true,
+    focus_area: 'Executive sponsor alignment',
+    next_step: 'Confirm stakeholder review'
   },
-  resolve_crew: {
-    rank: 'Able Seaman',
-    role: 'lookout',
-    ship_name: 'The Salty Serpent'
+  resolve_staffing: {
+    coverage_level: 'core',
+    role: 'customer_success_partner',
+    team_name: 'Northwind Account Team'
   }
 };
 
@@ -353,8 +353,8 @@ function getResolutionToolNames(tools: ToolDefinition[]): string[] {
 
 /**
  * Derive the resolution tool name from a transfer/specialist tool name.
- * e.g. transfer_to_Treasure → resolve_treasure
- *      treasure_specialist  → resolve_treasure
+ * e.g. transfer_to_Planning → resolve_planning
+ *      planning_specialist  → resolve_planning
  */
 function transferToResolution(transferName: string): string {
   if (transferName.endsWith('_specialist')) {
@@ -515,7 +515,7 @@ function generateNamedFunctionCall(toolName: string): FunctionCallOutputItem {
 /**
  * Generate conversational opening text for a specialist agent.
  * This simulates the specialist's first response after a handoff —
- * an opening verse/description/question rather than immediately resolving.
+ * an opening prompt/description/question rather than immediately resolving.
  */
 function generateSpecialistText(
   tools: ToolDefinition[],
@@ -535,16 +535,16 @@ function generateSpecialistText(
     }
   }
   toolName = toolName ?? resolutionTools[0] ?? '';
-  if (toolName === 'resolve_shanty') {
-    return 'Ahoy! Let me start with a verse: "The salty winds do blow, across the seven seas we go!" Your turn, matey!';
+  if (toolName === 'resolve_discovery') {
+    return 'Hello! Let me start with a quick example: "When every team shares the same roadmap, execution gets easier." Your turn.';
   }
-  if (toolName === 'resolve_treasure') {
-    return 'Welcome aboard the treasure hunt! I see a mysterious map pointing to Skeleton Cove. Shall we head east through the jungle or take the coastal path?';
+  if (toolName === 'resolve_planning') {
+    return 'Welcome to the planning review. I see two launch options for the account plan. Should we start with the regional rollout or the platform workstream?';
   }
-  if (toolName === 'resolve_crew') {
-    return 'So ye want to join me crew, eh? Tell me, what skills do ye bring to the ship? Can ye tie a bowline or navigate by the stars?';
+  if (toolName === 'resolve_staffing') {
+    return 'Let us work through staffing. What skills do you bring to the team, and which responsibilities are you ready to own?';
   }
-  return 'Arrr, let us begin this adventure on the high seas!';
+  return 'Let us begin this workflow.';
 }
 
 // ---------- Conversation-aware response helpers ----------
@@ -656,7 +656,7 @@ export function createResponse(body: CreateResponseRequest): Response {
 
     // Check if any function_call_output is a resolution tool result.
     // Resolution tool handlers return strings containing "resolved" (e.g.,
-    // "Shanty battle resolved: user wins after 4 rounds."). If we already
+    // "Discovery flow resolved: qualified after 4 signals."). If we already
     // submitted a resolution result, respond with text — don't call the
     // resolution tool again (which would create an infinite loop).
     const toolOutputs = getFunctionCallOutputs(effectiveInput);
@@ -671,7 +671,7 @@ export function createResponse(body: CreateResponseRequest): Response {
       //
       // A real LLM wouldn't call the resolution tool immediately after a
       // handoff — it would start the activity with conversational text (e.g.,
-      // the opening shanty verse) and only resolve after multiple turns.
+      // the opening discovery prompt) and only resolve after multiple turns.
       //
       // We track this via specialistTextResponses: if the previous response
       // in this conversation chain already returned specialist text, the next
@@ -821,7 +821,7 @@ export function createResponse(body: CreateResponseRequest): Response {
     if (resTool) {
       // Derive the routing tool name from the resolution tool name.
       // Use the same naming convention as the tools in this request:
-      // *_specialist tools → shanty_specialist, transfer_to_* → transfer_to_Shanty
+      // *_specialist tools → discovery_specialist, transfer_to_* → transfer_to_Discovery
       const suffix = resTool.replace('resolve_', '');
       const hasSpecialistTools = body.tools?.some((t) => t.name.endsWith('_specialist'));
       const transferName = hasSpecialistTools
