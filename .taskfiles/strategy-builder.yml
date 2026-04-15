@@ -7,7 +7,7 @@ tasks:
   install:
     desc: Install strategy-builder workspace dependencies
     cmds:
-      - npm install
+      - npm ci
     dir: "{{.ROOT_DIR}}/strategy-builder"
 
   generate:

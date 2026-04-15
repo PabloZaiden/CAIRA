@@ -1,6 +1,8 @@
 {
   "name": "CAIRA",
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu24.04",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/${localWorkspaceFolderBasename},type=bind",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
       "configureZshAsDefaultShell": true
@@ -21,7 +23,7 @@
       "version": "10.0"
     }
   },
-  "onCreateCommand": "sudo chown -R $(id -un):$(id -gn) \"$HOME\" && task tools && task bootstrap",
+  "onCreateCommand": "task tools",
   "customizations": {
     "vscode": {
       "settings": {

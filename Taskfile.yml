@@ -13,10 +13,6 @@ version: "3"
 
 vars:
   REPO: microsoft/CAIRA
-  REPO_ABS_ROOT_PATH:
-    sh: git rev-parse --show-toplevel
-  CURRENT_BRANCH:
-    sh: git rev-parse --abbrev-ref HEAD
   OS:
     sh: uname | tr '[:upper:]' '[:lower:]'
   ARCH:
