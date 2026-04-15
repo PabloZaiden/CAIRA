@@ -302,7 +302,7 @@ public class RoutesTests : IClassFixture<RoutesTests.ApiFactory>, IDisposable
             messages = new[]
             {
                 new { id = "msg_1", role = "user", content = "Hello", createdAt = "2026-01-01T00:00:01Z" },
-                new { id = "msg_2", role = "assistant", content = "Ahoy!", createdAt = "2026-01-01T00:00:02Z" },
+                new { id = "msg_2", role = "assistant", content = "Hello!", createdAt = "2026-01-01T00:00:02Z" },
             },
         });
 
@@ -358,7 +358,7 @@ public class RoutesTests : IClassFixture<RoutesTests.ApiFactory>, IDisposable
         {
             id = "msg_parley_1",
             role = "assistant",
-            content = "Yo ho ho!",
+            content = "Thanks for the update!",
             createdAt = "2026-01-01T00:00:00Z",
         });
 
@@ -382,7 +382,7 @@ public class RoutesTests : IClassFixture<RoutesTests.ApiFactory>, IDisposable
         {
             id = "msg_res_1",
             role = "assistant",
-            content = "Battle over!",
+            content = "Assessment complete!",
             createdAt = "2026-01-01T00:00:00Z",
             resolution = new
             {
@@ -391,7 +391,7 @@ public class RoutesTests : IClassFixture<RoutesTests.ApiFactory>, IDisposable
                 {
                     ["winner"] = "player",
                     ["rounds"] = 3,
-                    ["primary_need"] = "A fine verse",
+                    ["primary_need"] = "Needs clearer qualification",
                 },
             },
         });
@@ -413,7 +413,7 @@ public class RoutesTests : IClassFixture<RoutesTests.ApiFactory>, IDisposable
     [Fact]
     public async Task Parley_SSE_ReturnsEventStream()
     {
-        var sseContent = "event: message.delta\ndata: {\"delta\":\"Ahoy\"}\n\nevent: message.complete\ndata: {\"id\":\"msg_1\",\"content\":\"Ahoy\",\"role\":\"assistant\"}\n\n";
+        var sseContent = "event: message.delta\ndata: {\"delta\":\"Hello\"}\n\nevent: message.complete\ndata: {\"id\":\"msg_1\",\"content\":\"Hello\",\"role\":\"assistant\"}\n\n";
         var agentResponse = new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent(sseContent, Encoding.UTF8, "text/event-stream"),

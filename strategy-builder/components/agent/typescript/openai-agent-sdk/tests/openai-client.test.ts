@@ -331,12 +331,12 @@ describe('OpenAIClient', () => {
   describe('sendMessage (non-streaming)', () => {
     it('sends user message and returns assistant response', async () => {
       const conv = await client.createConversation();
-      mockRunFn.mockResolvedValue(makeRunResult('Ahoy matey!'));
+      mockRunFn.mockResolvedValue(makeRunResult('Hello there!'));
 
       const result = await client.sendMessage(conv.id, 'Hello sales team!');
       expect(result).toBeDefined();
       expect(result!.role).toBe('assistant');
-      expect(result!.content).toBe('Ahoy matey!');
+      expect(result!.content).toBe('Hello there!');
     });
 
     it('returns undefined for unknown conversation', async () => {

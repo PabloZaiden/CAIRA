@@ -1008,7 +1008,7 @@ describe('Multi-agent resolution tool flow', () => {
   it('calls resolve_staffing with mock args on second turn', async () => {
     const { body: firstResp } = await post<Response>('/responses', {
       input: [
-        { type: 'message', role: 'user', content: 'I can tie a bowline!' },
+        { type: 'message', role: 'user', content: 'I can support adoption planning.' },
         { type: 'function_call_output', call_id: 'call_handoff', output: '' }
       ],
       tools: resolveStaffingTools
@@ -1029,7 +1029,7 @@ describe('Multi-agent resolution tool flow', () => {
 
     const args = JSON.parse(fnCall.arguments) as Record<string, unknown>;
     expect(args).toHaveProperty('coverage_level', 'core');
-    expect(args).toHaveProperty('role', 'lookout');
+    expect(args).toHaveProperty('role', 'customer_success_partner');
     expect(args).toHaveProperty('team_name', 'Northwind Account Team');
   });
 
@@ -1094,7 +1094,7 @@ describe('Multi-agent full 4-turn flow', () => {
     // Turn 3: specialist → resolution tool call (subsequent interaction)
     const { body: turn3 } = await post<Response>('/responses', {
       input: [
-        { type: 'message', role: 'user', content: 'Great verse, matey!' },
+        { type: 'message', role: 'user', content: 'Great example!' },
         { type: 'function_call_output', call_id: 'call_retriage', output: '' }
       ],
       tools: resolutionTools,
@@ -1161,7 +1161,7 @@ describe('Multi-agent SSE streaming with handoff', () => {
       headers: { ...AUTH_HEADER, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         input: [
-          { type: 'message', role: 'user', content: 'I can tie a bowline!' },
+          { type: 'message', role: 'user', content: 'I can support adoption planning.' },
           { type: 'function_call_output', call_id: 'call_handoff', output: '' }
         ],
         tools: resolutionTools,
@@ -1203,7 +1203,7 @@ describe('Multi-agent SSE streaming with handoff', () => {
     expect(text2).toContain('event: response.function_call_arguments.delta');
     expect(text2).toContain('resolve_staffing');
     expect(text2).toContain('core');
-    expect(text2).toContain('lookout');
+    expect(text2).toContain('customer_success_partner');
   });
 });
 
@@ -1519,7 +1519,14 @@ describe('Conversations API', () => {
         output: Array<{ type: string; name?: string; call_id?: string }>;
       }>('/responses', {
         input: 'I want to sing a discovery!',
-        tools: [{ type: 'function', name: 'discovery_specialist', description: 'Discovery', parameters: {} }],
+        tools: [
+          {
+            type: 'function',
+            name: 'discovery_specialist',
+            description: 'Discovery',
+            parameters: {}
+          }
+        ],
         conversation: { id: conv.body.id }
       });
       expect(r1.body.output[0]?.type).toBe('function_call');

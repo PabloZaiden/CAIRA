@@ -222,7 +222,7 @@ export class ActivityClient {
    *
    * SSE format:
    *   event: message.delta
-   *   data: {"content": "Arr, "}
+   *   data: {"content": "Welcome "}
    *
    *   event: message.complete
    *   data: {"messageId": "...", "content": "...", "usage": {...}}

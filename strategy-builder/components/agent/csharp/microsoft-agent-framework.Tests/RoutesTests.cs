@@ -235,7 +235,7 @@ public class RoutesTests : IDisposable
     [Fact]
     public async Task PostMessages_Returns200WithMessage()
     {
-        var msg = new Message("msg_1", "assistant", "Ahoy!", "2026-01-01T00:00:00Z");
+        var msg = new Message("msg_1", "assistant", "Hello!", "2026-01-01T00:00:00Z");
         _mockRunner.Setup(r => r.SendMessageAsync("conv_1", "Hello"))
             .ReturnsAsync(msg);
 
@@ -247,7 +247,7 @@ public class RoutesTests : IDisposable
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal("assistant", body.GetProperty("role").GetString());
-        Assert.Equal("Ahoy!", body.GetProperty("content").GetString());
+        Assert.Equal("Hello!", body.GetProperty("content").GetString());
     }
 
     [Fact]
@@ -315,8 +315,8 @@ public class RoutesTests : IDisposable
         _mockRunner.Setup(r => r.SendMessageStreamAsync("conv_1", "Hello", It.IsAny<Func<string, Task>>()))
             .Returns(async (string _, string _, Func<string, Task> onChunk) =>
             {
-                await onChunk("event: message.delta\ndata: {\"content\":\"Ahoy\"}\n\n");
-                await onChunk("event: message.complete\ndata: {\"messageId\":\"msg_1\",\"content\":\"Ahoy\"}\n\n");
+                await onChunk("event: message.delta\ndata: {\"content\":\"Hello\"}\n\n");
+                await onChunk("event: message.complete\ndata: {\"messageId\":\"msg_1\",\"content\":\"Hello\"}\n\n");
             });
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/conversations/conv_1/messages")

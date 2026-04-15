@@ -268,7 +268,7 @@ describeCompose('Full-stack E2E (compose)', () => {
 
     it('message count reflects activity', async () => {
       const startRes = await client.startDiscovery();
-      await client.parley(startRes.body.id, 'Ahoy!');
+      await client.parley(startRes.body.id, 'Hello!');
 
       const res = await client.getAdventure(startRes.body.id);
       expect(res.body.messageCount).toBeGreaterThanOrEqual(1);

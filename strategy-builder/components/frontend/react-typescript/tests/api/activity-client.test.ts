@@ -37,13 +37,13 @@ const ADVENTURE_DETAIL: AdventureDetail = {
     {
       id: 'msg-1',
       role: 'user',
-      content: 'Ahoy!',
+      content: 'Hello!',
       createdAt: '2026-01-02T00:00:00Z'
     },
     {
       id: 'msg-2',
       role: 'assistant',
-      content: 'Arr, welcome aboard!',
+      content: 'Welcome to the workspace!',
       createdAt: '2026-01-02T00:00:01Z'
     }
   ]
@@ -61,7 +61,7 @@ const ADVENTURE_STARTED: AdventureStarted = {
 const PARLEY_MESSAGE: ParleyMessage = {
   id: 'msg-3',
   role: 'assistant',
-  content: 'Shiver me timbers!',
+  content: 'Thanks for the update!',
   createdAt: '2026-01-02T00:01:00Z'
 };
 
@@ -221,13 +221,13 @@ describe('ActivityClient', () => {
     it('sends a message and gets JSON response', async () => {
       fetchSpy.mockResolvedValueOnce(jsonResponse(PARLEY_MESSAGE));
 
-      const result = await client.parley('adv-1', 'Ahoy!');
+      const result = await client.parley('adv-1', 'Hello!');
       expect(result).toEqual(PARLEY_MESSAGE);
       expect(fetchSpy).toHaveBeenCalledWith(
         `${BASE_URL}/activities/adventures/adv-1/parley`,
         expect.objectContaining({
           method: 'POST',
-          body: JSON.stringify({ message: 'Ahoy!' })
+          body: JSON.stringify({ message: 'Hello!' })
         })
       );
     });
@@ -238,9 +238,9 @@ describe('ActivityClient', () => {
   describe('parleyStream', () => {
     it('streams SSE events', async () => {
       const stream = sseStream([
-        'event: message.delta\ndata: {"content":"Arr, "}\n\n',
-        'event: message.delta\ndata: {"content":"welcome "}\n\n',
-        'event: message.complete\ndata: {"messageId":"msg-4","content":"Arr, welcome aboard!","usage":{"promptTokens":10,"completionTokens":8}}\n\n'
+        'event: message.delta\ndata: {"content":"Welcome "}\n\n',
+        'event: message.delta\ndata: {"content":"back!"}\n\n',
+        'event: message.complete\ndata: {"messageId":"msg-4","content":"Welcome back!","usage":{"promptTokens":10,"completionTokens":8}}\n\n'
       ]);
 
       fetchSpy.mockResolvedValueOnce(
@@ -251,18 +251,18 @@ describe('ActivityClient', () => {
       );
 
       const events: unknown[] = [];
-      for await (const event of client.parleyStream('adv-1', 'Ahoy!')) {
+      for await (const event of client.parleyStream('adv-1', 'Hello!')) {
         events.push(event);
       }
 
       expect(events).toHaveLength(3);
-      expect(events[0]).toEqual({ type: 'delta', content: 'Arr, ' });
-      expect(events[1]).toEqual({ type: 'delta', content: 'welcome ' });
+      expect(events[0]).toEqual({ type: 'delta', content: 'Welcome ' });
+      expect(events[1]).toEqual({ type: 'delta', content: 'back!' });
       expect(events[2]).toMatchObject({
         type: 'complete',
         message: expect.objectContaining({
           id: 'msg-4',
-          content: 'Arr, welcome aboard!',
+          content: 'Welcome back!',
           role: 'assistant'
         })
       });
@@ -323,7 +323,9 @@ describe('ActivityClient', () => {
     });
 
     it('handles SSE error events', async () => {
-      const stream = sseStream(['event: error\ndata: {"code":"agent_error","message":"The seas be rough today"}\n\n']);
+      const stream = sseStream([
+        'event: error\ndata: {"code":"agent_error","message":"The service is temporarily unavailable today"}\n\n'
+      ]);
 
       fetchSpy.mockResolvedValueOnce(
         new Response(stream, {
@@ -333,7 +335,7 @@ describe('ActivityClient', () => {
       );
 
       const events: unknown[] = [];
-      for await (const event of client.parleyStream('adv-1', 'Ahoy!')) {
+      for await (const event of client.parleyStream('adv-1', 'Hello!')) {
         events.push(event);
       }
 
@@ -341,21 +343,21 @@ describe('ActivityClient', () => {
       expect(events[0]).toEqual({
         type: 'error',
         code: 'agent_error',
-        message: 'The seas be rough today'
+        message: 'The service is temporarily unavailable today'
       });
     });
 
     it('throws on HTTP error response', async () => {
       fetchSpy.mockResolvedValueOnce(errorResponse(500, 'agent_error', 'Server error'));
 
-      const gen = client.parleyStream('adv-1', 'Ahoy!');
+      const gen = client.parleyStream('adv-1', 'Hello!');
       await expect(gen.next()).rejects.toThrow(ActivityApiError);
     });
 
     it('throws on missing response body', async () => {
       fetchSpy.mockResolvedValueOnce(new Response(null, { status: 200 }));
 
-      const gen = client.parleyStream('adv-1', 'Ahoy!');
+      const gen = client.parleyStream('adv-1', 'Hello!');
       await expect(gen.next()).rejects.toThrow(ActivityApiError);
     });
 
@@ -364,7 +366,7 @@ describe('ActivityClient', () => {
       fetchSpy.mockResolvedValueOnce(new Response(stream, { status: 200 }));
 
       const events: unknown[] = [];
-      for await (const event of client.parleyStream('adv-1', 'Ahoy!')) {
+      for await (const event of client.parleyStream('adv-1', 'Hello!')) {
         events.push(event);
       }
 

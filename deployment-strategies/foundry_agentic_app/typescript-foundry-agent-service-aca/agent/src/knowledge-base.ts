@@ -54,20 +54,20 @@ const PLANNING_ENTRIES: readonly KnowledgeEntry[] = [
 
 const STAFFING_ENTRIES: readonly KnowledgeEntry[] = [
   {
-    id: 'staffing-quartermaster',
+    id: 'staffing-account-lead',
     title: 'Strategic Account Lead',
     summary: 'Owns executive alignment, multi-team coordination, and the overall engagement plan for complex accounts.',
     tags: ['lead', 'executive', 'coordination', 'engagement', 'strategy']
   },
   {
-    id: 'staffing-navigator',
+    id: 'staffing-solution-specialist',
     title: 'Solution Specialist',
     summary:
       'Handles product fit, technical storytelling, and proof planning when the account needs deeper solution confidence.',
     tags: ['solution', 'technical', 'fit', 'proof', 'planning']
   },
   {
-    id: 'staffing-lookout',
+    id: 'staffing-customer-success-partner',
     title: 'Customer Success Partner',
     summary:
       'Focuses on adoption signals, operational blockers, and expansion readiness after the initial plan is in motion.',

@@ -6,14 +6,14 @@ import type { ParleyMessage } from '../../src/types.ts';
 const USER_MESSAGE: ParleyMessage = {
   id: 'msg-1',
   role: 'user',
-  content: 'Ahoy there!',
+  content: 'Hello there!',
   createdAt: '2026-01-01T12:00:00Z'
 };
 
 const ASSISTANT_MESSAGE: ParleyMessage = {
   id: 'msg-2',
   role: 'assistant',
-  content: 'Arr, welcome aboard, matey!',
+  content: 'Welcome to the workspace!',
   createdAt: '2026-01-01T12:00:01Z'
 };
 
@@ -21,13 +21,13 @@ describe('MessageBubble', () => {
   it('renders user message with correct role label', () => {
     render(<MessageBubble message={USER_MESSAGE} />);
     expect(screen.getByText('You')).toBeInTheDocument();
-    expect(screen.getByText('Ahoy there!')).toBeInTheDocument();
+    expect(screen.getByText('Hello there!')).toBeInTheDocument();
   });
 
-  it('renders assistant message with Captain label', () => {
+  it('renders assistant message with Assistant label', () => {
     render(<MessageBubble message={ASSISTANT_MESSAGE} />);
-    expect(screen.getByText('Captain')).toBeInTheDocument();
-    expect(screen.getByText('Arr, welcome aboard, matey!')).toBeInTheDocument();
+    expect(screen.getByText('Assistant')).toBeInTheDocument();
+    expect(screen.getByText('Welcome to the workspace!')).toBeInTheDocument();
   });
 
   it('applies user styling for user messages', () => {

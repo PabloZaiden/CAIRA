@@ -151,12 +151,20 @@ beforeAll(async () => {
     } else if (content.includes('resolve:planning')) {
       resolution = {
         tool: 'resolve_planning',
-        result: { found: true, focus_area: "Coordinator's Gold", location: 'Skeleton Cove' }
+        result: {
+          found: true,
+          focus_area: 'Executive sponsor alignment',
+          location: 'North America'
+        }
       };
     } else if (content.includes('resolve:staffing')) {
       resolution = {
         tool: 'resolve_staffing',
-        result: { rank: 'Able Seaman', role: 'lookout', team_name: 'The Salty Serpent' }
+        result: {
+          rank: 'Associate',
+          role: 'customer_success_partner',
+          team_name: 'Northwind Account Team'
+        }
       };
     }
 
@@ -178,8 +186,8 @@ beforeAll(async () => {
         'Cache-Control': 'no-cache',
         Connection: 'keep-alive'
       });
-      reply.raw.write(`event: message.delta\ndata: {"content":"Arr, "}\n\n`);
-      reply.raw.write(`event: message.delta\ndata: {"content":"matey!"}\n\n`);
+      reply.raw.write(`event: message.delta\ndata: {"content":"Welcome "}\n\n`);
+      reply.raw.write(`event: message.delta\ndata: {"content":"back!"}\n\n`);
       if (resolution) {
         reply.raw.write(`event: activity.resolved\ndata: ${JSON.stringify(resolution)}\n\n`);
       }
@@ -594,8 +602,8 @@ describe('POST /api/activities/adventures/:id/parley (SSE)', () => {
 
     const text = await resp.text();
     expect(text).toContain('event: message.delta');
-    expect(text).toContain('"content":"Arr, "');
-    expect(text).toContain('"content":"matey!"');
+    expect(text).toContain('"content":"Welcome "');
+    expect(text).toContain('"content":"back!"');
     expect(text).toContain('event: message.complete');
     expect(text).toContain('[DONE]');
   });

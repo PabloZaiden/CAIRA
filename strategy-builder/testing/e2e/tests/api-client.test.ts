@@ -372,7 +372,7 @@ describe('ApiClient', () => {
       const res = await client.startDiscovery();
       adventureId = res.body.id;
       // Send a message so there are parleys
-      await client.parley(adventureId, 'Ahoy!');
+      await client.parley(adventureId, 'Hello!');
     });
 
     it('returns adventure with parleys', async () => {

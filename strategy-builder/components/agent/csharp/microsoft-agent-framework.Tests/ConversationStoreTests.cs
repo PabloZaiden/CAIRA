@@ -242,7 +242,7 @@ public class ConversationStoreTests
         var record = store.GetRecord(conv.Id)!;
 
         store.AddMessage(record, new Message("msg_1", "user", "Hello", DateTimeOffset.UtcNow.ToString("o")));
-        store.AddMessage(record, new Message("msg_2", "assistant", "Ahoy!", DateTimeOffset.UtcNow.ToString("o")));
+        store.AddMessage(record, new Message("msg_2", "assistant", "Hello!", DateTimeOffset.UtcNow.ToString("o")));
 
         var detail = store.Get(conv.Id);
         Assert.NotNull(detail);

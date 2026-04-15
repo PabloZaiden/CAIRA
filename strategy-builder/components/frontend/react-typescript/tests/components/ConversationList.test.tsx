@@ -22,7 +22,7 @@ const ADVENTURES: Adventure[] = [
     status: 'resolved',
     outcome: {
       tool: 'resolve_planning',
-      result: { found: true, focus_area: 'Golden Chalice', location: 'Skeleton Cove' }
+      result: { found: true, focus_area: 'Pipeline coverage', location: 'North America' }
     },
     createdAt: '2026-01-01T00:00:00Z',
     lastParleyAt: '2026-01-02T12:00:00Z', // 24h ago = 1d ago

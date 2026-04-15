@@ -7,7 +7,7 @@ The contracts define the REST interfaces between components. They live in the `c
 There are two OpenAPI 3.1.0 specifications:
 
 | Contract     | File                                 | Who implements it                | Who calls it  |
-|--------------|--------------------------------------|----------------------------------|---------------|
+| ------------ | ------------------------------------ | -------------------------------- | ------------- |
 | Agent API    | `contracts/agent-api.openapi.yaml`   | Agent containers (both variants) | API container |
 | Business API | `contracts/backend-api.openapi.yaml` | API container                    | Frontend      |
 
@@ -16,7 +16,7 @@ There are two OpenAPI 3.1.0 specifications:
 The generic conversation API that all agent implementations must conform to. This is the swappability layer -- any agent that implements this contract can be placed behind the API container.
 
 | Endpoint                                   | Method | Description                                          |
-|--------------------------------------------|--------|------------------------------------------------------|
+| ------------------------------------------ | ------ | ---------------------------------------------------- |
 | `/conversations`                           | POST   | Create a new conversation                            |
 | `/conversations`                           | GET    | List conversations (paginated: `?offset=0&limit=20`) |
 | `/conversations/{conversationId}`          | GET    | Get conversation details + message history           |
@@ -58,13 +58,13 @@ The `/conversations/{conversationId}/messages` endpoint supports both streaming 
 ```json
 // POST /conversations/{id}/messages
 // Request:
-{ "content": "Ahoy there!" }
+{ "content": "Hello there!" }
 
 // Response (200, JSON mode):
 {
   "id": "msg_xyz789",
   "role": "assistant",
-  "content": "Arr, welcome aboard!",
+  "content": "Welcome to the workspace!",
   "createdAt": "2026-02-13T...",
   "usage": { "promptTokens": 10, "completionTokens": 8 }
 }
@@ -76,16 +76,16 @@ The public business API that the frontend calls. The current sample domain is a 
 
 > **WS-12 rework:** These endpoints replace the previous `recruit`, `staffing`, `staffing/{id}/parley`, and `planning` endpoints.
 
-| Endpoint                                  | Method | Description                                  | Maps to agent API                   |
-|-------------------------------------------|--------|----------------------------------------------|-------------------------------------|
-| `POST /api/activities/discovery`                 | POST   | Start an opportunity discovery flow          | `POST /conversations`               |
+| Endpoint                                      | Method | Description                                  | Maps to agent API                   |
+| --------------------------------------------- | ------ | -------------------------------------------- | ----------------------------------- |
+| `POST /api/activities/discovery`              | POST   | Start an opportunity discovery flow          | `POST /conversations`               |
 | `POST /api/activities/planning`               | POST   | Start an account planning flow               | `POST /conversations`               |
-| `POST /api/activities/staffing`            | POST   | Start an account-team staffing flow          | `POST /conversations`               |
+| `POST /api/activities/staffing`               | POST   | Start an account-team staffing flow          | `POST /conversations`               |
 | `GET /api/activities/adventures`              | GET    | List all adventures (with mode + status)     | `GET /conversations`                |
 | `GET /api/activities/adventures/{id}`         | GET    | Get adventure detail with messages + outcome | `GET /conversations/{id}`           |
 | `POST /api/activities/adventures/{id}/parley` | POST   | Continue chatting (SSE stream)               | `POST /conversations/{id}/messages` |
 | `GET /api/activities/stats`                   | GET    | Activity stats per mode                      | Computed from `GET /conversations`  |
-| `GET /health`                             | GET    | Health check (includes agent health)         | Checks agent `/health` too          |
+| `GET /health`                                 | GET    | Health check (includes agent health)         | Checks agent `/health` too          |
 
 ### Business operation flow
 
@@ -134,16 +134,16 @@ Both APIs use the same SSE event format for streaming responses:
 
 ```text
 event: message.delta
-data: {"content": "Arr, "}
+data: {"content": "Welcome "}
 
 event: message.delta
 data: {"content": "welcome "}
 
 event: message.delta
-data: {"content": "aboard!"}
+data: {"content": "back!"}
 
 event: message.complete
-data: {"messageId": "msg_xyz", "content": "Arr, welcome aboard!", "usage": {"promptTokens": 10, "completionTokens": 8}}
+data: {"messageId": "msg_xyz", "content": "Welcome back!", "usage": {"promptTokens": 10, "completionTokens": 8}}
 ```
 
 ### Specialist tool activity events (OpenAI variant only)

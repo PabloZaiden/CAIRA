@@ -7,32 +7,32 @@ const MESSAGES: ParleyMessage[] = [
   {
     id: 'msg-1',
     role: 'user',
-    content: 'Ahoy!',
+    content: 'Hello!',
     createdAt: '2026-01-01T12:00:00Z'
   },
   {
     id: 'msg-2',
     role: 'assistant',
-    content: 'Welcome aboard!',
+    content: 'Welcome to the workspace!',
     createdAt: '2026-01-01T12:00:01Z'
   }
 ];
 
-const SHANTY_OUTCOME: AdventureOutcome = {
+const DISCOVERY_OUTCOME: AdventureOutcome = {
   tool: 'resolve_discovery',
-  result: { winner: 'user', rounds: 4, primary_need: 'Through storms we sail' }
+  result: { winner: 'user', rounds: 4, primary_need: 'Needs clearer forecasting' }
 };
 
-const TREASURE_OUTCOME: AdventureOutcome = {
+const PLANNING_OUTCOME: AdventureOutcome = {
   tool: 'resolve_planning',
-  result: { found: true, focus_area: 'Golden Chalice', location: 'Skeleton Cove' }
+  result: { found: true, focus_area: 'Pipeline coverage', location: 'North America' }
 };
 
 describe('ChatArea', () => {
   it('renders messages', () => {
     render(<ChatArea messages={MESSAGES} streamingContent='' isLoading={false} error={null} />);
-    expect(screen.getByText('Ahoy!')).toBeInTheDocument();
-    expect(screen.getByText('Welcome aboard!')).toBeInTheDocument();
+    expect(screen.getByText('Hello!')).toBeInTheDocument();
+    expect(screen.getByText('Welcome to the workspace!')).toBeInTheDocument();
   });
 
   it('shows empty state when no messages', () => {
@@ -47,9 +47,11 @@ describe('ChatArea', () => {
   });
 
   it('shows streaming content', () => {
-    render(<ChatArea messages={MESSAGES} streamingContent='Arr, let me tell ye...' isLoading={true} error={null} />);
+    render(
+      <ChatArea messages={MESSAGES} streamingContent='Let me walk through that...' isLoading={true} error={null} />
+    );
     expect(screen.getByTestId('streaming-message')).toBeInTheDocument();
-    expect(screen.getByText('Arr, let me tell ye...')).toBeInTheDocument();
+    expect(screen.getByText('Let me walk through that...')).toBeInTheDocument();
   });
 
   it('shows error state', () => {
@@ -68,7 +70,7 @@ describe('ChatArea', () => {
 
   it('renders outcome card when outcome is provided', () => {
     render(
-      <ChatArea messages={MESSAGES} streamingContent='' isLoading={false} error={null} outcome={SHANTY_OUTCOME} />
+      <ChatArea messages={MESSAGES} streamingContent='' isLoading={false} error={null} outcome={DISCOVERY_OUTCOME} />
     );
     expect(screen.getByTestId('outcome-card')).toBeInTheDocument();
     expect(screen.getByText('Discovery Summary')).toBeInTheDocument();
@@ -81,13 +83,13 @@ describe('ChatArea', () => {
 
   it('renders outcome card with planning result details', () => {
     render(
-      <ChatArea messages={MESSAGES} streamingContent='' isLoading={false} error={null} outcome={TREASURE_OUTCOME} />
+      <ChatArea messages={MESSAGES} streamingContent='' isLoading={false} error={null} outcome={PLANNING_OUTCOME} />
     );
     expect(screen.getByText('Account Plan Summary')).toBeInTheDocument();
     const details = screen.getByTestId('outcome-details');
     expect(details).toBeInTheDocument();
-    expect(screen.getByText('Golden Chalice')).toBeInTheDocument();
-    expect(screen.getByText('Skeleton Cove')).toBeInTheDocument();
+    expect(screen.getByText('Pipeline coverage')).toBeInTheDocument();
+    expect(screen.getByText('North America')).toBeInTheDocument();
   });
 
   // ---- Specialist activity indicator tests ----

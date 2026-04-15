@@ -250,7 +250,7 @@ public class AgentHttpClientTests
         {
             id = "msg_1",
             role = "assistant",
-            content = "Ahoy!",
+            content = "Hello!",
             createdAt = "2026-01-01T00:00:00Z",
         });
 
@@ -411,7 +411,7 @@ public class AgentHttpClientTests
         {
             id = "msg_1",
             role = "assistant",
-            content = "Ahoy matey!",
+            content = "Hello there!",
             createdAt = "2026-01-01T00:00:00Z",
         });
 
@@ -448,7 +448,7 @@ public class AgentHttpClientTests
     public async Task SendMessageStream_ReturnsRawResponse()
     {
         var (client, handler) = CreateClient();
-        var sseContent = "event: message.delta\ndata: {\"delta\":\"Ahoy\"}\n\nevent: message.complete\ndata: {\"id\":\"msg_1\"}\n\n";
+        var sseContent = "event: message.delta\ndata: {\"delta\":\"Hello\"}\n\nevent: message.complete\ndata: {\"id\":\"msg_1\"}\n\n";
         var response = new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent(sseContent, Encoding.UTF8, "text/event-stream"),

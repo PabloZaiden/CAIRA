@@ -226,7 +226,7 @@ describe('extractResolutionFromItems', () => {
         rawItem: {
           type: 'function_call',
           name: 'resolve_staffing',
-          arguments: JSON.stringify({ rank: 'Captain', role: 'Navigator', team_name: 'Dawn' }),
+          arguments: JSON.stringify({ rank: 'Director', role: 'Analyst', team_name: 'Dawn' }),
           callId: 'call_1'
         }
       }
@@ -234,7 +234,7 @@ describe('extractResolutionFromItems', () => {
     const result = extractResolutionFromItems(items, noopLog);
     expect(result).toEqual({
       tool: 'resolve_staffing',
-      result: { rank: 'Captain', role: 'Navigator', team_name: 'Dawn' }
+      result: { rank: 'Director', role: 'Analyst', team_name: 'Dawn' }
     });
   });
 });

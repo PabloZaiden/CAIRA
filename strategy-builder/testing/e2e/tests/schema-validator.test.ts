@@ -38,7 +38,11 @@ describe('validateSchema', () => {
         status: 'resolved',
         outcome: {
           tool: 'resolve_planning',
-          result: { approved: true, focus_area: 'Executive sponsor alignment', next_step: 'Confirm stakeholder review' }
+          result: {
+            approved: true,
+            focus_area: 'Executive sponsor alignment',
+            next_step: 'Confirm stakeholder review'
+          }
         },
         createdAt: '2026-01-15T10:30:00.000Z',
         lastParleyAt: '2026-01-15T11:00:00.000Z',
@@ -67,7 +71,11 @@ describe('validateSchema', () => {
         status: 'resolved',
         outcome: {
           tool: 'resolve_discovery',
-          result: { fit: 'qualified', signals_reviewed: 4, primary_need: 'Executive visibility into account risk.' }
+          result: {
+            fit: 'qualified',
+            signals_reviewed: 4,
+            primary_need: 'Executive visibility into account risk.'
+          }
         },
         createdAt: '2026-01-15T10:30:00.000Z',
         lastParleyAt: '2026-01-15T10:35:00.000Z',
@@ -76,7 +84,7 @@ describe('validateSchema', () => {
           {
             id: 'msg_1',
             role: 'user',
-            content: 'Ahoy!',
+            content: 'Hello!',
             createdAt: '2026-01-15T10:30:00.000Z'
           },
           {
@@ -116,7 +124,7 @@ describe('validateSchema', () => {
       const result = await validateSchema(SCHEMAS.ParleyMessage, {
         id: 'msg_123',
         role: 'assistant',
-        content: 'Arr, welcome aboard matey!',
+        content: 'Welcome to the workspace!',
         createdAt: '2026-01-15T10:30:00.000Z',
         usage: { promptTokens: 10, completionTokens: 8 }
       });
@@ -133,7 +141,11 @@ describe('validateSchema', () => {
         usage: { promptTokens: 10, completionTokens: 8 },
         resolution: {
           tool: 'resolve_discovery',
-          result: { fit: 'qualified', signals_reviewed: 4, primary_need: 'Executive visibility into account risk.' }
+          result: {
+            fit: 'qualified',
+            signals_reviewed: 4,
+            primary_need: 'Executive visibility into account risk.'
+          }
         }
       });
 

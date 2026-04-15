@@ -115,7 +115,7 @@ SSE event format (identical at both the agent and API layers):
 
 ```text
 event: message.delta
-data: {"content": "Arr, "}
+data: {"content": "Welcome "}
 
 event: tool.called
 data: {"toolName": "discovery_specialist"}
@@ -137,17 +137,17 @@ The API container **parses** SSE events from the agent container to detect `acti
 
 ## Component responsibilities
 
-| Component           | Responsibility                                                                                                                                                                                                                                                        | Framework-aware?                           |
-|---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------|
+| Component           | Responsibility                                                                                                                                                                                                                                                            | Framework-aware?                           |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
 | **Agent container** | Multi-agent orchestration (coordinator + agent-tools for OpenAI, triage + connected agents for Foundry; 3 specialists with resolution tools), manages conversations, calls Azure AI Foundry, streams responses + `activity.resolved` / `tool.called` / `tool.done` events | Yes -- each variant uses a different SDK   |
-| **API container**   | Business operations layer: creates conversations, sends synthetic first messages, **parses SSE stream** to capture resolution outcomes, proxies chat, retry                                                                                                           | No -- only knows the agent API contract    |
-| **Frontend**        | Fastify BFF: serves React SPA with activity picker + chat UI + outcome display, proxies `/api/*` to API, handles `activity.resolved` events                                                                                                                           | No -- only knows the business API contract |
-| **IaC**             | Terraform composition of the Foundry foundation plus composable Container Apps app-infra layers, backed by reusable infrastructure modules                                                                                                                            | No -- deploys any combination              |
+| **API container**   | Business operations layer: creates conversations, sends synthetic first messages, **parses SSE stream** to capture resolution outcomes, proxies chat, retry                                                                                                               | No -- only knows the agent API contract    |
+| **Frontend**        | Fastify BFF: serves React SPA with activity picker + chat UI + outcome display, proxies `/api/*` to API, handles `activity.resolved` events                                                                                                                               | No -- only knows the business API contract |
+| **IaC**             | Terraform composition of the Foundry foundation plus composable Container Apps app-infra layers, backed by reusable infrastructure modules                                                                                                                                | No -- deploys any combination              |
 
 ## Technology stack
 
 | Layer              | Technology             | Version            | Notes                                                                                                                                   |
-|--------------------|------------------------|--------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
+| ------------------ | ---------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
 | Runtime            | Node.js                | 24+                | Native TypeScript strip-types (no build step)                                                                                           |
 | Language           | TypeScript             | 5.8                | Strict mode, `verbatimModuleSyntax`, `exactOptionalPropertyTypes`                                                                       |
 | Module system      | ESM                    | --                 | `"type": "module"` in all `package.json` files                                                                                          |
@@ -278,7 +278,7 @@ This is the **strategy-builder source tree**. Consumers interact with generated 
 The monorepo contains the "machinery" — components, test infrastructure, generator, scripts. The `deployment-strategies/` directory contains the "product" — self-contained projects that end users copy and use.
 
 |                 | Source tree (`components/`, `testing/`, `scripts/`) | Generated deployment strategies (`deployment-strategies/<reference-architecture>/<name>/`) |
-|-----------------|-----------------------------------------------------|--------------------------------------------------------------------------------------------|
+| --------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | **Audience**    | Developers evolving the strategy builder            | Operators deploying end-to-end strategies                                                  |
 | **Contains**    | Reusable component source, test infra, mocks        | Full copies of source code, compose, IaC, docs                                             |
 | **Standalone?** | No — components reference shared configs            | Yes — copy the folder, have everything                                                     |
@@ -289,15 +289,15 @@ The monorepo contains the "machinery" — components, test infrastructure, gener
 
 The agent variants implement the same API contract but use different Azure AI Foundry SDKs. A **C# variant** (Microsoft Agent Framework) is also available alongside the two TypeScript variants:
 
-|                      | Foundry Agent Service (TS)                                                                                         | OpenAI Agent SDK (TS)                                                                              | Microsoft Agent Framework (C#)                                     |
-|----------------------|--------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------|--------------------------------------------------------------------|
-| **SDK**              | `@azure/ai-projects` (`AIProjectClient`) + `openai`                                                                | `@openai/agents` + `openai` (`AzureOpenAI`)                                                        | `Microsoft.Extensions.AI` + `Azure.AI.OpenAI`                      |
-| **API style**        | Agent CRUD + Responses API (stateless `POST /responses`)                                                           | Responses API (stateless `POST /responses`)                                                        | Responses API (stateless `POST /responses`)                        |
-| **State model**      | Client-side (conversation map in memory, chained via `previousResponseId`)                                         | Client-side (conversation map in memory, chained via `previousResponseId`)                         | Client-side (conversation map, `previousResponseId`)               |
-| **Conversation =**   | Map entry (client-managed)                                                                                         | Map entry (client-managed)                                                                         | Map entry (client-managed)                                         |
+|                      | Foundry Agent Service (TS)                                                                                         | OpenAI Agent SDK (TS)                                                                                  | Microsoft Agent Framework (C#)                                     |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| **SDK**              | `@azure/ai-projects` (`AIProjectClient`) + `openai`                                                                | `@openai/agents` + `openai` (`AzureOpenAI`)                                                            | `Microsoft.Extensions.AI` + `Azure.AI.OpenAI`                      |
+| **API style**        | Agent CRUD + Responses API (stateless `POST /responses`)                                                           | Responses API (stateless `POST /responses`)                                                            | Responses API (stateless `POST /responses`)                        |
+| **State model**      | Client-side (conversation map in memory, chained via `previousResponseId`)                                         | Client-side (conversation map in memory, chained via `previousResponseId`)                             | Client-side (conversation map, `previousResponseId`)               |
+| **Conversation =**   | Map entry (client-managed)                                                                                         | Map entry (client-managed)                                                                             | Map entry (client-managed)                                         |
 | **Multi-agent**      | Triage agent + connected agents (`ToolUtility.createConnectedAgentTool`) + resolution FunctionTools -- server-side | Coordinator agent + agent-as-tool (`.asTool()`) + resolution FunctionTools -- client-side SDK run loop | Mode-selected workflows with one specialist executor per mode      |
-| **Streaming events** | `response.output_text.delta`, `response.completed`                                                                 | `response.output_text.delta`, `response.completed`                                                 | `response.output_text.delta`, `response.completed`                 |
-| **Auth env var**     | `AZURE_AI_PROJECT_ENDPOINT`                                                                                        | `AZURE_OPENAI_ENDPOINT` (direct resource or APIM gateway root URL)                                 | `AZURE_OPENAI_ENDPOINT` (direct resource or APIM gateway root URL) |
-| **Token scope**      | Implicit via `AIProjectClient` + `getOpenAIClient()`                                                               | `https://cognitiveservices.azure.com/.default`                                                     | `https://cognitiveservices.azure.com/.default`                     |
+| **Streaming events** | `response.output_text.delta`, `response.completed`                                                                 | `response.output_text.delta`, `response.completed`                                                     | `response.output_text.delta`, `response.completed`                 |
+| **Auth env var**     | `AZURE_AI_PROJECT_ENDPOINT`                                                                                        | `AZURE_OPENAI_ENDPOINT` (direct resource or APIM gateway root URL)                                     | `AZURE_OPENAI_ENDPOINT` (direct resource or APIM gateway root URL) |
+| **Token scope**      | Implicit via `AIProjectClient` + `getOpenAIClient()`                                                               | `https://cognitiveservices.azure.com/.default`                                                         | `https://cognitiveservices.azure.com/.default`                     |
 
 All variants expose identical REST endpoints and SSE event formats to the API container. The API container does not know which agent framework is behind it.

@@ -194,7 +194,7 @@ const specialistTextResponses = new Set<string>();
  * `previous_response_id` within the first `run()` call. Without this cache,
  * the second `run()` (parley) can't find the original transfer call by walking
  * the `previous_response_id` chain, so it falls back to keyword matching —
- * which fails for messages like "I can tie a bowline" (no staffing keywords).
+ * which fails for messages like "I can support adoption planning" (no staffing keywords).
  *
  * On subsequent requests, `selectTransferTool()` walks the chain and checks
  * this map first, falling back to keywords only for truly new conversations.
@@ -326,7 +326,7 @@ const RESOLUTION_MOCK_ARGS: Record<string, Record<string, unknown>> = {
   },
   resolve_staffing: {
     coverage_level: 'core',
-    role: 'lookout',
+    role: 'customer_success_partner',
     team_name: 'Northwind Account Team'
   }
 };
@@ -536,15 +536,15 @@ function generateSpecialistText(
   }
   toolName = toolName ?? resolutionTools[0] ?? '';
   if (toolName === 'resolve_discovery') {
-    return 'Ahoy! Let me start with a verse: "The salty winds do blow, across the seven seas we go!" Your turn, matey!';
+    return 'Hello! Let me start with a quick example: "When every team shares the same roadmap, execution gets easier." Your turn.';
   }
   if (toolName === 'resolve_planning') {
-    return 'Welcome aboard the planning hunt! I see a mysterious map pointing to Skeleton Cove. Shall we head east through the jungle or take the coastal path?';
+    return 'Welcome to the planning review. I see two launch options for the account plan. Should we start with the regional rollout or the platform workstream?';
   }
   if (toolName === 'resolve_staffing') {
-    return 'So ye want to join me staffing, eh? Tell me, what skills do ye bring to the ship? Can ye tie a bowline or navigate by the stars?';
+    return 'Let us work through staffing. What skills do you bring to the team, and which responsibilities are you ready to own?';
   }
-  return 'Arrr, let us begin this adventure on the high seas!';
+  return 'Let us begin this workflow.';
 }
 
 // ---------- Conversation-aware response helpers ----------

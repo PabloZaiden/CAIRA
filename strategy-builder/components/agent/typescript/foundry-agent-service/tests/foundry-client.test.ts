@@ -384,12 +384,12 @@ describe('FoundryClient (without agent registration)', () => {
   describe('sendMessage (non-streaming)', () => {
     it('sends user message and returns assistant response', async () => {
       const conv = await client.createConversation();
-      mockResponsesCreate.mockResolvedValue(makeResponse('Ahoy matey!'));
+      mockResponsesCreate.mockResolvedValue(makeResponse('Hello there!'));
 
       const result = await client.sendMessage(conv.id, 'Hello sales team!');
       expect(result).toBeDefined();
       expect(result!.role).toBe('assistant');
-      expect(result!.content).toBe('Ahoy matey!');
+      expect(result!.content).toBe('Hello there!');
     });
 
     it('returns undefined for unknown conversation', async () => {
@@ -939,7 +939,7 @@ describe('FoundryClient (with agent registration)', () => {
   describe('sendMessage (non-streaming)', () => {
     it('sends message using conversation param instead of previous_response_id', async () => {
       const conv = await client.createConversation();
-      mockResponsesCreate.mockResolvedValue(makeResponse('Ahoy!'));
+      mockResponsesCreate.mockResolvedValue(makeResponse('Hello!'));
 
       await client.sendMessage(conv.id, 'Hello');
 
@@ -982,18 +982,18 @@ describe('FoundryClient (with agent registration)', () => {
             {
               name: 'lookup_discovery_knowledge',
               callId: 'call_001',
-              arguments: JSON.stringify({ query: 'Sing a verse' })
+              arguments: JSON.stringify({ query: 'Summarize the opportunity' })
             }
           ]
         })
       );
 
       // Second call (tool output submission) returns final text
-      mockResponsesCreate.mockResolvedValueOnce(makeResponse('Here be a discovery!', 'resp_002'));
+      mockResponsesCreate.mockResolvedValueOnce(makeResponse('Here is the discovery summary!', 'resp_002'));
 
-      const result = await client.sendMessage(conv.id, 'Sing me a discovery');
+      const result = await client.sendMessage(conv.id, 'Help me qualify this lead');
       expect(result).toBeDefined();
-      expect(result!.content).toBe('Here be a discovery!');
+      expect(result!.content).toBe('Here is the discovery summary!');
       expect(mockResponsesCreate).toHaveBeenCalledTimes(2);
 
       // First call (coordinator) should use conversation param
@@ -1015,22 +1015,22 @@ describe('FoundryClient (with agent registration)', () => {
               name: 'resolve_staffing',
               callId: 'call_res_001',
               arguments: JSON.stringify({
-                rank: 'Quartermaster',
-                role: 'navigator',
-                team_name: 'The Agentic'
+                rank: 'Director',
+                role: 'analyst',
+                team_name: 'RevOps'
               })
             }
           ]
         })
       );
 
-      mockResponsesCreate.mockResolvedValueOnce(makeResponse('Welcome aboard!', 'resp_002'));
+      mockResponsesCreate.mockResolvedValueOnce(makeResponse('Welcome to the team!', 'resp_002'));
 
       const result = await client.sendMessage(conv.id, 'My answers');
       expect(result).toBeDefined();
       expect(result!.resolution).toEqual({
         tool: 'resolve_staffing',
-        result: { rank: 'Quartermaster', role: 'navigator', team_name: 'The Agentic' }
+        result: { rank: 'Director', role: 'analyst', team_name: 'RevOps' }
       });
     });
   });
