@@ -22,62 +22,6 @@
     }
   },
   "onCreateCommand": "sudo chown -R $(id -un):$(id -gn) \"$HOME\" && task tools && task bootstrap",
-  // "postCreateCommand": {
-  //   "git-safe-dir": "git config --global --add safe.directory ${containerWorkspaceFolder}"
-  // },
-  // "workspaceMount": "source=${localWorkspaceFolder},target=${containerWorkspaceFolder},type=bind,consistency=cached",
-  // "privileged": true,
-  // "remoteEnv": {
-  //   "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}",
-  //   "DOTNET_ROOT": "/home/vscode/.dotnet",
-  //   "BUN_INSTALL": "/home/vscode/.bun",
-  //   "PATH": "/home/vscode/.dotnet:/home/vscode/.bun/bin:/home/vscode/.local/bin:${containerEnv:PATH}"
-  // },
-  // "remoteUser": "vscode",
-  // "forwardPorts": [
-  //   8000,
-  //   8080,
-  //   5173,
-  //   4173,
-  //   4000,
-  //   3000,
-  //   8100,
-  //   8079
-  // ],
-  // "portsAttributes": {
-  //   "8000": {
-  //     "label": "mkdocs serve",
-  //     "onAutoForward": "notify"
-  //   },
-  //   "8080": {
-  //     "label": "strategy frontend",
-  //     "onAutoForward": "openPreview"
-  //   },
-  //   "5173": {
-  //     "label": "frontend dev server",
-  //     "onAutoForward": "openBrowserOnce"
-  //   },
-  //   "4173": {
-  //     "label": "frontend preview",
-  //     "onAutoForward": "notify"
-  //   },
-  //   "4000": {
-  //     "label": "business API",
-  //     "onAutoForward": "silent"
-  //   },
-  //   "3000": {
-  //     "label": "agent service",
-  //     "onAutoForward": "silent"
-  //   },
-  //   "8100": {
-  //     "label": "AI mock",
-  //     "onAutoForward": "silent"
-  //   },
-  //   "8079": {
-  //     "label": "azcred sidecar",
-  //     "onAutoForward": "silent"
-  //   }
-  // },
   "customizations": {
     "vscode": {
       "settings": {
@@ -85,11 +29,9 @@
         "terminal.integrated.defaultProfile.osx": "zsh"
       },
       "extensions": [
-        // "eamodio.gitlens",
         "ms-azuretools.vscode-azureterraform",
         "ms-vscode.azurecli",
         "hashicorp.terraform",
-        // "ms-azuretools.vscode-azure-github-copilot",
         "ms-azuretools.vscode-docker",
         "bierner.github-markdown-preview",
         "task.vscode-task",
@@ -97,20 +39,10 @@
         "davidanson.vscode-markdownlint",
         "redhat.vscode-yaml",
         "fnando.linter",
-        // "github.copilot",
-        // "github.copilot-chat",
-        // "github.vscode-github-actions",
-        // "github.vscode-pull-request-github",
-        // "github.codespaces",
-        // "github.remotehub",
         "aaron-bond.better-comments",
-        // "usernamehw.errorlens",
-        // "ms-sarifvscode.sarif-viewer",
         "yzhang.markdown-all-in-one",
-        // "timonwong.shellcheck",
         "streetsidesoftware.code-spell-checker",
         "hashicorp.hcl",
-        // "esbenp.prettier-vscode",
         "ms-dotnettools.csharp",
         "ms-vscode.vscode-typescript-next"
       ]
