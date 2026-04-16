@@ -32,18 +32,17 @@ Each component is **fully self-contained** with its own:
 
 ---
 
-## Adding a new TypeScript agent framework
+## Adding a new agent framework
 
-This is the most common extension. To add a new **TypeScript** agent framework
-(for example, a new OpenAI- or Foundry-compatible runtime), follow the pattern
-below. If you are adding a C# implementation instead, mirror the structure under
-`components/agent/csharp/microsoft-agent-framework/` and set the component
-manifest's `language` field accordingly.
+This is the most common extension. To add a new agent framework, follow the
+same contract and component model regardless of language. Reuse the existing
+variants as templates, but match the conventions of the language and runtime
+you are introducing.
 
 ### 1. Create the component directory
 
 ```text
-components/agent/typescript/<framework-name>/
+components/agent/<language>/<framework-name>/
 ```
 
 ### 2. Create `component.json`
@@ -53,7 +52,7 @@ components/agent/typescript/<framework-name>/
   "name": "agent",
   "type": "agent",
   "variant": "<framework-name>",
-    "language": "typescript",
+  "language": "<language>",
   "description": "Agent container using <Framework Name>",
   "port": 3000,
   "healthEndpoint": "/health",
@@ -78,39 +77,40 @@ Your agent must implement all endpoints from `contracts/agent-api.openapi.yaml`:
 
 ### 4. Follow the existing architecture pattern
 
-Use the existing TypeScript agent variants as templates. The recommended
-TypeScript file structure:
+Use the existing agent variants as templates. The exact file names can differ by
+language, but the implementation should usually separate the same concerns:
 
 ```text
-src/
-├── server.ts           # Entry point + graceful shutdown
-├── app.ts              # Fastify factory (testable without starting listener)
-├── config.ts           # Environment variable loading
-├── <sdk>-client.ts     # SDK wrapper with conversation model mapping
-├── routes.ts           # Route handlers
-└── types.ts            # Types matching agent-api.openapi.yaml
+<entrypoint>            # Starts the service and graceful shutdown
+<app/bootstrap>         # Builds the app or route pipeline in a testable way
+<config>                # Environment variable loading + validation
+<sdk-client>            # SDK wrapper with conversation model mapping
+<routes>                # HTTP route handlers + SSE behavior
+<types/models>          # Types matching agent-api.openapi.yaml
+<tests>                 # Unit/integration tests for config, SDK, and routes
 ```
 
 Key requirements:
 
-- **`app.ts` must be importable for testing** -- use `buildApp()` pattern with injectable dependencies
+- **Build the app in a testable way** -- structure the service so route wiring and dependencies can be exercised without booting a production listener
 - **Auth hook:** Check `Authorization: Bearer <token>` unless `SKIP_AUTH=true`
-- **SSE streaming:** Use `reply.hijack()` and write SSE events directly to `reply.raw`
+- **SSE streaming:** Stream `message.delta`, `message.complete`, `activity.resolved`, and `error` events exactly as defined by the contract
 - **SSE format must match exactly:** `event: message.delta\ndata: {"content": "..."}\n\n`
 - **Health check must report dependency status**
 - **DefaultAzureCredential for auth** -- no API keys
 
 ### 5. Write tests
 
-Target >80% code coverage with three test files:
+Target >80% code coverage with focused tests for:
 
-- `tests/config.test.ts` -- config loading, defaults, missing required vars
-- `tests/<sdk>-client.test.ts` -- conversation CRUD, messaging, streaming (mock the SDK)
-- `tests/routes.test.ts` -- HTTP endpoints, auth, errors, SSE format
+- configuration loading, defaults, and missing required vars
+- conversation CRUD, messaging, and streaming against mocked SDK behavior
+- HTTP endpoint behavior, auth, errors, and SSE format
 
-### 6. Create the Dockerfile
+### 6. Create the container image
 
-Follow the multi-stage pattern:
+Follow the standard multi-stage pattern for the chosen language and runtime.
+For example, a TypeScript/Node implementation would look like:
 
 ```dockerfile
 FROM node:24-alpine AS deps
@@ -157,19 +157,19 @@ The mock must remain:
 Run the full verification checklist:
 
 ```bash
-cd components/agent/typescript/<framework-name>
+cd components/agent/<language>/<framework-name>
 
-# 1. Unit tests pass
-npm run test
+# 1. Component tests pass
+<test-command>
 
 # 2. Zero lint errors
-npm run lint
+<lint-command>
 
 # 3. Zero type errors
-npm run typecheck
+<typecheck-command>
 
 # 4. Contract compliance (requires running instance + mock)
-# Start your agent against the mock, then:
+# Start your agent against the mock using the language-appropriate dev command, then:
 cd testing/contract-validator
 npx tsx src/cli.ts --spec ../../contracts/agent-api.openapi.yaml --url http://localhost:3000
 
