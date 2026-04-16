@@ -1,12 +1,17 @@
 # API Container
 
-**Directory:** `components/api/typescript/`
+**Primary directory:** `components/api/typescript/`
+**Alternate implementation:** `components/api/csharp/`
 **Port:** 4000
 **Contract:** `contracts/backend-api.openapi.yaml`
 
 The API container is the **business operations layer**. The current sample domain is a fictional sales/account-team scenario, while the route and mode identifiers stay business-oriented and aligned to the activity sample. The API exposes business operations that create conversations on the agent container and return a mode-specific `syntheticMessage` for the frontend to send as the first parley. It also proxies ongoing chat via the adventures endpoints, **parsing the SSE stream** to detect `activity.resolved` events and capture resolution outcomes. Adventures gain `status` (`active`/`resolved`) and `outcome` fields. It is **agent-framework-agnostic** -- it only knows the agent API contract.
 
-## Architecture
+This page focuses on the current TypeScript implementation. A C# implementation
+with the same contract and business behavior also exists under
+`components/api/csharp/`.
+
+## TypeScript implementation architecture
 
 ```text
 components/api/typescript/
@@ -107,12 +112,12 @@ If the agent is unreachable, the API reports `degraded` (not `unhealthy`). The `
 | `INBOUND_AUTH_ALLOWED_CALLER_APP_IDS` | No                     | --                                             | Optional caller application allowlist                           |
 | `INBOUND_AUTH_AUTHORITY_HOST`         | No                     | `https://login.microsoftonline.com`            | Authority host override                                         |
 
-## Dependencies
+## TypeScript implementation dependencies
 
 - `fastify` ^5 -- HTTP framework
 - `@azure/identity` ^4 -- DefaultAzureCredential for agent-to-agent auth
 
-## Tests
+## TypeScript implementation tests
 
 ```bash
 cd components/api/typescript
@@ -123,7 +128,11 @@ npm install && npm run test
 - `agent-client.test.ts` -- HTTP client: request formation, auth headers, retry, circuit breaker, SSE passthrough, error handling
 - `routes.test.ts` -- endpoint behavior: business-operation translation, response formats, error mapping, health aggregation
 
-## Docker
+The C# implementation keeps its tests under
+`components/api/csharp-tests/CairaApi.Tests/` and uses the ASP.NET Core test
+host instead of Fastify injection.
+
+## TypeScript implementation Docker
 
 ```bash
 # Build
@@ -139,4 +148,7 @@ docker run -p 4000:4000 \
 curl http://localhost:4000/health
 ```
 
-The Dockerfile follows the same multi-stage pattern as the agent containers: dependency install stage, then lean runtime stage with `node`.
+The Dockerfile follows the same multi-stage pattern as the TypeScript agent
+containers: dependency install stage, then lean runtime stage with `node`. The
+C# API variant uses an ASP.NET Core Minimal API app with a .NET multi-stage
+Docker build instead.

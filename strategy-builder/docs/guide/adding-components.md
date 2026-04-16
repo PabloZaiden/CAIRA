@@ -32,9 +32,13 @@ Each component is **fully self-contained** with its own:
 
 ---
 
-## Adding a new agent framework
+## Adding a new TypeScript agent framework
 
-This is the most common extension. To add a new agent framework (e.g., Microsoft Agent Framework, LangChain, Semantic Kernel):
+This is the most common extension. To add a new **TypeScript** agent framework
+(for example, a new OpenAI- or Foundry-compatible runtime), follow the pattern
+below. If you are adding a C# implementation instead, mirror the structure under
+`components/agent/csharp/microsoft-agent-framework/` and set the component
+manifest's `language` field accordingly.
 
 ### 1. Create the component directory
 
@@ -49,7 +53,7 @@ components/agent/typescript/<framework-name>/
   "name": "agent",
   "type": "agent",
   "variant": "<framework-name>",
-  "language": "typescript",
+    "language": "typescript",
   "description": "Agent container using <Framework Name>",
   "port": 3000,
   "healthEndpoint": "/health",
@@ -74,7 +78,8 @@ Your agent must implement all endpoints from `contracts/agent-api.openapi.yaml`:
 
 ### 4. Follow the existing architecture pattern
 
-Use the existing agent variants as templates. The recommended file structure:
+Use the existing TypeScript agent variants as templates. The recommended
+TypeScript file structure:
 
 ```text
 src/

@@ -2,19 +2,19 @@
 
 ## System overview
 
-Each CAIRA deployment strategy is a three-container application with Terraform-managed infrastructure:
+Each current CAIRA deployment strategy is a three-container application with Terraform-managed infrastructure:
 
 ```text
                     +------------+
                     |  Frontend  |  :8080
-                    | (BFF/React)|
+                    | (BFF + SPA)|
                     +-----+------+
                           |
                      HTTP | /api/*
                     proxy |
                     +-----v-----+
                     |    API    |  :4000
-                    | (Fastify) |  Business Operations
+                    |(Business Ops)
                     +-----+-----+
                           |
               Bearer token| /conversations/*
@@ -22,7 +22,7 @@ Each CAIRA deployment strategy is a three-container application with Terraform-m
                           |
                     +-----v-----+
                     |   Agent   |  :3000
-                    | (Fastify) |  Multi-Agent
+                    |(Agent Runtime)
                     +-----+-----+
                           |
               Bearer token| SDK calls
@@ -34,9 +34,15 @@ Each CAIRA deployment strategy is a three-container application with Terraform-m
                     +-----------+
 ```
 
+The diagram above is conceptual: it names the responsibilities and network flow,
+not a specific framework choice. The generated deployment strategies currently
+implement those responsibilities with a React-based frontend/BFF, TypeScript
+Fastify services in the two TypeScript strategies, and ASP.NET Core plus
+Microsoft Agent Framework in the C# strategy.
+
 ### Multi-agent architecture
 
-The two agent variants use **different orchestration patterns** to coordinate three specialist agents:
+The three current agent variants use **different orchestration patterns** to coordinate three specialist agents:
 
 **OpenAI Agent SDK — Coordinator + Agent-as-Tool:**
 
@@ -76,7 +82,25 @@ User message ──────▶  Triage Agent                     │
 - **Triage agent** — receives every message, examines conversation context, and hands off to the appropriate specialist via connected agent tools (`ToolUtility.createConnectedAgentTool`).
 - **Re-triage every turn:** Each message starts with the triage agent (not sticky routing). The triage agent sees the full conversation history and decides which specialist should handle the response.
 
-**Common to both variants:**
+**Microsoft Agent Framework — Workflow per mode:**
+
+```text
+                    ┌─────────────────────────────────┐
+                    │         Agent Container         │
+                    │                                 │
+User message ──────▶  Workflow runner                │
+                    │    │                            │
+                    │    ├── mode=discovery ─▶ Discovery workflow ─▶ resolve_discovery()
+                    │    ├── mode=planning  ─▶ Planning workflow  ─▶ resolve_planning()
+                    │    └── mode=staffing  ─▶ Staffing workflow  ─▶ resolve_staffing()
+                    └─────────────────────────────────┘
+```
+
+- **No coordinator or triage runtime agent.** The C# implementation does not create a conversational coordinator and does not re-triage every turn.
+- **Mode is selected from conversation metadata.** The workflow runner chooses one prebuilt workflow per mode (`discovery`, `planning`, `staffing`) when the conversation is created or resumed.
+- **Each workflow has one specialist executor.** The selected specialist talks directly to the user, uses local knowledge and resolution tools, and resumes through workflow checkpoints across turns.
+
+**Common to all variants:**
 
 - **Discovery agent** — opportunity discovery specialist in the fictional sales/account-team sample
 - **Planning agent** — account planning specialist in the fictional sales/account-team sample
@@ -91,7 +115,7 @@ Each specialist agent has an **activity-specific resolution tool** (`resolve_dis
 1. User picks an activity (Opportunity Discovery / Account Planning / Team Staffing) in the **frontend** activity picker
 1. Frontend calls the corresponding API business operation (e.g., `POST /api/activities/discovery`)
 1. API container creates a conversation on the **agent container** (`POST /conversations`) and sends a synthetic first user message aligned to the fictional sales/account-team scenario
-1. Agent container routes via its orchestration pattern (coordinator agent-tools for OpenAI, triage handoff for Foundry) to the specialist, generates an opening response
+1. Agent container routes via its variant-specific orchestration pattern (coordinator agent-tools for OpenAI, triage handoff for Foundry, or mode-selected workflow for C#) to the specialist, then generates an opening response
 1. API returns the conversation ID + opening response to the frontend
 
 **Continuing a conversation:**
@@ -99,7 +123,7 @@ Each specialist agent has an **activity-specific resolution tool** (`resolve_dis
 1. User types a message in the **frontend** chat UI
 1. Frontend BFF proxies `POST /api/activities/adventures/{id}/parley` to the **API container**
 1. API container translates to `POST /conversations/{id}/messages` to the **agent container**
-1. Agent container uses its framework SDK (Foundry Agent Service or OpenAI Agent SDK) to call **Azure AI Foundry**, routing to the appropriate specialist via the variant's orchestration pattern
+1. Agent container uses its framework SDK (Foundry Agent Service, OpenAI Agent SDK, or Microsoft Agent Framework) to call **Azure AI Foundry**, routing to the appropriate specialist via the variant's orchestration pattern
 1. Response streams back as **Server-Sent Events (SSE)** through all layers: Agent -> API -> Frontend BFF -> Browser
 1. If the agent calls a resolution tool, the stream includes an `activity.resolved` event — the API captures the outcome and passes the event through to the frontend
 
@@ -137,32 +161,53 @@ The API container **parses** SSE events from the agent container to detect `acti
 
 ## Component responsibilities
 
-| Component           | Responsibility                                                                                                                                                                                                                                                            | Framework-aware?                           |
-|---------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------|
-| **Agent container** | Multi-agent orchestration (coordinator + agent-tools for OpenAI, triage + connected agents for Foundry; 3 specialists with resolution tools), manages conversations, calls Azure AI Foundry, streams responses + `activity.resolved` / `tool.called` / `tool.done` events | Yes -- each variant uses a different SDK   |
-| **API container**   | Business operations layer: creates conversations, sends synthetic first messages, **parses SSE stream** to capture resolution outcomes, proxies chat, retry                                                                                                               | No -- only knows the agent API contract    |
-| **Frontend**        | Fastify BFF: serves React SPA with activity picker + chat UI + outcome display, proxies `/api/*` to API, handles `activity.resolved` events                                                                                                                               | No -- only knows the business API contract |
-| **IaC**             | Terraform composition of the Foundry foundation plus composable Container Apps app-infra layers, backed by reusable infrastructure modules                                                                                                                                | No -- deploys any combination              |
+| Component           | Responsibility                                                                                                                                                                                                                                                                                         | Framework-aware?                           |
+|---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------|
+| **Agent container** | Multi-agent orchestration (coordinator + agent-tools for OpenAI, triage + connected agents for Foundry, or per-mode workflow selection for Microsoft Agent Framework), manages conversations, calls Azure AI Foundry, and streams responses + `activity.resolved` / `tool.called` / `tool.done` events | Yes -- each variant uses a different SDK   |
+| **API container**   | Business operations layer: creates conversations, sends synthetic first messages, **parses SSE stream** to capture resolution outcomes, proxies chat, retry                                                                                                                                            | No -- only knows the agent API contract    |
+| **Frontend**        | BFF + SPA frontend: serves the activity picker + chat UI + outcome display, proxies `/api/*` to API, handles `activity.resolved` events. Current generated strategies implement this with React plus a BFF server.                                                                                     | No -- only knows the business API contract |
+| **IaC**             | Terraform composition of the Foundry foundation plus composable Container Apps app-infra layers, backed by reusable infrastructure modules                                                                                                                                                             | No -- deploys any combination              |
 
-## Technology stack
+## Current implementation stacks
 
-| Layer              | Technology             | Version            | Notes                                                                                                                                   |
-|--------------------|------------------------|--------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
-| Runtime            | Node.js                | 24+                | Native TypeScript strip-types (no build step)                                                                                           |
-| Language           | TypeScript             | 5.8                | Strict mode, `verbatimModuleSyntax`, `exactOptionalPropertyTypes`                                                                       |
-| Module system      | ESM                    | --                 | `"type": "module"` in all `package.json` files                                                                                          |
-| HTTP framework     | Fastify                | 5.x                | Agent, API, and frontend (BFF) containers                                                                                               |
-| Frontend framework | React                  | 19                 | With Vite 6 bundler                                                                                                                     |
-| Frontend build     | Vite                   | 6.x                | Dev server + production build via esbuild                                                                                               |
-| Test framework     | Vitest                 | 3.x                | All projects, with jsdom for frontend component tests                                                                                   |
-| Contracts          | OpenAPI                | 3.1.0              | Validated with Redocly CLI                                                                                                              |
-| Auth               | DefaultAzureCredential | @azure/identity v4 | Entra ID tokens, no API keys                                                                                                            |
-| Container          | Docker                 | Multi-stage builds | Node 24 alpine for all containers                                                                                                       |
-| IaC                | Terraform              | Latest             | References macro reference architecture directories under `strategy-builder/infra/` and shared `strategy-builder/infra/modules/` inputs |
+Some technologies are shared across every current strategy, while others are
+implementation-specific.
+
+### Shared across current strategies
+
+| Layer     | Technology             | Notes                                                                                                                                   |
+|-----------|------------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
+| Contracts | OpenAPI 3.1.0          | Validated with Redocly CLI                                                                                                              |
+| Auth      | DefaultAzureCredential | Entra ID bearer-token auth, no API keys                                                                                                 |
+| Container | Docker                 | Multi-stage container builds                                                                                                            |
+| IaC       | Terraform              | References macro reference architecture directories under `strategy-builder/infra/` and shared `strategy-builder/infra/modules/` inputs |
+
+### TypeScript strategies
+
+| Layer              | Technology | Version | Notes                                          |
+|--------------------|------------|---------|------------------------------------------------|
+| Runtime            | Node.js    | 24+     | Native TypeScript strip-types (no build step)  |
+| Language           | TypeScript | 5.8     | Strict mode + repo-wide TS config              |
+| Module system      | ESM        | --      | `"type": "module"` in all `package.json` files |
+| HTTP framework     | Fastify    | 5.x     | Agent, API, and frontend (BFF) containers      |
+| Frontend framework | React      | 19      | With Vite 6 bundler                            |
+| Frontend build     | Vite       | 6.x     | esbuild-powered frontend build                 |
+| Test framework     | Vitest     | 3.x     | Used across the TypeScript projects            |
+
+### C# strategy
+
+| Layer          | Technology                                    | Version | Notes                                         |
+|----------------|-----------------------------------------------|---------|-----------------------------------------------|
+| Runtime        | .NET                                          | 10.0    | ASP.NET Core Web SDK projects                 |
+| Language       | C#                                            | --      | Used for the API and agent containers         |
+| HTTP framework | ASP.NET Core Minimal API                      | --      | API and agent containers                      |
+| Agent runtime  | Microsoft Agent Framework + `Azure.AI.OpenAI` | --      | Per-mode workflow orchestration for the agent |
+| Test framework | NUnit + ASP.NET Core test host                | --      | Used by the C# API and agent test projects    |
 
 ## TypeScript configuration
 
-All projects extend `tsconfig.base.json` at the repository root:
+The TypeScript deployment strategies extend `tsconfig.base.json` at the
+repository root:
 
 ```json
 {
