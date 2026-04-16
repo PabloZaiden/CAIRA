@@ -18,12 +18,12 @@ start with `../../../docs/contributing/extending_caira.md` and
 
 All testing projects live under `testing/` and are self-contained (own `package.json`, `tsconfig.json`, `node_modules/`).
 
-| Project            | Directory                     | Purpose                                                   |
-|--------------------|-------------------------------|-----------------------------------------------------------|
-| Contract Validator | `testing/contract-validator/` | Validates running services against OpenAPI specs          |
-| Container Health   | `testing/container-health/`   | Builds Docker images, starts containers, validates health |
-| AI Mock            | `testing/mocks/ai-mock/`      | Unified mock: Agent CRUD + Responses API (both variants)  |
-| E2E Suite          | `testing/e2e/`                | End-to-end test scenarios against running services        |
+| Project            | Directory                     | Purpose                                                             |
+|--------------------|-------------------------------|---------------------------------------------------------------------|
+| Contract Validator | `testing/contract-validator/` | Validates running services against OpenAPI specs                    |
+| Container Health   | `testing/container-health/`   | Builds Docker images, starts containers, validates health           |
+| AI Mock            | `testing/mocks/ai-mock/`      | Unified mock: Agent CRUD + Responses API (all three agent variants) |
+| E2E Suite          | `testing/e2e/`                | End-to-end test scenarios against running services                  |
 
 ### Plus component-level tests
 

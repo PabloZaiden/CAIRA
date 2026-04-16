@@ -4,7 +4,9 @@ The agent layer has three interchangeable implementations. All conform to the sa
 
 ## Common architecture
 
-All three variants share the same high-level contract and a similar file layout:
+All three variants share the same high-level contract, but the two TypeScript
+variants share the file layout below while the C# variant uses an ASP.NET Core
+project structure of its own:
 
 ```text
 components/agent/typescript/<variant>/
@@ -26,12 +28,16 @@ components/agent/typescript/<variant>/
 └── component.json          # Component manifest
 ```
 
-### Key patterns
+### Key TypeScript patterns
 
 - **`app.ts` is the testable unit.** It creates a Fastify instance without starting a listener, so tests can inject it directly via `app.inject()`.
 - **SDK client is injectable.** The `buildApp()` function accepts override options for the SDK client, allowing tests to inject mocks.
 - **Auth hook is conditional.** When `SKIP_AUTH=true`, inbound validation is bypassed for local mock/dev flows. Otherwise the containers validate Entra-issued bearer tokens for issuer, audience, expiry, and optional caller application IDs.
 - **No build step.** Runs directly via `node src/server.ts`.
+
+The C# variant follows equivalent ASP.NET Core patterns instead: `Program.cs`
+builds the Minimal API app, route wiring lives in `Routes.cs`, and the tests use
+the ASP.NET Core test host rather than Fastify injection.
 
 ### Sample domain
 
@@ -113,7 +119,7 @@ All agent containers implement these endpoints:
 
 ### Metrics
 
-Both variants expose Prometheus-compatible metrics at `GET /metrics`:
+All three variants expose Prometheus-compatible metrics at `GET /metrics`:
 
 - `agent_requests_total` -- total HTTP requests
 - `agent_conversations_created_total` -- conversations created
@@ -290,14 +296,17 @@ dotnet test
 
 ```text
 components/agent/csharp/microsoft-agent-framework/
-├── AgentClient.cs      # SDK wrapper: coordinator + specialist agents + tool loop
-├── Config.cs           # Configuration loading + default prompts
-├── Models.cs           # Types matching agent-api.openapi.yaml
-├── Routes.cs           # Minimal API route handlers
-├── Program.cs          # Entry point + middleware setup
-├── Dockerfile          # Multi-stage: .NET 10 SDK → runtime
-├── component.json      # Component manifest
-└── tests/              # NUnit tests
+├── AgentSetup.cs             # Builds specialist executors + shared instructions
+├── WorkflowRunner.cs         # Selects and resumes the mode-specific workflow
+├── ConversationStore.cs      # In-memory conversation state
+├── Config.cs                 # Configuration loading + default prompts
+├── Models.cs                 # Types matching agent-api.openapi.yaml
+├── Routes.cs                 # Minimal API route handlers
+├── Program.cs                # Entry point + middleware setup
+├── Dockerfile                # Multi-stage: .NET 10 SDK → runtime
+├── component.json            # Component manifest
+└── ../microsoft-agent-framework.Tests/
+    └── *.cs                  # NUnit tests
 ```
 
 ---

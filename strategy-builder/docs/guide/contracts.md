@@ -6,10 +6,10 @@ The contracts define the REST interfaces between components. They live in the `c
 
 There are two OpenAPI 3.1.0 specifications:
 
-| Contract     | File                                 | Who implements it                | Who calls it  |
-|--------------|--------------------------------------|----------------------------------|---------------|
-| Agent API    | `contracts/agent-api.openapi.yaml`   | Agent containers (both variants) | API container |
-| Business API | `contracts/backend-api.openapi.yaml` | API container                    | Frontend      |
+| Contract     | File                                 | Who implements it                     | Who calls it  |
+|--------------|--------------------------------------|---------------------------------------|---------------|
+| Agent API    | `contracts/agent-api.openapi.yaml`   | Agent containers (all three variants) | API container |
+| Business API | `contracts/backend-api.openapi.yaml` | API container                         | Frontend      |
 
 ## Agent API (`agent-api.openapi.yaml`)
 
