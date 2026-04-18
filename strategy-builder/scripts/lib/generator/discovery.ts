@@ -36,6 +36,7 @@ export function validateManifest(raw: unknown): ValidationResult {
   if (typeof obj['type'] !== 'string' || !VALID_TYPES.includes(obj['type'] as ComponentType)) {
     errors.push(`"type" must be one of: ${VALID_TYPES.join(', ')}`);
   }
+  const isIac = obj['type'] === 'iac';
 
   // variant — optional string
   if (obj['variant'] !== undefined && typeof obj['variant'] !== 'string') {
@@ -52,13 +53,21 @@ export function validateManifest(raw: unknown): ValidationResult {
     errors.push('"description" must be a string if present');
   }
 
-  // port — required positive integer
-  if (typeof obj['port'] !== 'number' || !Number.isInteger(obj['port']) || obj['port'] <= 0) {
+  // port — required positive integer for runtime components, optional for IaC
+  if (obj['port'] !== undefined) {
+    if (typeof obj['port'] !== 'number' || !Number.isInteger(obj['port']) || obj['port'] <= 0) {
+      errors.push('"port" must be a positive integer');
+    }
+  } else if (!isIac) {
     errors.push('"port" must be a positive integer');
   }
 
-  // healthEndpoint — required string starting with /
-  if (typeof obj['healthEndpoint'] !== 'string' || !obj['healthEndpoint'].startsWith('/')) {
+  // healthEndpoint — required for runtime components, optional for IaC
+  if (obj['healthEndpoint'] !== undefined) {
+    if (typeof obj['healthEndpoint'] !== 'string' || !obj['healthEndpoint'].startsWith('/')) {
+      errors.push('"healthEndpoint" must be a string starting with "/"');
+    }
+  } else if (!isIac) {
     errors.push('"healthEndpoint" must be a string starting with "/"');
   }
 

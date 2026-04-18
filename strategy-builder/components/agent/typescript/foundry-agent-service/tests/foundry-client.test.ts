@@ -20,6 +20,11 @@ import type { Config } from '../src/config.ts';
 
 // ---------- Module-level mocks ----------
 
+const { mockUseAzureMonitor, mockShutdownAzureMonitor } = vi.hoisted(() => ({
+  mockUseAzureMonitor: vi.fn(),
+  mockShutdownAzureMonitor: vi.fn()
+}));
+
 // Mock OpenAI — intercepted by dynamic import('openai') in setupClient()
 let mockConvCounter = 0;
 const mockResponsesCreate = vi.fn();
@@ -82,7 +87,8 @@ vi.mock('@azure/identity', () => {
 
 // Mock @azure/monitor-opentelemetry — useAzureMonitor is called in setupClient()
 vi.mock('@azure/monitor-opentelemetry', () => ({
-  useAzureMonitor: vi.fn()
+  shutdownAzureMonitor: mockShutdownAzureMonitor,
+  useAzureMonitor: mockUseAzureMonitor
 }));
 
 // ---------- Import FoundryClient AFTER mocks are set up ----------
@@ -248,6 +254,8 @@ function resetAllMocks(): void {
   mockAgentsUpdate.mockReset();
   mockGetOpenAIClient.mockReset();
   mockGetTelemetryConnectionString.mockReset().mockResolvedValue('InstrumentationKey=fake');
+  mockShutdownAzureMonitor.mockReset();
+  mockUseAzureMonitor.mockReset();
 }
 
 /** Configure agent mocks for the "agents don't exist" path (get → 404, create succeeds). */
@@ -921,6 +929,22 @@ describe('FoundryClient (with agent registration)', () => {
 
       const failClient = new FoundryClient({ config: AZURE_CONFIG });
       await expect(failClient.initialise()).rejects.toThrow('Update failed');
+    });
+
+    it('initialises without Azure Monitor when no telemetry connection string is available', async () => {
+      resetAllMocks();
+      setupAgentMocksForCreate();
+      mockGetTelemetryConnectionString.mockResolvedValue(undefined);
+      mockGetOpenAIClient.mockResolvedValue({
+        responses: { create: mockResponsesCreate, stream: mockResponsesStream },
+        conversations: { create: mockConversationsCreate }
+      });
+
+      const noTelemetryClient = new FoundryClient({ config: AZURE_CONFIG });
+      await noTelemetryClient.initialise();
+
+      expect(mockUseAzureMonitor).not.toHaveBeenCalled();
+      expect(mockGetOpenAIClient).toHaveBeenCalledTimes(1);
     });
   });
 

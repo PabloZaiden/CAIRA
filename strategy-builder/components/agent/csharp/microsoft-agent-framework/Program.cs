@@ -37,7 +37,6 @@ builder.Logging.SetMinimumLevel(config.LogLevel.ToLowerInvariant() switch
 // Register services
 builder.Services.AddSingleton(config);
 builder.Services.AddSingleton<ConversationStore>();
-builder.Services.AddSingleton(new ActivitySource("caira-agent-csharp"));
 builder.Services.AddSingleton<IIncomingTokenValidator>(
     config.SkipAuth ? new NoOpIncomingTokenValidator() : new EntraIncomingTokenValidator(config));
 

@@ -80,7 +80,8 @@ export function generateComposeFile(config: SampleConfig): string {
   });
 
   const frontendEnvLines = composeEnvLines(frontend.manifest.requiredEnv, frontend.manifest.optionalEnv, {
-    API_BASE_URL: 'http://api:4000'
+    API_BASE_URL: 'http://api:4000',
+    SKIP_AUTH: '"true"'
   });
 
   // C# containers have curl instead of wget; TypeScript/Node containers use wget

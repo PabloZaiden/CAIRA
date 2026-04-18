@@ -115,6 +115,8 @@ describe('BFF server inter-service auth', () => {
       dependencies: Array<{ name: string; status: string }>;
     };
     expect(body.status).toBe('healthy');
+    // The BFF prepends its own API dependency to the downstream API payload.
+    expect(body.dependencies).toHaveLength(2);
     expect(body.dependencies[0]?.name).toBe('api-container-auth');
     expect(body.dependencies[0]?.status).toBe('healthy');
     expect(body.dependencies[1]?.name).toBe('agent-container-auth');

@@ -2,12 +2,10 @@
   "name": "iac",
   "type": "iac",
   "variant": "azure-container-apps",
-  "language": "typescript",
+  "language": "hcl",
   "description": "Terraform composition of the CAIRA Foundry foundation and composable Container Apps app-infra layers",
   "strategySuffix": "aca",
   "referenceArchitectures": ["foundry_agentic_app"],
-  "port": 1,
-  "healthEndpoint": "/health",
   "requiredEnv": [],
   "optionalEnv": [],
   "contractSpec": "contracts/backend-api.openapi.yaml"

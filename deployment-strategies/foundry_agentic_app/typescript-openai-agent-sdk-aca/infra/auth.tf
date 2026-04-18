@@ -29,7 +29,7 @@ resource "azuread_application" "api_auth" {
 }
 
 resource "azuread_service_principal" "api_auth" {
-  count = var.enable_registry_auth ? 1 : 0
+  count = var.enable_service_auth ? 1 : 0
 
   client_id                    = azuread_application.api_auth.client_id
   app_role_assignment_required = true
@@ -55,14 +55,14 @@ resource "azuread_application" "agent_auth" {
 }
 
 resource "azuread_service_principal" "agent_auth" {
-  count = var.enable_registry_auth ? 1 : 0
+  count = var.enable_service_auth ? 1 : 0
 
   client_id                    = azuread_application.agent_auth.client_id
   app_role_assignment_required = true
 }
 
 resource "time_sleep" "wait_for_managed_identity_propagation" {
-  count = var.enable_registry_auth ? 1 : 0
+  count = var.enable_service_auth ? 1 : 0
 
   depends_on = [
     module.frontend_app,
@@ -74,7 +74,7 @@ resource "time_sleep" "wait_for_managed_identity_propagation" {
 }
 
 data "azuread_service_principal" "frontend_managed_identity" {
-  count = var.enable_registry_auth ? 1 : 0
+  count = var.enable_service_auth ? 1 : 0
 
   object_id = module.frontend_app.principal_id
 
@@ -82,7 +82,7 @@ data "azuread_service_principal" "frontend_managed_identity" {
 }
 
 data "azuread_service_principal" "api_managed_identity" {
-  count = var.enable_registry_auth ? 1 : 0
+  count = var.enable_service_auth ? 1 : 0
 
   object_id = module.api_app.principal_id
 
@@ -90,7 +90,7 @@ data "azuread_service_principal" "api_managed_identity" {
 }
 
 resource "azuread_app_role_assignment" "frontend_to_api" {
-  count = var.enable_registry_auth ? 1 : 0
+  count = var.enable_service_auth ? 1 : 0
 
   principal_object_id = module.frontend_app.principal_id
   resource_object_id  = azuread_service_principal.api_auth[0].object_id
@@ -100,7 +100,7 @@ resource "azuread_app_role_assignment" "frontend_to_api" {
 }
 
 resource "azuread_app_role_assignment" "api_to_agent" {
-  count = var.enable_registry_auth ? 1 : 0
+  count = var.enable_service_auth ? 1 : 0
 
   principal_object_id = module.api_app.principal_id
   resource_object_id  = azuread_service_principal.agent_auth[0].object_id

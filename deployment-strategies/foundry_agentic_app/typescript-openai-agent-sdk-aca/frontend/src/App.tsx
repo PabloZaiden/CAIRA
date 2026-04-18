@@ -35,12 +35,12 @@ export function App() {
 
   const store = useConversationStates(client, { streaming });
 
-  // Clean up all in-flight streams on unmount.
+  // Clean up all in-flight streams when the store changes and on unmount.
   useEffect(() => {
     return () => {
       store.abortAll();
     };
-  }, []);
+  }, [store]);
 
   const {
     messages,

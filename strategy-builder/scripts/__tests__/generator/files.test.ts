@@ -244,9 +244,10 @@ describe('generateComposeFile', () => {
 
   it('includes frontend environment with API_BASE_URL and local auth bypass', () => {
     const content = generateComposeFile(makeFoundryConfig());
+    const frontendSection = content.substring(content.indexOf('  frontend:'), content.indexOf('  api:'));
 
-    expect(content).toContain('API_BASE_URL: http://api:4000');
-    expect(content).toContain('SKIP_AUTH: "true"');
+    expect(frontendSection).toContain('API_BASE_URL: http://api:4000');
+    expect(frontendSection).toContain('SKIP_AUTH: "true"');
   });
 
   it('includes SKIP_AUTH on agent and api but does not include HOST in compose', () => {

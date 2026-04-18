@@ -34,7 +34,6 @@ public class Program
         builder.Services.AddSingleton<IIncomingTokenValidator>(
             config.SkipAuth ? new NoOpIncomingTokenValidator() : new EntraIncomingTokenValidator(config));
         builder.Services.AddHttpClient<AgentHttpClient>();
-        builder.Services.AddSingleton(new System.Diagnostics.ActivitySource("caira-api-csharp"));
 
         var app = builder.Build();
 
