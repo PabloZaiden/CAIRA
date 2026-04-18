@@ -27,8 +27,6 @@
  *   In both cases the same code path is used for conversations and responses.
  */
 
-import type { AzureMonitorOpenTelemetryOptions } from '@azure/monitor-opentelemetry';
-import { useAzureMonitor } from '@azure/monitor-opentelemetry';
 import { context, trace } from '@opentelemetry/api';
 
 import OpenAIClient from 'openai';
@@ -331,13 +329,6 @@ export class FoundryClient {
       this.config.applicationInsightsConnectionString ??
       (await project.telemetry.getApplicationInsightsConnectionString());
 
-    // enable Azure Monitor OpenTelemetry with the connection string from the project client
-    const options: AzureMonitorOpenTelemetryOptions = {
-      azureMonitorExporterOptions: {
-        connectionString: telemetryConnectionString
-      }
-    };
-    useAzureMonitor(options);
     setupTelemetry(telemetryConnectionString, 'caira-agent-foundry');
 
     // getOpenAIClient() returns a standard OpenAI client routed through

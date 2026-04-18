@@ -38,6 +38,7 @@ services:
       - "8080:8080"
     environment:
       API_BASE_URL: http://api:4000
+      SKIP_AUTH: "true"
       APPLICATIONINSIGHTS_CONNECTION_STRING: ${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     depends_on:
       api:
