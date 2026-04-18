@@ -40,6 +40,12 @@ variable "enable_registry_auth" {
   default     = false
 }
 
+variable "enable_service_auth" {
+  type        = bool
+  description = "When true, create the Entra service-to-service auth resources used by the frontend, API, and agent containers."
+  default     = true
+}
+
 variable "agent_image" {
   type        = string
   description = "Container image for the agent app. When empty, the bootstrap image is used."

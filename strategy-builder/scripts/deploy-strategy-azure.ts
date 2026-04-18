@@ -75,6 +75,7 @@ interface DeployVars {
   allowed_cidr: string;
   enable_telemetry: boolean;
   enable_registry_auth: boolean;
+  enable_service_auth: boolean;
   enable_apim_ai_gateway: boolean;
   apim_sku_name: string;
   agent_image: string;
@@ -871,6 +872,7 @@ async function main(): Promise<void> {
     allowed_cidr: allowedCidr,
     enable_telemetry: true,
     enable_registry_auth: false,
+    enable_service_auth: true,
     enable_apim_ai_gateway: parsed.enableApimAiGateway,
     apim_sku_name: parsed.apimSkuName ?? 'Developer_1',
     agent_image: '',

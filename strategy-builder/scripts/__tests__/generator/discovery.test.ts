@@ -56,6 +56,22 @@ function validFrontendManifest(): ComponentManifest {
   };
 }
 
+/** A minimal valid IaC manifest. */
+function validIacManifest(): Record<string, unknown> {
+  return {
+    name: 'iac',
+    type: 'iac',
+    variant: 'azure-container-apps',
+    language: 'hcl',
+    description: 'Test IaC component',
+    requiredEnv: [],
+    optionalEnv: [],
+    contractSpec: 'contracts/backend-api.openapi.yaml',
+    strategySuffix: 'aca',
+    referenceArchitectures: ['foundry_agentic_app']
+  };
+}
+
 // ---------------------------------------------------------------------------
 // validateManifest
 // ---------------------------------------------------------------------------
@@ -77,6 +93,11 @@ describe('validateManifest', () => {
     if (result.ok) {
       expect(result.manifest.variant).toBeUndefined();
     }
+  });
+
+  it('accepts a valid IaC manifest without runtime health metadata', () => {
+    const result = validateManifest(validIacManifest());
+    expect(result.ok).toBe(true);
   });
 
   it('rejects null', () => {
@@ -171,10 +192,10 @@ describe('validateManifest', () => {
   });
 
   it('accepts all valid component types', () => {
-    for (const type of ['agent', 'api', 'frontend', 'iac'] as const) {
-      const result = validateManifest({ ...validAgentManifest(), type });
-      expect(result.ok).toBe(true);
-    }
+    expect(validateManifest({ ...validAgentManifest(), type: 'agent' }).ok).toBe(true);
+    expect(validateManifest({ ...validAgentManifest(), type: 'api' }).ok).toBe(true);
+    expect(validateManifest({ ...validAgentManifest(), type: 'frontend' }).ok).toBe(true);
+    expect(validateManifest(validIacManifest()).ok).toBe(true);
   });
 
   it('accepts variant as undefined (not present)', () => {

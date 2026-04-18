@@ -76,12 +76,12 @@ output "agent_inbound_allowed_audiences" {
 
 output "api_inbound_allowed_caller_app_ids" {
   description = "Caller application IDs accepted by the API for frontend BFF traffic."
-  value       = var.enable_registry_auth ? [data.azuread_service_principal.frontend_managed_identity[0].client_id] : []
+  value       = var.enable_service_auth ? [data.azuread_service_principal.frontend_managed_identity[0].client_id] : []
 }
 
 output "agent_inbound_allowed_caller_app_ids" {
   description = "Caller application IDs accepted by the agent container for API traffic."
-  value       = var.enable_registry_auth ? [data.azuread_service_principal.api_managed_identity[0].client_id] : []
+  value       = var.enable_service_auth ? [data.azuread_service_principal.api_managed_identity[0].client_id] : []
 }
 
 output "agent_internal_fqdn" {

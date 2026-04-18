@@ -55,12 +55,7 @@ public sealed class AgentHttpClient
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
 
-    public AgentHttpClient(HttpClient http, ApiConfig config, ILogger<AgentHttpClient> logger, IAccessTokenProvider accessTokenProvider)
-        : this(http, config, logger, accessTokenProvider, new ActivitySource("caira-api-csharp"))
-    {
-    }
-
-    internal AgentHttpClient(
+    public AgentHttpClient(
         HttpClient http,
         ApiConfig config,
         ILogger<AgentHttpClient> logger,

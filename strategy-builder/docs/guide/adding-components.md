@@ -254,6 +254,10 @@ The manifest format is language-agnostic:
 }
 ```
 
+For runtime components (`agent`, `api`, `frontend`), `port` and
+`healthEndpoint` are required. IaC components can omit those runtime-only
+fields when they do not represent a health-checked service.
+
 ---
 
 ## Adding a new compute target

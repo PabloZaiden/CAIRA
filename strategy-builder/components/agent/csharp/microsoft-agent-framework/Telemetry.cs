@@ -7,6 +7,8 @@ internal static class TelemetryExtensions
 {
     public static void AddCairaTelemetry(this WebApplicationBuilder builder, string serviceName, string? connectionString)
     {
+        builder.Services.AddSingleton(new System.Diagnostics.ActivitySource(serviceName));
+
         if (string.IsNullOrWhiteSpace(connectionString))
         {
             return;
@@ -21,7 +23,5 @@ internal static class TelemetryExtensions
             .WithTracing(tracing => tracing
                 .AddHttpClientInstrumentation()
                 .AddAspNetCoreInstrumentation());
-
-        builder.Services.AddSingleton(new System.Diagnostics.ActivitySource(serviceName));
     }
 }
