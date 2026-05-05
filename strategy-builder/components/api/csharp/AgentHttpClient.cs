@@ -100,7 +100,7 @@ public sealed class AgentHttpClient
         string conversationId, string content, string? traceId = null)
     {
         return RequestAsync<AgentMessage>(
-            HttpMethod.Post, $"/conversations/{conversationId}/messages",
+            HttpMethod.Post, $"/conversations/{Uri.EscapeDataString(conversationId)}/messages",
             new { content }, traceId);
     }
 
@@ -133,8 +133,8 @@ public sealed class AgentHttpClient
         var msgResult = await SendMessageAsync(conversationId, syntheticMessage, traceId);
         if (!msgResult.Ok || msgResult.Data == null)
         {
-            _logger.LogError("startAdventure failed — could not send opening message (traceId={TraceId}, conversationId={ConvId}, error={Error})",
-                traceId, conversationId, msgResult.Error?.Code);
+            _logger.LogError("startAdventure failed — could not send opening message (traceId={TraceId}, error={Error})",
+                traceId, msgResult.Error?.Code);
             return new AgentResult<StartAdventureResult>
             {
                 Ok = false,
@@ -143,8 +143,8 @@ public sealed class AgentHttpClient
             };
         }
 
-        _logger.LogInformation("startAdventure complete (traceId={TraceId}, conversationId={ConvId}, contentLength={Len})",
-            traceId, conversationId, msgResult.Data.Content.Length);
+        _logger.LogInformation("startAdventure complete (traceId={TraceId}, contentLength={Len})",
+            traceId, msgResult.Data.Content.Length);
 
         return new AgentResult<StartAdventureResult>
         {
@@ -162,7 +162,7 @@ public sealed class AgentHttpClient
     public async Task<HttpResponseMessage> SendMessageStreamAsync(
         string conversationId, string content, string? traceId = null, CancellationToken ct = default)
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, $"/conversations/{conversationId}/messages")
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"/conversations/{Uri.EscapeDataString(conversationId)}/messages")
         {
             Content = new StringContent(JsonSerializer.Serialize(new { content }), Encoding.UTF8, "application/json"),
         };
@@ -173,20 +173,20 @@ public sealed class AgentHttpClient
         if (traceId != null)
             request.Headers.TryAddWithoutValidation("x-trace-id", traceId);
 
-        _logger.LogInformation("agent SSE stream request start (traceId={TraceId}, conversationId={ConvId}, contentLength={Len})",
-            traceId, conversationId, content.Length);
+        _logger.LogInformation("agent SSE stream request start (traceId={TraceId}, contentLength={Len})",
+            traceId, content.Length);
 
         var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
 
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogError("agent SSE stream request failed (traceId={TraceId}, conversationId={ConvId}, statusCode={Status})",
-                traceId, conversationId, (int)response.StatusCode);
+            _logger.LogError("agent SSE stream request failed (traceId={TraceId}, statusCode={Status})",
+                traceId, (int)response.StatusCode);
         }
         else
         {
-            _logger.LogInformation("agent SSE stream connected (traceId={TraceId}, conversationId={ConvId}, statusCode={Status})",
-                traceId, conversationId, (int)response.StatusCode);
+            _logger.LogInformation("agent SSE stream connected (traceId={TraceId}, statusCode={Status})",
+                traceId, (int)response.StatusCode);
         }
 
         return response;
@@ -306,8 +306,8 @@ public sealed class AgentHttpClient
     {
         if (IsCircuitOpen())
         {
-            _logger.LogError("agent request rejected — circuit breaker open (traceId={TraceId}, method={Method}, path={Path})",
-                traceId, method, path);
+            _logger.LogError("agent request rejected — circuit breaker open (traceId={TraceId}, method={Method})",
+                traceId, method);
             return new AgentResult<T>
             {
                 Ok = false,
@@ -326,7 +326,7 @@ public sealed class AgentHttpClient
                 using var activity = _activitySource.StartActivity("api.agent.request");
                 activity?.SetTag("http.method", method.Method);
                 activity?.SetTag("http.route", path);
-                var request = new HttpRequestMessage(method, path);
+                using var request = new HttpRequestMessage(method, path);
                 if (body != null)
                 {
                     request.Content = new StringContent(
@@ -339,11 +339,11 @@ public sealed class AgentHttpClient
 
                 if (attempt == 0)
                 {
-                    _logger.LogInformation("agent request start (traceId={TraceId}, method={Method}, path={Path})",
-                        traceId, method, path);
+                    _logger.LogInformation("agent request start (traceId={TraceId}, method={Method})",
+                        traceId, method);
                 }
 
-                var response = await _http.SendAsync(request);
+                using var response = await _http.SendAsync(request);
                 var durationMs = (int)(DateTimeOffset.UtcNow - start).TotalMilliseconds;
                 var statusCode = (int)response.StatusCode;
 
@@ -351,8 +351,8 @@ public sealed class AgentHttpClient
                 {
                     RecordSuccess();
                     var data = await response.Content.ReadFromJsonAsync<T>(JsonOptions);
-                    _logger.LogInformation("agent request complete (traceId={TraceId}, method={Method}, path={Path}, statusCode={Status}, durationMs={Duration})",
-                        traceId, method, path, statusCode, durationMs);
+                    _logger.LogInformation("agent request complete (traceId={TraceId}, method={Method}, statusCode={Status}, durationMs={Duration})",
+                        traceId, method, statusCode, durationMs);
                     return new AgentResult<T> { Ok = true, Status = statusCode, Data = data };
                 }
 
@@ -381,8 +381,8 @@ public sealed class AgentHttpClient
                 // Retry on retryable statuses
                 if (IsRetryableStatus(statusCode) && attempt < MaxRetries)
                 {
-                    _logger.LogWarning("agent request retrying (traceId={TraceId}, method={Method}, path={Path}, statusCode={Status}, attempt={Attempt})",
-                        traceId, method, path, statusCode, attempt + 1);
+                    _logger.LogWarning("agent request retrying (traceId={TraceId}, method={Method}, statusCode={Status}, attempt={Attempt})",
+                        traceId, method, statusCode, attempt + 1);
 
                     if (statusCode == 429)
                     {
@@ -408,8 +408,8 @@ public sealed class AgentHttpClient
                     RecordFailure();
                 }
 
-                _logger.LogError("agent request failed (traceId={TraceId}, method={Method}, path={Path}, statusCode={Status}, durationMs={Duration}, errorCode={Error})",
-                    traceId, method, path, statusCode, durationMs, errorInfo?.Code);
+                _logger.LogError("agent request failed (traceId={TraceId}, method={Method}, statusCode={Status}, durationMs={Duration}, errorCode={Error})",
+                    traceId, method, statusCode, durationMs, errorInfo?.Code);
                 return new AgentResult<T> { Ok = false, Status = statusCode, Error = errorInfo };
             }
             catch (Exception ex)
@@ -420,8 +420,8 @@ public sealed class AgentHttpClient
 
                 if (attempt < MaxRetries)
                 {
-                    _logger.LogWarning("agent request network error — retrying (traceId={TraceId}, method={Method}, path={Path}, attempt={Attempt}, error={Error})",
-                        traceId, method, path, attempt + 1, message);
+                    _logger.LogWarning("agent request network error — retrying (traceId={TraceId}, method={Method}, attempt={Attempt}, error={Error})",
+                        traceId, method, attempt + 1, message);
                     await Task.Delay(ComputeDelay(attempt));
                     lastError = new AgentResult<T>
                     {
@@ -432,8 +432,8 @@ public sealed class AgentHttpClient
                     continue;
                 }
 
-                _logger.LogError("agent request failed — network error (traceId={TraceId}, method={Method}, path={Path}, durationMs={Duration}, error={Error})",
-                    traceId, method, path, durationMs, message);
+                _logger.LogError("agent request failed — network error (traceId={TraceId}, method={Method}, durationMs={Duration}, error={Error})",
+                    traceId, method, durationMs, message);
                 return new AgentResult<T>
                 {
                     Ok = false,

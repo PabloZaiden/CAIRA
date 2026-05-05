@@ -19,7 +19,7 @@
 
 import { execFile, type ChildProcess, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
-import { existsSync, readdirSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync, unlinkSync } from 'node:fs';
 import { hostname, platform, tmpdir } from 'node:os';
 import { resolve, relative, basename } from 'node:path';
 import { runComposeTests } from './compose-test-runner.ts';
@@ -1506,8 +1506,10 @@ async function runL4(): Promise<LayerResult> {
 
       const envEntries = Object.entries(target.env);
       let envFilePath: string | undefined;
+      let envFileDir: string | undefined;
       if (envEntries.length > 0) {
-        envFilePath = resolve(tmpdir(), `caira-l4-${basename(target.name)}-${Date.now()}.env`);
+        envFileDir = mkdtempSync(resolve(tmpdir(), `caira-l4-${basename(target.name)}-`));
+        envFilePath = resolve(envFileDir, 'container.env');
         const envContent = envEntries.map(([k, v]) => `${k}=${v}`).join('\n');
         writeFileSync(envFilePath, envContent);
         args.push('--env-file', envFilePath);
@@ -1519,6 +1521,7 @@ async function runL4(): Promise<LayerResult> {
       if (envFilePath) {
         try {
           unlinkSync(envFilePath);
+          if (envFileDir) rmSync(envFileDir, { recursive: true, force: true });
         } catch {
           // Best effort
         }

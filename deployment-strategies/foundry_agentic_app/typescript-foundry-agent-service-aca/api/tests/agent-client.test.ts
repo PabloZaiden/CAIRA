@@ -29,12 +29,14 @@ function readAuthorizationHeader(headers: Record<string, string | string[] | und
 beforeAll(async () => {
   mockServer = Fastify({ logger: false });
 
+  // lgtm[js/missing-rate-limiting] This loopback-only Fastify server is a unit-test fixture.
   // Health endpoint
   mockServer.get('/health', async (req, reply) => {
     lastAuthorizationHeader = readAuthorizationHeader(req.headers);
     await reply.send({ status: 'healthy', checks: [{ name: 'test', status: 'healthy' }] });
   });
 
+  // lgtm[js/missing-rate-limiting] This loopback-only Fastify server is a unit-test fixture.
   // Create conversation
   mockServer.post('/conversations', async (req, reply) => {
     lastAuthorizationHeader = readAuthorizationHeader(req.headers);
@@ -52,6 +54,7 @@ beforeAll(async () => {
     });
   });
 
+  // lgtm[js/missing-rate-limiting] This loopback-only Fastify server is a unit-test fixture.
   // List conversations
   mockServer.get('/conversations', async (req, reply) => {
     lastAuthorizationHeader = readAuthorizationHeader(req.headers);
@@ -72,6 +75,7 @@ beforeAll(async () => {
     });
   });
 
+  // lgtm[js/missing-rate-limiting] This loopback-only Fastify server is a unit-test fixture.
   // Get conversation detail
   mockServer.get('/conversations/:id', async (req, reply) => {
     lastAuthorizationHeader = readAuthorizationHeader(req.headers);
@@ -97,6 +101,7 @@ beforeAll(async () => {
     });
   });
 
+  // lgtm[js/missing-rate-limiting] This loopback-only Fastify server is a unit-test fixture.
   // Send message (JSON)
   mockServer.post('/conversations/:id/messages', async (req, reply) => {
     lastAuthorizationHeader = readAuthorizationHeader(req.headers);

@@ -29,6 +29,14 @@ export interface WaitForHealthyResult {
   lastError?: string | undefined;
 }
 
+function stripTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value.charCodeAt(end - 1) === 47) {
+    end--;
+  }
+  return value.slice(0, end);
+}
+
 /**
  * Poll a service's health endpoint until it returns 200 or timeout is reached.
  */
@@ -43,7 +51,7 @@ export async function waitForHealthy(options: WaitForHealthyOptions): Promise<Wa
     signal
   } = options;
 
-  const healthUrl = `${url.replace(/\/+$/, '')}${path}`;
+  const healthUrl = `${stripTrailingSlashes(url)}${path}`;
   const start = Date.now();
   let attempts = 0;
   let delay = initialDelayMs;

@@ -145,8 +145,8 @@ public static class Routes
                 return Results.Json(new ErrorResponse("bad_request", "Missing required field: message"), statusCode: 400);
             }
 
-            logger.LogInformation("parley request (traceId={TraceId}, adventureId={AdventureId}, mode={Mode})",
-                traceId, adventureId, wantsStream ? "stream" : "json");
+            logger.LogInformation("parley request (traceId={TraceId}, mode={Mode})",
+                traceId, wantsStream ? "stream" : "json");
 
             if (wantsStream)
             {
@@ -177,13 +177,13 @@ public static class Routes
                             }
                         }
 
-                        logger.LogInformation("parley SSE complete (traceId={TraceId}, adventureId={AdventureId}, resolved={Resolved})",
-                            traceId, adventureId, outcome != null);
+                        logger.LogInformation("parley SSE complete (traceId={TraceId}, resolved={Resolved})",
+                            traceId, outcome != null);
                     }
                     catch (Exception ex)
                     {
-                        logger.LogError(ex, "parley SSE failed — connection error (traceId={TraceId}, adventureId={AdventureId})",
-                            traceId, adventureId);
+                        logger.LogError(ex, "parley SSE failed — connection error (traceId={TraceId})",
+                            traceId);
                         var errorJson = JsonSerializer.Serialize(new ErrorResponse("agent_unreachable", "Failed to connect to agent container for streaming"));
                         await stream.WriteAsync(Encoding.UTF8.GetBytes($"event: error\ndata: {errorJson}\n\n"));
                     }
@@ -383,7 +383,7 @@ public static class Routes
                         var data = JsonSerializer.Deserialize<AdventureOutcome>(line[6..]);
                         if (data != null) captured = data;
                     }
-                    catch
+                    catch (JsonException)
                     {
                         // Malformed JSON — skip
                     }

@@ -27,6 +27,7 @@ beforeAll(async () => {
 
   apiMock = Fastify({ logger: false });
 
+  // lgtm[js/missing-rate-limiting] This loopback-only Fastify server is a unit-test fixture.
   apiMock.get('/api/activities/adventures', async (request, reply) => {
     lastAuthorizationHeader = readAuthorizationHeader(request.headers['authorization']);
     if (lastAuthorizationHeader !== 'Bearer test-api-token' && lastAuthorizationHeader !== undefined) {
@@ -45,6 +46,7 @@ beforeAll(async () => {
     });
   });
 
+  // lgtm[js/missing-rate-limiting] This loopback-only Fastify server is a unit-test fixture.
   apiMock.get('/health/deep', async (request, reply) => {
     lastAuthorizationHeader = readAuthorizationHeader(request.headers['authorization']);
     if (lastAuthorizationHeader !== 'Bearer test-api-token' && lastAuthorizationHeader !== undefined) {
