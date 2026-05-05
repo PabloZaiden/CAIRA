@@ -16,10 +16,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@fastify/http-proxy": "^11",
-    "@fastify/static": "^8",
     "@azure/identity": "^4",
     "@azure/monitor-opentelemetry": "^1.15.1",
+    "@fastify/http-proxy": "^11",
+    "@fastify/static": "^9.1.3",
     "@opentelemetry/api": "^1.9.0",
     "fastify": "^5",
     "react": "^19",
