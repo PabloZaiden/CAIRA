@@ -33,6 +33,8 @@ import {
 } from './store.ts';
 import type { CreateResponseRequest, PromptAgentDefinition } from './types.ts';
 
+const MAX_MOCK_LATENCY_MS = 5_000;
+
 // ---------- Auth middleware ----------
 
 function checkAuth(req: FastifyRequest, reply: FastifyReply): boolean {
@@ -58,7 +60,7 @@ async function applyMockControls(req: FastifyRequest, reply: FastifyReply): Prom
   if (latency) {
     const ms = parseInt(String(latency), 10);
     if (!isNaN(ms) && ms > 0) {
-      await new Promise((resolve) => setTimeout(resolve, ms));
+      await new Promise((resolve) => setTimeout(resolve, Math.min(ms, MAX_MOCK_LATENCY_MS)));
     }
   }
 
@@ -82,6 +84,7 @@ async function applyMockControls(req: FastifyRequest, reply: FastifyReply): Prom
 // ---------- Responses API handler (shared by both prefixes) ----------
 
 async function handleCreateResponse(req: FastifyRequest, reply: FastifyReply): Promise<void> {
+  // lgtm[js/missing-rate-limiting] This is a local-only test mock; production services define their own controls.
   if (!checkAuth(req, reply)) return;
   if (await applyMockControls(req, reply)) return;
 
@@ -133,6 +136,7 @@ async function handleCreateResponse(req: FastifyRequest, reply: FastifyReply): P
 }
 
 async function handleGetResponse(req: FastifyRequest, reply: FastifyReply): Promise<void> {
+  // lgtm[js/missing-rate-limiting] This is a local-only test mock; production services define their own controls.
   if (!checkAuth(req, reply)) return;
   if (await applyMockControls(req, reply)) return;
 
@@ -148,6 +152,7 @@ async function handleGetResponse(req: FastifyRequest, reply: FastifyReply): Prom
 }
 
 async function handleDeleteResponse(req: FastifyRequest, reply: FastifyReply): Promise<void> {
+  // lgtm[js/missing-rate-limiting] This is a local-only test mock; production services define their own controls.
   if (!checkAuth(req, reply)) return;
   if (await applyMockControls(req, reply)) return;
 
@@ -165,6 +170,7 @@ async function handleDeleteResponse(req: FastifyRequest, reply: FastifyReply): P
 // ---------- Conversations API handlers ----------
 
 async function handleCreateConversation(req: FastifyRequest, reply: FastifyReply): Promise<void> {
+  // lgtm[js/missing-rate-limiting] This is a local-only test mock; production services define their own controls.
   if (!checkAuth(req, reply)) return;
   if (await applyMockControls(req, reply)) return;
 
@@ -176,6 +182,7 @@ async function handleCreateConversation(req: FastifyRequest, reply: FastifyReply
 }
 
 async function handleGetConversation(req: FastifyRequest, reply: FastifyReply): Promise<void> {
+  // lgtm[js/missing-rate-limiting] This is a local-only test mock; production services define their own controls.
   if (!checkAuth(req, reply)) return;
   if (await applyMockControls(req, reply)) return;
 
@@ -191,6 +198,7 @@ async function handleGetConversation(req: FastifyRequest, reply: FastifyReply): 
 }
 
 async function handleDeleteConversation(req: FastifyRequest, reply: FastifyReply): Promise<void> {
+  // lgtm[js/missing-rate-limiting] This is a local-only test mock; production services define their own controls.
   if (!checkAuth(req, reply)) return;
   if (await applyMockControls(req, reply)) return;
 
@@ -219,6 +227,7 @@ export function registerRoutes(app: FastifyInstance): void {
 
   // ---- POST /agents/:name — create agent ----
   app.post('/agents/:name', async (req, reply) => {
+    // lgtm[js/missing-rate-limiting] This is a local-only test mock; production services define their own controls.
     if (!checkAuth(req, reply)) return;
     if (await applyMockControls(req, reply)) return;
 
@@ -238,6 +247,7 @@ export function registerRoutes(app: FastifyInstance): void {
 
   // ---- PATCH /agents/:name — update agent ----
   app.patch('/agents/:name', async (req, reply) => {
+    // lgtm[js/missing-rate-limiting] This is a local-only test mock; production services define their own controls.
     if (!checkAuth(req, reply)) return;
     if (await applyMockControls(req, reply)) return;
 
@@ -263,6 +273,7 @@ export function registerRoutes(app: FastifyInstance): void {
 
   // ---- GET /agents/:name — get agent ----
   app.get('/agents/:name', async (req, reply) => {
+    // lgtm[js/missing-rate-limiting] This is a local-only test mock; production services define their own controls.
     if (!checkAuth(req, reply)) return;
     if (await applyMockControls(req, reply)) return;
 
@@ -279,6 +290,7 @@ export function registerRoutes(app: FastifyInstance): void {
 
   // ---- DELETE /agents/:name — delete agent ----
   app.delete('/agents/:name', async (req, reply) => {
+    // lgtm[js/missing-rate-limiting] This is a local-only test mock; production services define their own controls.
     if (!checkAuth(req, reply)) return;
     if (await applyMockControls(req, reply)) return;
 
@@ -295,6 +307,7 @@ export function registerRoutes(app: FastifyInstance): void {
 
   // ---- GET /agents — list agents ----
   app.get('/agents', async (req, reply) => {
+    // lgtm[js/missing-rate-limiting] This is a local-only test mock; production services define their own controls.
     if (!checkAuth(req, reply)) return;
     if (await applyMockControls(req, reply)) return;
 

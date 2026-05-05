@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
-import { mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { validateManifest, discoverComponents } from '../../lib/generator/discovery.ts';
@@ -219,8 +219,7 @@ describe('discoverComponents', () => {
   let tempDir: string;
 
   beforeEach(async () => {
-    tempDir = join(tmpdir(), `caira-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-    await mkdir(tempDir, { recursive: true });
+    tempDir = await mkdtemp(join(tmpdir(), 'caira-test-'));
   });
 
   afterEach(async () => {

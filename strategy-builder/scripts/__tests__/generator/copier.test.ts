@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
-import { mkdir, writeFile, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, writeFile, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import {
@@ -17,8 +17,7 @@ import {
 let tempDir: string;
 
 beforeEach(async () => {
-  tempDir = join(tmpdir(), `caira-copier-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  await mkdir(tempDir, { recursive: true });
+  tempDir = await mkdtemp(join(tmpdir(), 'caira-copier-'));
 });
 
 afterEach(async () => {

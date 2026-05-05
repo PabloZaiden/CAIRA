@@ -118,12 +118,20 @@ export interface ApiResponse<T> {
   body: T;
 }
 
+function stripTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value.charCodeAt(end - 1) === 47) {
+    end--;
+  }
+  return value.slice(0, end);
+}
+
 export class ApiClient {
   readonly baseUrl: string;
   readonly timeoutMs: number;
 
   constructor(options?: ApiClientOptions) {
-    this.baseUrl = (options?.baseUrl ?? process.env['E2E_BASE_URL'] ?? 'http://localhost:4000').replace(/\/+$/, '');
+    this.baseUrl = stripTrailingSlashes(options?.baseUrl ?? process.env['E2E_BASE_URL'] ?? 'http://localhost:4000');
     this.timeoutMs = options?.timeoutMs ?? 10_000;
   }
 

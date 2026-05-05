@@ -104,21 +104,6 @@ public static class AgentSetup
         var sharedInstructions = config.SharedInstructions.Trim();
         string Compose(string specialistInstructions) => $"{sharedInstructions}\n\n{specialistInstructions}".Trim();
 
-        var discoveryAgent = responsesClient.AsAIAgent(
-            instructions: Compose(config.DiscoveryInstructions),
-            name: "DiscoverySpecialist",
-            description: "Opportunity discovery specialist for the fictional sales/account-team sample.");
-
-        var planningAgent = responsesClient.AsAIAgent(
-            instructions: Compose(config.PlanningInstructions),
-            name: "PlanningSpecialist",
-            description: "Account planning specialist for the fictional sales/account-team sample.");
-
-        var staffingAgent = responsesClient.AsAIAgent(
-            instructions: Compose(config.StaffingInstructions),
-            name: "StaffingSpecialist",
-            description: "Account-team staffing specialist for the fictional sales/account-team sample.");
-
         var discoveryKnowledge = AIFunctionFactory.Create(
             ([Description("What discovery signal, qualification detail, or customer need is needed")] string query) =>
                 System.Text.Json.JsonSerializer.Serialize(new { items = KnowledgeBase.LookupDiscovery(query) }),
@@ -144,7 +129,7 @@ public static class AgentSetup
                 [Description("The single most important customer need or buying signal")] string primary_need
             ) =>
             {
-                logger.LogInformation("Discovery flow resolved: {Fit} after {SignalsReviewed} signals", fit, signals_reviewed);
+                logger.LogInformation("Discovery flow resolved after {SignalsReviewed} signals", signals_reviewed);
                 return $"Discovery flow resolved: {fit} after {signals_reviewed} signals.";
             },
             "resolve_discovery",
@@ -158,7 +143,7 @@ public static class AgentSetup
             ) =>
             {
                 var outcome = approved ? "Advance" : "Hold";
-                logger.LogInformation("Account plan resolved: {Outcome} \"{FocusArea}\" with next step {NextStep}", outcome, focus_area, next_step);
+                logger.LogInformation("Account plan resolved: {Outcome}", outcome);
                 return $"Account plan resolved: {outcome} \"{focus_area}\" with next step {next_step}.";
             },
             "resolve_planning",
@@ -171,7 +156,7 @@ public static class AgentSetup
                 [Description("The fictional account team name")] string team_name
             ) =>
             {
-                logger.LogInformation("Staffing flow resolved: {CoverageLevel} {Role} on {TeamName}", coverage_level, role, team_name);
+                logger.LogInformation("Staffing flow resolved");
                 return $"Staffing flow resolved: {coverage_level} {role} on {team_name}.";
             },
             "resolve_staffing",

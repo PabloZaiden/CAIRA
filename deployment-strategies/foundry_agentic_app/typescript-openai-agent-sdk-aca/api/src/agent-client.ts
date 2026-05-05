@@ -96,6 +96,34 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function normalizeAgentBaseUrl(baseUrl: string): string {
+  const parsed = new URL(baseUrl);
+
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error('Agent service URL must use http or https');
+  }
+
+  parsed.pathname = stripTrailingSlashes(parsed.pathname);
+  parsed.search = '';
+  parsed.hash = '';
+  return stripTrailingSlashes(parsed.toString());
+}
+
+function buildAgentUrl(baseUrl: string, path: string): string {
+  const parsed = new URL(baseUrl);
+  const basePath = stripTrailingSlashes(parsed.pathname);
+  parsed.pathname = `${basePath}${path}`;
+  return parsed.toString();
+}
+
+function stripTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value.charCodeAt(end - 1) === 47) {
+    end--;
+  }
+  return value.slice(0, end);
+}
+
 /**
  * Map agent status codes to frontend-appropriate codes per INTER-SERVICE.md.
  */
@@ -132,7 +160,7 @@ export class AgentClient {
   };
 
   constructor(options: AgentClientOptions) {
-    this.baseUrl = options.baseUrl.replace(/\/+$/, '');
+    this.baseUrl = normalizeAgentBaseUrl(options.baseUrl);
     this.tokenScope = options.tokenScope;
     this.skipAuth = options.skipAuth ?? false;
     this.getTokenFn = options.getToken;
@@ -253,7 +281,7 @@ export class AgentClient {
       headers['x-trace-id'] = traceId;
     }
 
-    const url = `${this.baseUrl}/conversations/${conversationId}/messages`;
+    const url = buildAgentUrl(this.baseUrl, `/conversations/${encodeURIComponent(conversationId)}/messages`);
     const init: RequestInit = {
       method: 'POST',
       headers,

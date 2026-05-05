@@ -44,6 +44,7 @@
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.AI;
 using System.Diagnostics;
+using System.Text;
 
 namespace CairaAgent;
 
@@ -93,9 +94,7 @@ public class WorkflowRunner
             return;
         }
 
-        _logger.LogInformation(
-            "sendMessageStream started (conversationId={ConversationId})",
-            conversationId);
+        _logger.LogInformation("sendMessageStream started");
 
         // Record user message
         var userMsg = new Message(
@@ -103,7 +102,7 @@ public class WorkflowRunner
             "user", content, DateTimeOffset.UtcNow.ToString("o"));
         _store.AddMessage(record, userMsg);
 
-        var fullContent = "";
+        var fullContent = new StringBuilder();
         TokenUsage? usage = null;
         CapturedResolution? resolution = null;
         var specialistTool = ResolveSpecialistTool(record.Metadata);
@@ -152,7 +151,7 @@ public class WorkflowRunner
                         var delta = updateEvt.Update?.Text;
                         if (delta is { Length: > 0 })
                         {
-                            fullContent += delta;
+                            fullContent.Append(delta);
                             await onChunk(SseFormatter.Format("message.delta",
                                 new SseDeltaEvent(delta)));
                         }
@@ -206,9 +205,7 @@ public class WorkflowRunner
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex,
-                "sendMessageStream error (conversationId={ConversationId})",
-                conversationId);
+            _logger.LogError(ex, "sendMessageStream error");
             await onChunk(SseFormatter.Format("error",
                 new SseErrorEvent("agent_error", ex.Message)));
             return;
@@ -218,8 +215,9 @@ public class WorkflowRunner
 
         // Emit message.complete SSE event
         var messageId = ConversationStore.NewMessageId("asst");
+        var completedContent = fullContent.ToString();
         await onChunk(SseFormatter.Format("message.complete",
-            new SseCompleteEvent(messageId, fullContent, usage)));
+            new SseCompleteEvent(messageId, completedContent, usage)));
 
         // Emit activity.resolved if resolution was captured
         ActivityResolution? activityResolution = null;
@@ -232,14 +230,13 @@ public class WorkflowRunner
 
         // Record assistant message
         var assistantMsg = new Message(
-            messageId, "assistant", fullContent,
+            messageId, "assistant", completedContent,
             DateTimeOffset.UtcNow.ToString("o"), usage, activityResolution);
         _store.AddMessage(record, assistantMsg);
 
         _logger.LogInformation(
-            "sendMessageStream completed (conversationId={ConversationId}, " +
-            "responseLength={Length}, hasResolution={HasResolution})",
-            conversationId, fullContent.Length, resolution != null);
+            "sendMessageStream completed (responseLength={Length}, hasResolution={HasResolution})",
+            fullContent.Length, resolution != null);
     }
 
     // ---------------------------------------------------------------------------
@@ -261,9 +258,7 @@ public class WorkflowRunner
         var record = _store.GetRecord(conversationId);
         if (record == null) return null;
 
-        _logger.LogInformation(
-            "sendMessage started (conversationId={ConversationId}, contentLength={Length})",
-            conversationId, content.Length);
+        _logger.LogInformation("sendMessage started (contentLength={Length})", content.Length);
 
         // Record user message
         var userMsg = new Message(
@@ -271,7 +266,7 @@ public class WorkflowRunner
             "user", content, DateTimeOffset.UtcNow.ToString("o"));
         _store.AddMessage(record, userMsg);
 
-        var fullContent = "";
+        var fullContent = new StringBuilder();
         TokenUsage? usage = null;
         CapturedResolution? resolution = null;
         var workflow = ResolveWorkflow(record.Metadata);
@@ -304,7 +299,7 @@ public class WorkflowRunner
                     {
                         var delta = updateEvt.Update?.Text;
                         if (delta is { Length: > 0 })
-                            fullContent += delta;
+                            fullContent.Append(delta);
 
                         // Resolution detection
                         if (updateEvt.Update?.Contents != null)
@@ -342,9 +337,7 @@ public class WorkflowRunner
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex,
-                "sendMessage error (conversationId={ConversationId})",
-                conversationId);
+            _logger.LogError(ex, "sendMessage error");
             throw;
         }
 
@@ -355,14 +348,13 @@ public class WorkflowRunner
 
         var assistantMsg = new Message(
             ConversationStore.NewMessageId("asst"),
-            "assistant", fullContent,
+            "assistant", fullContent.ToString(),
             DateTimeOffset.UtcNow.ToString("o"), usage, activityResolution);
         _store.AddMessage(record, assistantMsg);
 
         _logger.LogInformation(
-            "sendMessage completed (conversationId={ConversationId}, " +
-            "responseLength={Length}, hasResolution={HasResolution})",
-            conversationId, fullContent.Length, resolution != null);
+            "sendMessage completed (responseLength={Length}, hasResolution={HasResolution})",
+            fullContent.Length, resolution != null);
 
         return assistantMsg;
     }
