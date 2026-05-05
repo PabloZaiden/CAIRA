@@ -31,10 +31,16 @@ jobs:
           - language: javascript-typescript
             build-mode: none
           - language: csharp
-            build-mode: autobuild
+            build-mode: manual
     steps:
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Setup .NET
+        if: ${{ matrix.language == 'csharp' }}
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: "10.0.x"
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@9e907b5e64f6b83e7804b09294d44122997950d6 # v4.32.3
@@ -43,9 +49,22 @@ jobs:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
 
-      - name: Autobuild
-        if: ${{ matrix.build-mode == 'autobuild' }}
-        uses: github/codeql-action/autobuild@9e907b5e64f6b83e7804b09294d44122997950d6 # v4.32.3
+      - name: Build C# projects
+        if: ${{ matrix.language == 'csharp' }}
+        run: |
+          set -euo pipefail
+
+          projects=(
+            "strategy-builder/components/agent/csharp/microsoft-agent-framework/CairaAgent.csproj"
+            "strategy-builder/components/api/csharp/CairaApi.csproj"
+            "deployment-strategies/foundry_agentic_app/csharp-microsoft-agent-framework-aca/agent/CairaAgent.csproj"
+            "deployment-strategies/foundry_agentic_app/csharp-microsoft-agent-framework-aca/api/CairaApi.csproj"
+          )
+
+          for project in "${projects[@]}"; do
+            dotnet restore "${project}"
+            dotnet build "${project}" --configuration Release --no-restore
+          done
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@9e907b5e64f6b83e7804b09294d44122997950d6 # v4.32.3
