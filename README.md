@@ -53,8 +53,6 @@ After installation, restart your agent session and ask it to inspect CAIRA for y
 - `deployment-strategies/` — generated, committed end-to-end deployments built from the strategy builder.
 - `docs/` and `skills/` — contributor guidance, operating docs, and discovery assets.
 
-CAIRA is not Terraform-only and not infrastructure-only. The repository intentionally spans macro reference-architecture infra, application infra, application components, and the generation of supported end-to-end deployment combinations.
-
 ## Primary entrypoint: CAIRA skill
 
 1. Install the CAIRA skill with `bunx skills add github.com/microsoft/CAIRA/skills` or `npx skills add github.com/microsoft/CAIRA/skills`.
