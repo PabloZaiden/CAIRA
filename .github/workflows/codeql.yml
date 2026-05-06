@@ -27,10 +27,13 @@ jobs:
       matrix:
         include:
           - language: actions
+            category: actions
             build-mode: none
           - language: javascript-typescript
+            category: javascript
             build-mode: none
           - language: csharp
+            category: csharp
             build-mode: manual
     steps:
       - name: Checkout
@@ -69,5 +72,5 @@ jobs:
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@9e907b5e64f6b83e7804b09294d44122997950d6 # v4.32.3
         with:
-          category: "/language:${{ matrix.language }}"
+          category: "/language:${{ matrix.category }}"
           upload: ${{ github.event_name == 'merge_group' && 'never' || 'always' }}
