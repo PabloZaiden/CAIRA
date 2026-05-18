@@ -4,7 +4,7 @@ This open source project is provided "as-is" without official formal support fro
 
 ## Scope
 
-This SLO applies to [Issues](https://github.com/microsoft/CAIRA/issues) raised in the public [GitHub repository](https://github.com/microsoft/caira).
+This SLO applies to [Issues](https://github.com/microsoft/CAIRA/issues) raised in the public [GitHub repository](https://github.com/microsoft/CAIRA).
 
 ### Response Times
 

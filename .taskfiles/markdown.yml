@@ -48,7 +48,30 @@ tasks:
   lint:
     desc: Lint Markdown files
     cmds:
-      - markdownlint-cli2 "./**/*.md" --config "./.github/linters/.markdownlint-cli2.yaml" --fix
-      - markdown-table-formatter "./**/*.md"
-      - markdown-table-formatter "./.*/**/*.md" # without this, hidden directories are skipped
+      - cmd: |
+          python3 <<'PY'
+          import os
+          import subprocess
+          import sys
+
+          root = os.getcwd()
+          skip_dirs = {'.git', 'node_modules', '.terraform', '.venv', '.dev', 'dist', 'coverage', 'site'}
+          files = []
+
+          for base, dirs, filenames in os.walk(root):
+              dirs[:] = [directory for directory in dirs if directory not in skip_dirs]
+              for name in filenames:
+                  if name.endswith('.md'):
+                      files.append(os.path.relpath(os.path.join(base, name), root))
+
+          files.sort()
+          if not files:
+              sys.exit(0)
+
+          subprocess.run(
+              ['markdownlint-cli2', '--config', './.github/linters/.markdownlint-cli2.yaml', *files],
+              check=True
+          )
+          subprocess.run(['markdown-table-formatter', '--check', *files], check=True)
+          PY
     dir: "{{.ROOT_DIR}}"

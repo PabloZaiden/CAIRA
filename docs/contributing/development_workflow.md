@@ -17,6 +17,8 @@ keywords:
 
 # Development Workflow
 
+This guide is for contributors changing CAIRA itself. If you want CAIRA as a starting point for your own solution, install the CAIRA skill and let your coding agent use this repository as reference material instead.
+
 This guide outlines the development process for contributing to CAIRA, including branch management, commit conventions, and development best practices.
 
 ## Prerequisites
@@ -116,20 +118,25 @@ Follow our coding standards:
 ### Running Tests and Linting
 
 ```shell
-# Run all linting checks
-task lint
+# Fast pull-request validation
+task validate:pr
 
-# Run specific linters
-task tf:lint
-task md:lint
-
-# Run tests
+# Full local validation
 task test
 
-# Run specific test
-task test:acc:all
-task test:int:all
+# Targeted deeper checks
+task strategy:test:local
+task validate:nightly -- deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca
 ```
+
+Use the [Developer Guide](../developer.md) to choose the right sequence for the
+change you made. Infrastructure changes, shared baseline changes, generator
+changes, workflow edits, docs-only updates, and private networking or
+capability-host validation do not all require the same depth.
+
+If you are adding or changing components, variants, templates, or deployment
+strategies, use [Extending CAIRA](extending_caira.md) for the end-to-end
+workflow and validation ladder.
 
 ## Commit Guidelines
 
@@ -211,8 +218,8 @@ to be updated.
 Run the complete test suite:
 
 ```shell
-# Lint all code
-task lint
+# Run the same fast validation used by pull requests
+task validate:pr
 ```
 
 ### Testing Requirements
@@ -318,13 +325,13 @@ git push --force-with-lease origin my-branch-name
 
 ```shell
 # Create module directory
-mkdir -p modules/azure-new-service
+mkdir -p strategy-builder/infra/modules/azure-new-service
 
 # Create required files
-touch modules/azure-new-service/{main.tf,variables.tf,outputs.tf,versions.tf,README.md}
+touch strategy-builder/infra/modules/azure-new-service/{main.tf,variables.tf,outputs.tf,versions.tf,README.md}
 
 # Create examples directory
-mkdir -p modules/azure-new-service/examples/basic
+mkdir -p strategy-builder/infra/modules/azure-new-service/examples/basic
 
 # Follow our module template
 ```

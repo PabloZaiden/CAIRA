@@ -13,6 +13,8 @@ keywords:
 
 # Contributing Considerations
 
+This guide is for contributors working on CAIRA itself. Most users should start with the CAIRA skill and let their coding agent treat this repository as reference material.
+
 When contributing please consider the following decisions, recommendations, and/or guidelines.
 
 ## AVM usage (Azure Verified Modules)

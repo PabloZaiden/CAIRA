@@ -15,4 +15,4 @@ misconfiguration:
     - terraform
     - terraformplan-json
     - terraformplan-snapshot
-ignorefile: .trivyignore.yml
+ignorefile: .github/linters/.trivyignore.yml

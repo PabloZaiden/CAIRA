@@ -1,0 +1,27 @@
+{
+  "name": "caira-azcred-typescript",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "CAIRA az credential sidecar — serves Azure CLI tokens to containers via HTTP",
+  "scripts": {
+    "start": "node src/server.ts",
+    "dev": "node --watch src/server.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@azure/identity": "^4",
+    "fastify": "^5"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "vitest": "^3"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  }
+}

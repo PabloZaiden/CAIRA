@@ -18,6 +18,8 @@ keywords:
 
 # Linters
 
+This guide is for contributors validating changes to the CAIRA repository. If you are using CAIRA through the skill, let the agent inspect these commands as reference material instead of treating this page as the primary entrypoint.
+
 - [GitHub Actions](#github-actions)
 - [Markdown](#markdown)
 - [Terraform](#terraform)
@@ -60,7 +62,7 @@ task tf:lint
 
 ## Spelling
 
-[Lychee](https://github.com/lycheeverse/lychee) is used to check for broken links and [cspell](https://cspell.org/) for spelling in markdown files. This repository defaults to US English. If your documentation introduces a word that fails the spelling validation, add it to the [.cspell.yml file](https://github.com/microsoft/CAIRA/blob/main/.cspell.yml)
+[Lychee](https://github.com/lycheeverse/lychee) is used to check for broken links and [cspell](https://cspell.org/) for spelling in markdown files. This repository defaults to US English. If your documentation introduces a word that fails the spelling validation, add it to the [.github/linters/.cspell.yml file](https://github.com/microsoft/CAIRA/blob/main/.github/linters/.cspell.yml)
 
 The command to execute is:
 

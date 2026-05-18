@@ -1,110 +1,83 @@
 <!-- META
-title: Environment Setup
-description: Step-by-step instructions for configuring your environment for CAIRA.
-author: CAIRA Team
-ms.date: 08/18/2025
-ms.topic: guide
-estimated_reading_time: 7
-keywords:
-    - environment setup
-    - prerequisites
-    - CAIRA
-    - azure
-    - configuration
-    - tooling
-    - platform support
-    - developer workflow
+ title: Environment Setup
+ description: Configure a local or container-based CAIRA development environment.
+ author: CAIRA Team
+ ms.topic: guide
 -->
 
 # Environment Setup
 
-## Overview
+For most users, the primary CAIRA entrypoint is the installed CAIRA skill. Install it with the quickstart in the repository root README, then let the agent inspect this repository as reference material for your scenario. Use the rest of this page only if you are contributing to CAIRA itself or validating CAIRA locally.
 
-This document provides step-by-step instructions for setting up your development environment to work with the Composable AI Reference Architectures (CAIRA). Before you can deploy a CAIRA configuration on Azure using Terraform, you need to ensure that your system is properly configured with the necessary tools and dependencies.
+## Contributor path: devcontainer
 
-## Requirements
+The repository devcontainer is the fastest way to get a working CAIRA environment because it is prepared for both the infrastructure workflows and the strategy-builder workflows. The default contributor definition now lives at `.devcontainer/devcontainer.json` and uses Docker-in-Docker.
 
-Before proceeding with the setup, you'll need:
+## Contributor local machine setup
 
-- An **Azure account**.
-- An **Azure subscription** with access to all resource types included in the chosen configuration.
-- **Azure account roles**:
-  - `Contributor` role at the subscription level, or Resource Group level if providing an existing one.
-  - `User Access Administrator` role at the subscription level, or Resource Group level if providing an existing one.
+Install [Task](https://taskfile.dev/installation) first, then run:
 
-## Choose Preferred Working Environment
+```bash
+task setup
+```
 
-Choose to proceed with the Visual Studio Code Development Container (_see the [CAIRA development container README](https://github.com/microsoft/CAIRA/blob/main/.devcontainer/README.md) for further detail_) or continue locally.
+This prepares the full local toolchain used across the repository, including:
 
-If proceeding locally, ensure all **required tooling** is installed before moving on.
+- Terraform validation and documentation tooling
+- security and markdown linters
+- Node.js, Python, .NET, Azure CLI, Bun, uv, and the strategy-builder workspace prerequisites
+- workspace dependencies for the strategy builder
 
-If you just want to deploy one of the configurations, you can just install the [Azure CLI](https://docs.microsoft.com/cli/azure/install-azure-cli) and [Terraform](https://www.terraform.io/downloads.html).
+## Optional contributor verification
 
-If you want to develop or contribute to CAIRA, you will need to install additional tools as described in the [Developer Guide](./developer.md).
+For a detailed app-layer prerequisite check, run:
 
-## Authenticate with Azure
+```bash
+cd strategy-builder
+./scripts/verify-environment.sh
+```
 
-Authenticate to your Azure subscription. Terraform must be able to create and manage resources within Azure.
+## Azure authentication
 
-To ensure you are authenticated to Azure, and the subscription is set correctly, you can run the following commands in your terminal:
+Authenticate with Azure before running deployment or integration workflows:
 
-```shell
-task tf:env:login
+```bash
+az login
 eval "$(task tf:env:setup)"
 ```
 
-Alternatively, you can manually authenticate using the Azure CLI:
+## Typical contributor first commands
 
-Use the following command to login to Azure:
-
-```shell
-az login
+```bash
+task validate:pr
+task strategy:dev -- deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca
+task strategy:deploy -- deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca
 ```
 
-If you have access to multiple subscriptions, you can set the active subscription using the following command:
+For the full scenario-based decision tree, including infrastructure changes,
+baseline deployments, workflow edits, strategy regeneration, and private
+networking or capability-host validation, continue with the
+[Developer Guide](developer.md).
 
-```shell
-az account set --subscription "<your_subscription_id>"
+If you want your local Docker Compose stack to talk to real Azure services instead of mocks, use:
+
+```bash
+task strategy:dev:azure -- deployment-strategies/foundry_agentic_app/typescript-foundry-agent-service-aca
 ```
 
-Export the subscription ID as an environment variable to make it available to the AzureRM and AzAPI Terraform providers:
+If that Azure-backed validation depends on the durable private-network pools,
+prepare them first:
 
-```shell
-export ARM_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+```bash
+task tf:test:pools:deploy
+eval "$(task tf:test:pools:outputs:env)"
 ```
 
-### Verify Your Setup
+Use `task strategy:deploy:reference` only when you are specifically validating the shared baseline deployment or regenerating strategy `.env` files from that baseline.
 
-To ensure everything is set up correctly, run the following commands:
+## Notes
 
-1. **Check Terraform Installation:**
-
-    ```shell
-    terraform version
-    ```
-
-1. **Check Azure CLI Installation:**
-
-    ```shell
-    az version
-    ```
-
-1. **Verify Azure Authentication:**
-
-    ```shell
-    az account show
-    ```
-
-    This command should return details about your currently selected Azure subscription.
-
-1. **Verify the `ARM_SUBSCRIPTION_ID` Environment Variable:**
-
-    ```shell
-    echo $ARM_SUBSCRIPTION_ID
-    ```
-
-    This should output the selected Azure subscription ID.
-
-## Conclusion
-
-Your environment should now be set up and ready to be used with CAIRA. If you encounter any issues during setup, consult the [troubleshooting guide](./troubleshooting.md) for help.
+- Clone the repository only when contributing to CAIRA itself or validating CAIRA directly.
+- The repository already contains the CAIRA reference architectures and reusable modules. No extra CAIRA checkout is required beyond the contributor clone you are already using.
+- Docker is required for local strategy compose workflows and for deployed strategy image builds.
+- Nightly-style validation depends on Azure access plus the durable infrastructure pool variables configured in GitHub.

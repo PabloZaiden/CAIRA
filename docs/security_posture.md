@@ -1,243 +1,111 @@
 <!-- META
-title: CAIRA Security Posture
-description: Explains the security decisions made in CAIRA reference architectures, balancing ease of deployment with security best practices.
-author: CAIRA Team
-ms.date: 09/25/2025
-ms.topic: concept
-estimated_reading_time: 8
-keywords:
-   - security
-   - deployment
-   - best practices
-   - terraform
-   - azure security
-   - reference architecture
-   - security posture
+ title: CAIRA Security Posture
+ description: Security principles and production hardening guidance for CAIRA.
+ author: CAIRA Team
+ ms.topic: concept
 -->
 
 # CAIRA Security Posture
 
-## Overview
+CAIRA provides a secure baseline for experimenting with and validating Azure AI solutions across the full stack: macro reference-architecture infrastructure, application-layer infrastructure, and application components. The repository is designed to accelerate delivery while keeping security-relevant defaults explicit and easy to extend.
 
-CAIRA (Composable AI Reference Architecture) is designed as an **accelerator** and **learning platform** that prioritizes ease of deployment while maintaining reasonable security standards. The security decisions made in CAIRA reference architectures reflect a deliberate balance between deployment simplicity and security best practices, with the understanding that **production deployments will require additional security hardening beyond what is provided out-of-the-box**.
+This document separates:
 
-## Security Philosophy
+- what the repository baseline already implements
+- what the current samples recommend more strongly than before
+- what remains intentionally outside the sample boundary
+- how local development differs from Azure deployment and real production
 
-### Accelerator-First Approach
+## Security principles
 
-CAIRA's primary goal is to **accelerate time-to-value** for teams getting started with Azure AI workloads. This philosophy influences our security approach in the following ways:
+- **Passwordless first** — prefer Managed Identity, Azure CLI auth, and Azure AD over long-lived secrets.
+- **Configurable network posture** — the reference architecture supports public and private variants without duplicating the core design.
+- **Composable hardening** — CAIRA is structured so teams can add stricter controls without rewriting the whole solution.
+- **Repeatable validation** — pull requests run static validation and security scanning; nightly validation exercises deployed strategies end to end.
+- **Explicit trust boundaries** — app-to-app traffic in the hardened samples is authenticated with Entra-issued access tokens instead of placeholder bearer checks.
 
-1. **Lower Barriers to Entry**: We choose configurations that minimize setup complexity and reduce the likelihood of deployment failures
-1. **Educational Value**: Security settings are implemented to demonstrate patterns while remaining comprehensible to teams new to Azure AI
-1. **Iterative Hardening**: The baseline provides a secure foundation that teams can incrementally harden for their specific production requirements
+## What the baseline includes
 
-### Security by Design, Not Security by Default
+- RBAC-aware Azure resource deployment patterns
+- TLS-based service communication
+- optional private networking for Azure AI workloads
+- macro reference-architecture support for observability and service composition
+- secret scanning and infrastructure security checks in CI
+- OpenTelemetry/Application Insights integration points in the app layer and deployment strategies
+- hardened service-to-service auth in the updated frontend BFF, API, and agent samples:
+  - **Frontend BFF -> API** acquires Entra tokens for `API_TOKEN_SCOPE`
+  - **API -> agent** acquires Entra tokens for `AGENT_TOKEN_SCOPE`
+  - **API and agent inbound auth** validate signature/JWKS, `exp`, `iss`, `aud`, and optional caller application IDs
 
-While CAIRA implements security-conscious defaults, it does not implement the most restrictive security posture possible. Instead, it provides:
+## Identity and auth baseline
 
-- **Secure Baseline**: Core security principles are followed (encryption at rest, TLS in transit, RBAC where appropriate)
-- **Extensible Foundation**: Architecture supports additional security controls without requiring fundamental redesign
-- **Clear Upgrade Path**: Documentation and structure guide teams toward production-ready security configurations
+The hardened sample path now assumes **Entra-issued service-to-service access tokens** for internal hops.
 
-## Key Security Decisions
+### API inbound trust
 
-### 1. Resource Deletion and Cleanup
+The API expects bearer tokens issued by the configured tenant and validates:
 
-**Decision**: Resource groups and cognitive accounts are configured to allow easy cleanup during development.
+- issuer derived from `INBOUND_AUTH_TENANT_ID` and `INBOUND_AUTH_AUTHORITY_HOST`
+- audience from `INBOUND_AUTH_ALLOWED_AUDIENCES`
+- expiry (`exp`)
+- token signature via tenant metadata / JWKS
+- optional caller allowlist from `INBOUND_AUTH_ALLOWED_CALLER_APP_IDS`
 
-```terraform
-provider "azurerm" {
-  features {
-    resource_group {
-      prevent_deletion_if_contains_resources = false
-    }
-    cognitive_account {
-      purge_soft_delete_on_destroy = true
-    }
-  }
-}
-```
+### Agent inbound trust
 
-**Rationale**:
+The agent containers use the same validation pattern and configuration shape for API -> agent traffic.
 
-- **Development-Friendly**: Enables quick teardown and rebuild cycles essential for experimentation
-- **Cost Management**: Prevents orphaned resources that continue accruing charges
-- **Learning Environment**: Reduces friction when teams need to start over
+### Local development versus Azure
 
-**Production Considerations**:
+- **Local sample/dev path** can set `SKIP_AUTH=true` to bypass inbound token validation for mock and compose-based flows.
+- **Local credentialed path** uses Azure CLI-backed or other runtime-appropriate Azure credentials so the sample can request real tokens while still running outside Azure.
+- **Azure deployment path** uses managed identity for outbound token acquisition and expects the configured audiences and callers to match the deployed app identities.
+- **Azure deployment prerequisite** for the hardened inter-service path is tenant permission to create the Entra application registrations, service principals, and app-role assignments that back the API and agent audiences.
 
-- Set `prevent_deletion_if_contains_resources = true` for production environments
-- Implement proper backup and disaster recovery procedures before disabling soft delete protections
-- Consider using separate resource groups for different environment tiers
+`SKIP_AUTH=true` is an explicit sample-development convenience, not a production recommendation.
 
-### 2. Network Access Patterns
+## What the sample is intentionally teaching
 
-**Decision**: CAIRA provides both public and private network access patterns depending on the reference architecture.
+CAIRA now goes beyond vague "add auth later" placeholders in the updated strategies. The stronger recommendations embodied by the sample are:
 
-**Public Access Architectures**:
+- use passwordless identity for app-to-app hops
+- validate internal JWTs explicitly instead of trusting bearer presence
+- keep private networking and APIM / AI gateway slices composable instead of always-on
+- keep observability and identity wiring visible in both the infra and app layers
 
-- AI Foundry resources accessible via public endpoints with Azure AD authentication
-- Simplified networking reduces deployment complexity
-- Suitable for development and proof-of-concept scenarios
+## What teams should still add for production
 
-**Private Access Architectures**:
+CAIRA is a starting point, not a finished production landing zone. Production deployments should add the controls that match the target environment, including:
 
-- All services configured with `public_network_access_enabled = false`
-- Private endpoints and private DNS zones implemented
-- Virtual network isolation for sensitive workloads
+- stricter network controls such as NSGs, WAFs, or hub-spoke connectivity
+- customer-managed keys and expanded key-management processes when required
+- environment-specific RBAC review and least-privilege assignments
+- organization-specific monitoring, alerting, compliance, and incident response integrations
+- explicit data protection, backup, and disaster recovery policies
+- durable state stores, secret rotation processes, and production-grade data governance for any non-sample data
+- tenant-specific conditional access, access reviews, and service principal lifecycle controls where required
+- the tenant-scoped Entra permissions needed to create and govern service principals for internal API and agent audiences
 
-**Rationale**:
+## Limits of the sample
 
-- **Choice and Flexibility**: Teams can select the appropriate network posture for their use case.
-- **Progressive Security**: Teams can start with public access and migrate to private endpoints as requirements mature.
-- **Production-First Mindset**: Both patterns reflect legitimate enterprise scenarios, but persistent environments (dev, staging, production) should use private networking for enhanced security.
+The repository still does **not** claim to be a turnkey production environment. Important limits remain:
 
-**Production Considerations**:
+- local sample mode can bypass auth with `SKIP_AUTH=true`
+- some validation is environment-dependent; this session environment, for example, cannot run the C# runtime path because `dotnet` is unavailable
+- the sample keeps certain legacy mode/tool identifiers for compatibility even while the user-facing domain shifts to sales/account-team language
+- the sample does not provide a full landing zone, enterprise SOC process, or organization-specific compliance implementation
+- Azure deployment samples prove the reference pattern, but they do not replace workload-specific threat modeling, pen testing, SRE runbooks, or DR exercises
+- a sample Azure deployment can still fail even when subscription RBAC is correct if the deployment identity cannot complete the Entra service-principal or app-role-assignment steps; in that case, Terraform can fail with `403 Authorization_RequestDenied`, and any partially deployed app can later surface `AADSTS500011` for the missing audience principal
 
-- Use private endpoint architectures for production workloads containing sensitive data
-- Implement network security groups with restrictive rules
-- Consider hub-and-spoke network topologies for enterprise deployments
+## Practical guidance
 
-### 3. Authentication and Authorization
+Use CAIRA to validate architecture choices quickly, then harden the resulting reference architecture and deployment strategy for the target workload.
 
-**Decision**: CAIRA implements Azure AD-based authentication with minimal custom RBAC configuration.
+As a working shorthand:
 
-**Implementation Pattern**:
+- **Local development** — use the sample to iterate quickly, optionally with explicit auth bypass
+- **Local validation** — run the component and strategy checks that prove the wiring still works
+- **Sample Azure deployment** — verify the reference design, managed identity flow, ingress, and platform composition
+- **Real production** — add the organization-specific controls, processes, and approvals that CAIRA intentionally leaves to downstream teams
 
-#### Storage accounts use Azure AD authentication
-
-storage_use_azuread = true
-
-#### Cosmos DB disables local authentication
-
-local_authentication_disabled = true
-
-**Rationale**:
-
-- **Modern Authentication**: Leverages Azure AD as the authoritative identity provider
-- **Reduced Secret Management**: Minimizes the number of API keys and connection strings to manage
-- **Compatibility**: Maintains compatibility with existing applications that may require API key access patterns
-
-**Production Considerations**:
-
-- Disable API key authentication where possible (`disableLocalAuth = true`)
-- Implement comprehensive RBAC with principle of least privilege
-- Consider using managed identities for all service-to-service authentication
-- Implement conditional access policies and multi-factor authentication
-
-### 4. Encryption and Data Protection
-
-**Decision**: CAIRA implements standard Azure encryption capabilities without additional customer-managed keys.
-
-**Implementation**:
-
-- **Storage**: TLS 1.2 minimum, HTTPS traffic only, infrastructure encryption available but not enabled by default
-- **Cosmos DB**: Encryption at rest using service-managed keys
-- **AI Services**: Standard Azure encryption for data in transit and at rest
-
-**Rationale**:
-
-- **Sufficient for Development**: Service-managed encryption meets security requirements for non-production workloads
-- **Reduced Complexity**: Avoids Key Vault dependencies and key rotation complexity
-- **Cost Optimization**: Customer-managed keys incur additional costs that may not be justified for development scenarios
-
-**Production Considerations**:
-
-- Implement customer-managed keys (CMK) for sensitive production data
-- Enable infrastructure encryption for storage accounts
-- Consider additional encryption for data in use scenarios
-- Implement proper key rotation and access policies
-
-## What CAIRA Does NOT Include
-
-### Security Controls for Production Workloads
-
-CAIRA reference architectures are **intentionally minimal** and do not include many security controls that would be expected in production environments:
-
-1. **Network Security**:
-   - No network security groups (NSGs) with restrictive rules
-   - No Azure Firewall or Web Application Firewall (WAF)
-   - No DDoS protection standard
-   - No network traffic inspection or monitoring
-
-1. **Identity and Access Management**:
-   - Limited custom RBAC role definitions
-   - No conditional access policy enforcement
-   - No privileged identity management (PIM)
-   - No identity governance and lifecycle management
-
-1. **Monitoring and Compliance**:
-   - Basic Application Insights configuration without custom alerts
-   - No Azure Security Center / Microsoft Defender for Cloud integration
-   - No compliance framework alignment (SOC, PCI, FedRAMP, etc.)
-   - No automated security scanning or vulnerability management
-
-1. **Data Protection**:
-   - No data loss prevention (DLP) policies
-   - No advanced threat protection for databases
-   - No backup and disaster recovery automation
-   - No data residency and sovereignty controls
-
-1. **Operational Security**:
-   - No automated patch management
-   - No security information and event management (SIEM) integration
-   - No incident response automation
-   - No security baseline compliance monitoring
-
-## Security Best Practices Recommendations
-
-### For Production Deployments
-
-Teams using CAIRA as a foundation for production systems should implement additional security measures:
-
-1. **Network Security**:
-
-   ```terraform
-   # Example: Restrictive NSG rules
-   resource "azurerm_network_security_group" "example" {
-     # Implement deny-by-default with explicit allow rules
-     # Add logging for security events
-     # Consider micro-segmentation strategies
-   }
-   ```
-
-1. **Advanced Identity Controls**:
-   - Implement custom RBAC roles with minimal required permissions
-   - Use managed identities for all service-to-service authentication
-   - Enable Azure AD Privileged Identity Management for administrative access
-   - Implement conditional access policies based on risk factors
-
-1. **Compliance and Governance**:
-   - Enable Azure Policy for automated compliance checking
-   - Implement resource tagging strategies for cost and security governance
-   - Enable Azure Security Center recommendations and secure score monitoring
-
-1. **Data Protection**:
-   - Implement customer-managed keys for encryption at rest
-   - Enable database auditing and threat detection
-   - Configure backup policies with appropriate retention periods
-   - Implement data classification and handling procedures
-
-### Security Assessment and Monitoring
-
-Before deploying CAIRA-based solutions in production:
-
-1. **Security Assessment**:
-   - Conduct threat modeling exercises for your specific use case
-   - Perform penetration testing on deployed infrastructure
-   - Review and validate all security configurations against your organization's policies
-   - Document security assumptions and risk acceptances
-
-1. **Continuous Monitoring**:
-   - Implement security information and event management (SIEM) solutions
-   - Enable Azure Monitor and Azure Security Center for centralized monitoring
-   - Configure automated alerting for security events and policy violations
-   - Establish incident response procedures and contact information
-
-## Conclusion
-
-CAIRA provides a **secure foundation** rather than a **production-ready security posture**. The reference architectures implement industry-standard security practices while prioritizing simplicity and ease of deployment. Teams should view CAIRA as a starting point for their security journey, with the expectation that additional hardening will be required based on their specific threat model, compliance requirements, and organizational policies.
-
-The security decisions in CAIRA are intentionally **transparent and documented** to help teams understand the trade-offs and make informed decisions about additional security controls needed for their specific use cases. We encourage teams to engage with their security professionals early in the adoption process to identify and implement appropriate additional controls.
-
-For questions about security implementations or to report security vulnerabilities, please refer to our [Security Policy](https://github.com/microsoft/CAIRA/blob/main/SECURITY.md).
+The repository structure is intended to make that progression straightforward without separating infrastructure concerns from the application and deployment concerns they support.

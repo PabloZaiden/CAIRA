@@ -76,6 +76,8 @@ downloads/
 eggs/
 .eggs/
 lib/
+!strategy-builder/scripts/lib/
+!strategy-builder/scripts/lib/**
 lib64/
 parts/
 sdist/
@@ -257,6 +259,7 @@ final_resources_planned.txt
 
 # developer files
 .dev/
+.opencode-server/
 
 #backup folders
 .backup/
@@ -264,6 +267,7 @@ final_resources_planned.txt
 
 # Copilot tracking folder
 .copilot-tracking/
+.planning/
 
 # Scratch files
 scratch*.md

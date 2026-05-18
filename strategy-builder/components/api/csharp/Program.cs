@@ -1,0 +1,90 @@
+/// <summary>
+/// API container entry point — ASP.NET Core Minimal API.
+///
+/// Starts the fictional sales/account-team sample API on the configured port.
+/// Handles graceful shutdown via IHostApplicationLifetime.
+/// </summary>
+
+namespace CairaApi;
+
+public class Program
+{
+    public static void Main(string[] args)
+    {
+        var config = ApiConfig.FromEnvironment();
+
+        var builder = WebApplication.CreateBuilder(args);
+        builder.AddCairaTelemetry("caira-api-csharp", config.ApplicationInsightsConnectionString);
+
+        // Configure logging
+        builder.Logging.SetMinimumLevel(config.LogLevel.ToLowerInvariant() switch
+        {
+            "trace" or "verbose" => LogLevel.Trace,
+            "debug" => LogLevel.Debug,
+            "information" or "info" => LogLevel.Information,
+            "warning" or "warn" => LogLevel.Warning,
+            "error" => LogLevel.Error,
+            "critical" or "fatal" => LogLevel.Critical,
+            _ => LogLevel.Debug,
+        });
+
+        // Register services
+        builder.Services.AddSingleton(config);
+        builder.Services.AddSingleton<IAccessTokenProvider, DefaultAzureAccessTokenProvider>();
+        builder.Services.AddSingleton<IIncomingTokenValidator>(
+            config.SkipAuth ? new NoOpIncomingTokenValidator() : new EntraIncomingTokenValidator(config));
+        builder.Services.AddHttpClient<AgentHttpClient>();
+
+        var app = builder.Build();
+
+        if (!config.SkipAuth)
+        {
+            var incomingTokenValidator = app.Services.GetRequiredService<IIncomingTokenValidator>();
+            app.Use(async (context, next) =>
+            {
+                var path = context.Request.Path.Value ?? string.Empty;
+                if (path is "/health" or "/identity" or "/metrics")
+                {
+                    await next();
+                    return;
+                }
+
+                var authHeader = context.Request.Headers.Authorization.ToString();
+                var token = AuthHelpers.ExtractBearerToken(authHeader);
+                if (string.IsNullOrWhiteSpace(token))
+                {
+                    context.Response.StatusCode = 401;
+                    context.Response.ContentType = "application/json";
+                    await context.Response.WriteAsync(
+                        System.Text.Json.JsonSerializer.Serialize(new ErrorResponse("unauthorized", "Missing or invalid Authorization header")));
+                    return;
+                }
+
+                try
+                {
+                    await incomingTokenValidator.ValidateAccessTokenAsync(token, context.RequestAborted);
+                }
+                catch
+                {
+                    context.Response.StatusCode = 401;
+                    context.Response.ContentType = "application/json";
+                    await context.Response.WriteAsync(
+                        System.Text.Json.JsonSerializer.Serialize(new ErrorResponse("unauthorized", "Invalid or unauthorized bearer token")));
+                    return;
+                }
+
+                await next();
+            });
+        }
+
+        // Map routes
+        app.MapRoutes();
+
+        // Start server
+        var url = $"http://{config.Host}:{config.Port}";
+        app.Urls.Add(url);
+
+        app.Logger.LogInformation("Business API listening at {Url}", url);
+        app.Run();
+    }
+}

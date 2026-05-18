@@ -36,13 +36,19 @@ patterns:
       - (?:\|\s*){1}(?:Azure\/avm){1}.*(?:\s*\|){1}
 dictionaryDefinitions:
   - name: cspellignore
-    path: ../../.cspellignore
+    path: ./.cspellignore
     addWords: true
 allowCompoundWords: true
+words:
+  - afterAll
+  - AKS
 ignorePaths:
-  - node_modules
-  - .dev
-  - .cspellignore
-  - .venv
-  - venv
-  - .terraform
+  - "**/node_modules/**"
+  - "**/.dev/**"
+  - .github/linters/.cspellignore
+  - "**/.venv/**"
+  - "**/venv/**"
+  - "**/.terraform/**"
+  - "**/dist/**"
+  - "**/coverage/**"
+  - "**/site/**"
