@@ -1,6 +1,6 @@
 # Developing CAIRA reference components
 
-CAIRA components are examples for agents, not production templates that must deploy as one deterministic stack. Keep every component small, readable, and independently validatable.
+CAIRA components are examples for agents to inspect, copy, and adapt. Keep every component small, readable, and independently validatable.
 
 ## Component model
 
@@ -9,7 +9,7 @@ CAIRA components are examples for agents, not production templates that must dep
 - `reference-architectures/app/api/**` contains unified API + agent examples. There is no separate agent container.
 - `reference-architectures/app/frontend/**` contains frontend references.
 
-Do not add generator metadata, deployment-strategy manifests, local auth sidecars, testing overlays, or cross-component orchestration unless the project explicitly reintroduces those concepts later.
+Keep new contributions focused on independently useful reference components with clear validation steps.
 
 ## Validation
 
@@ -25,4 +25,4 @@ This is the same command used by the pull request workflow. It runs secret scann
 - C#: `dotnet build`, vulnerability audit, Docker build.
 - Terraform: `terraform fmt -check`, `terraform init -backend=false`, `terraform validate`.
 
-Prefer adding a local script to a component over adding repo-wide orchestration.
+Prefer component-local scripts that preserve independent validation.

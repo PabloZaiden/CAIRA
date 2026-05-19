@@ -18,7 +18,7 @@ Use this skill when a user wants to build or extend a generative AI solution. CA
 - Prefer small component references over full-stack copying.
 - For scenarios that need OpenAI-compatible endpoints, prefer the Foundry IaC reference unless the user already has endpoints or asks for a different approach.
 - Determine what the user already has before proposing new infrastructure.
-- Do not add APIM, private networking, capability-host pools, testing overlays, generated deployment strategies, auth sidecars, or localdev-only helper containers; those are out of scope for beta2.
+- Keep recommendations focused on the current reference components listed below.
 - Explain which CAIRA paths influenced the recommendation or generated files.
 
 ## Current reference components

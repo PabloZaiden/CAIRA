@@ -27,14 +27,12 @@ This SLO applies to [Issues](https://github.com/microsoft/CAIRA/issues) raised i
 - Documentation and self-service resources
 - Security patches for critical vulnerabilities in supported versions (up to last published version).
 
-### What We Don't Provide
+### Support Boundaries
 
-- Guaranteed resolution timelines
-- 24/7 support
-- Phone or video support
-- Custom development or consulting
-- Support for end-of-life versions
-- Private/priority support queues
+- Best-effort responses through public GitHub issues
+- Security handling through the private disclosure path below
+- Documentation and repository examples for self-service troubleshooting
+- Maintenance focused on the current published version
 
 ## How to streamline the response process
 

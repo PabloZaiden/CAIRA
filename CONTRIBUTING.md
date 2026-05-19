@@ -24,8 +24,8 @@ Validation is intentionally simple: secret scanning, component dependency instal
 ## Guidelines
 
 - Keep each reference component independent and readable.
-- Do not reintroduce generated deployment strategies, local auth sidecars, site generation, repo-wide lint toolchains, or cross-component test orchestration.
-- Never commit secrets or credentials.
+- Keep validation and tooling close to the component that uses it.
+- Keep secrets and credentials in your local environment or cloud secret store.
 - Keep documentation focused on how agents should use and maintain the references.
 
 ## Code of Conduct
