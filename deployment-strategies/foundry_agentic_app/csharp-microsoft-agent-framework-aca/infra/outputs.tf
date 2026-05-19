@@ -40,7 +40,7 @@ output "ai_foundry_name" {
 
 output "ai_foundry_default_project_name" {
   description = "Default AI Foundry project name."
-  value       = module.default_project.ai_foundry_project_name
+  value       = module.foundry.ai_foundry_project_name["default"]
 }
 
 output "auth_tenant_id" {

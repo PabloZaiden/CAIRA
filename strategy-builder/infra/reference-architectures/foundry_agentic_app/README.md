@@ -6,11 +6,11 @@ This sample is the default CAIRA reference architecture. It keeps the default ex
 
 - It is the default reference sample the CAIRA skill should inspect first.
 - It shows the macro system shape without hiding everything behind a single god-module.
-- It keeps advanced capability-host, extra-project, and private-networking changes out of the default path.
+- It keeps advanced capability-host, extra-project, and private-networking changes out of the default path while showing the AVM inputs agents should use when they need those variants.
 
 ## Layered composition
 
-- `main.tf` composes the Foundry foundation (`ai_foundry`, `ai_foundry_project`) and the shared naming/resource-group pieces.
+- `main.tf` composes the Foundry foundation with the Azure AI Foundry AVM and the shared naming/resource-group pieces.
 - `application_platform.tf` adds the composable app-platform foundation (`container_registry`, `container_apps_environment`).
 - `agent_service.tf`, `api_service.tf`, and `frontend_service.tf` keep each application surface as its own layer.
 - `dependant_resources.tf` adds the shared observability resources used by the Foundry account and Container Apps environment.
@@ -46,29 +46,65 @@ If another backend owns the API role, remove `api_service.tf` and point `API_BAS
 
 ## Advanced scenarios
 
-### Capability hosts
+### Foundry deployment scenarios
 
-Only add capability-host resources when the user scenario actually needs Foundry agent-service connections. In that case:
+#### `basic_public`
 
-- create the required capability-host resources with the existing helper modules under `strategy-builder/infra/modules/`
-- set `enable_agents_capability_host = true` on the `foundry` module
-- pass `agent_capability_host_connections` into the project module that should use them
+This is the default sample shape. The `foundry` AVM module creates one Foundry account, one `default-project`, and the shared model deployments. It keeps Foundry public, does not create or connect Cosmos DB/Storage/Search, and keeps Application Insights connected through the small root-level `appinsights_connection` resource.
 
-Keep that guidance in the skill or derived implementation rather than bloating the default sample. See <https://learn.microsoft.com/azure/foundry/agents/concepts/capability-hosts>.
+#### `basic_private`
 
-### Private networking
+Use the same AVM module shape, then enable private endpoints and pass the private endpoint subnet plus Foundry private DNS zones:
 
-The sample Terraform files show the exact fields to change for private networking:
+```hcl
+create_private_endpoints            = true
+private_endpoint_subnet_resource_id = <private-endpoint-subnet-id>
 
-- add `foundry_subnet_id` to the `foundry` module in `main.tf`
-- add `infrastructure_subnet_id` to `container_apps_environment` in `application_platform.tf`
-- keep the frontend ingress VNet-reachable in `frontend_service.tf` with `external_enabled = true` and `allowed_cidrs = []`; when the Container Apps environment itself is internal-only, that still keeps the app private to the VNet
+ai_foundry = {
+  private_dns_zone_resource_ids = [
+    <privatelink.openai.azure.com-zone-id>,
+    <privatelink.cognitiveservices.azure.com-zone-id>,
+    <privatelink.services.ai.azure.com-zone-id>
+  ]
+}
+```
+
+For the app layer, keep using `infrastructure_subnet_id` on `container_apps_environment`. Keep the frontend ingress VNet-reachable with `external_enabled = true` and `allowed_cidrs = []`; when the Container Apps environment is internal-only, the app remains private to the VNet.
+
+#### `standard_private`
+
+Use `basic_private`, then enable the private agent-service path and project connections. The BYOR-style reference is the primary pattern: provide existing Cosmos DB, Storage Account, and AI Search resource IDs directly on the AVM project connection fields.
+
+```hcl
+ai_foundry = {
+  create_ai_agent_service = true
+  network_injections = [{
+    scenario                   = "agent"
+    subnetArmId                = <agents-subnet-id>
+    useMicrosoftManagedNetwork = false
+  }]
+}
+
+ai_projects = {
+  default = {
+    name                       = "default-project"
+    display_name               = "Default Project"
+    description                = "Default Project description"
+    create_project_connections = true
+    cosmos_db_connection       = { existing_resource_id = <cosmos-db-account-id> }
+    ai_search_connection       = { existing_resource_id = <ai-search-id> }
+    storage_account_connection = { existing_resource_id = <storage-account-id> }
+  }
+}
+```
+
+If you want the AVM to create those dependent resources instead, set `create_byor = true`, populate `cosmosdb_definition`, `storage_account_definition`, and `ai_search_definition`, then point each project connection at the matching `new_resource_map_key`.
 
 See <https://learn.microsoft.com/azure/foundry/agents/how-to/virtual-networks> for the Azure networking guidance.
 
 ### Secondary project
 
-If you need another Foundry project, start from the commented `secondary_project` block in `main.tf` instead of making the default sample carry that complexity all the time.
+If you need another Foundry project, add another entry to the AVM `ai_projects` map instead of making the default sample carry that complexity all the time.
 
 ## Relationship to deployment strategies
 

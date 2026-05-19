@@ -22,6 +22,10 @@ terraform {
       source  = "hashicorp/time"
       version = "~> 0.13"
     }
+    modtm = {
+      source  = "Azure/modtm"
+      version = "~> 0.3"
+    }
   }
 }
 
@@ -35,7 +39,6 @@ provider "azurerm" {
       purge_soft_delete_on_destroy = true
     }
   }
-  partner_id = var.enable_telemetry ? "acce1e78-7dd1-4c7f-9b6b-37aa6ed60979" : null
 }
 
 provider "azuread" {}

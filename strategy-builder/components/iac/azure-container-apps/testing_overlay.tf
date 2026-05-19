@@ -11,9 +11,12 @@ locals {
   testing_jumpbox_subnet                            = substr("jumpbox-${local.base_name}-${local.testing_suffix}", 0, 80)
   testing_jumpbox_name                              = substr("jumpbox-${local.base_name}-${local.testing_suffix}", 0, 63)
   effective_foundry_subnet_id                       = local.testing_private_enabled ? data.azurerm_subnet.testing_private_connection[0].id : null
+  effective_foundry_private_dns_zone_ids            = local.testing_private_enabled ? [data.azurerm_private_dns_zone.testing_openai[0].id, data.azurerm_private_dns_zone.testing_cognitive_services[0].id, data.azurerm_private_dns_zone.testing_ai_services[0].id] : []
   effective_container_apps_infrastructure_subnet_id = local.testing_private_enabled ? azurerm_subnet.testing_container_apps[0].id : null
   effective_agents_subnet_id                        = local.testing_capability_host_enabled ? azurerm_subnet.testing_agents[0].id : null
-  effective_agent_capability_host_connections       = local.testing_capability_host_enabled ? module.testing_capability_host_connections[0].connections : null
+  effective_capability_host_cosmosdb_id             = local.testing_capability_host_enabled ? data.azurerm_cosmosdb_account.testing_capability_host[0].id : null
+  effective_capability_host_storage_id              = local.testing_capability_host_enabled ? data.azurerm_storage_account.testing_capability_host[0].id : null
+  effective_capability_host_search_id               = local.testing_capability_host_enabled ? data.azapi_resource.testing_capability_host_search[0].id : null
   effective_frontend_external_enabled               = true
   effective_frontend_allowed_cidrs                  = local.testing_private_enabled ? [] : [var.allowed_cidr]
 }
@@ -69,6 +72,49 @@ data "azurerm_virtual_network" "testing_private_pool" {
   resource_group_name = var.testing_private_pool_resource_group_name
 }
 
+data "azurerm_private_dns_zone" "testing_openai" {
+  count = local.testing_private_enabled ? 1 : 0
+
+  name                = "privatelink.openai.azure.com"
+  resource_group_name = var.testing_private_pool_resource_group_name
+}
+
+data "azurerm_private_dns_zone" "testing_cognitive_services" {
+  count = local.testing_private_enabled ? 1 : 0
+
+  name                = "privatelink.cognitiveservices.azure.com"
+  resource_group_name = var.testing_private_pool_resource_group_name
+}
+
+data "azurerm_private_dns_zone" "testing_ai_services" {
+  count = local.testing_private_enabled ? 1 : 0
+
+  name                = "privatelink.services.ai.azure.com"
+  resource_group_name = var.testing_private_pool_resource_group_name
+}
+
+data "azurerm_cosmosdb_account" "testing_capability_host" {
+  count = local.testing_capability_host_enabled ? 1 : 0
+
+  name                = var.testing_capability_host_cosmosdb_account_name
+  resource_group_name = var.testing_capability_host_resource_group_name
+}
+
+data "azurerm_storage_account" "testing_capability_host" {
+  count = local.testing_capability_host_enabled ? 1 : 0
+
+  name                = var.testing_capability_host_storage_account_name
+  resource_group_name = var.testing_capability_host_resource_group_name
+}
+
+data "azapi_resource" "testing_capability_host_search" {
+  count = local.testing_capability_host_enabled ? 1 : 0
+
+  type      = "Microsoft.Search/searchServices@2025-05-01"
+  name      = var.testing_capability_host_search_service_name
+  parent_id = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${var.testing_capability_host_resource_group_name}"
+}
+
 resource "azurerm_subnet" "testing_container_apps" {
   count = local.testing_private_enabled ? 1 : 0
 
@@ -107,18 +153,6 @@ resource "azurerm_subnet" "testing_agents" {
       ]
     }
   }
-}
-
-module "testing_capability_host_connections" {
-  count = local.testing_capability_host_enabled ? 1 : 0
-
-  source = "../../../infra/modules/existing_resources_agent_capability_host_connections"
-
-  resource_group_resource_id = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${var.testing_capability_host_resource_group_name}"
-  cosmosdb_account_name      = var.testing_capability_host_cosmosdb_account_name
-  storage_account_name       = var.testing_capability_host_storage_account_name
-  search_service_name        = var.testing_capability_host_search_service_name
-  location                   = var.location
 }
 
 resource "azurerm_subnet" "testing_jumpbox" {

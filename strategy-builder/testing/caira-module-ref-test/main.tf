@@ -1,8 +1,7 @@
 # testing/caira-module-ref-test/main.tf
 #
-# Validates that Terraform can reference CAIRA modules from the consolidated repo using
-# relative source paths. This is NOT a deployable config — it exists only
-# to verify that `terraform init && terraform validate` succeed.
+# Validates that Terraform can reference the remaining CAIRA modules from the
+# consolidated repo using relative source paths. This is NOT a deployable config.
 
 terraform {
   required_version = ">= 1.13, < 2.0"
@@ -31,13 +30,6 @@ provider "azurerm" {
   features {}
 }
 
-module "ai_foundry" {
-  source = "../../infra/modules/ai_foundry"
-
-  name              = var.name
-  location          = var.location
-  resource_group_id = var.resource_group_id
-  model_deployments = var.model_deployments
-
-  application_insights = var.application_insights
+module "common_models" {
+  source = "../../infra/modules/common_models"
 }
