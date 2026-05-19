@@ -1,3 +1,10 @@
+# dotnet
+bin
+obj
+
+# node
+node_modules
+
 # Local .terraform directories
 **/.terraform
 
