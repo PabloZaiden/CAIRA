@@ -20,8 +20,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  approval:
+    name: Approval
+    environment: PR
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Approve
+        run: echo "Workflow was approved"
+
   validate:
     name: Validate references
+    needs: [approval]
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
