@@ -3,21 +3,33 @@
   "private": true,
   "type": "module",
   "version": "0.1.0",
-  "description": "Minimal CAIRA API reference using Azure AI Foundry Agent Service.",
+  "description": "CAIRA unified API + agent reference using Foundry Agent Service",
   "scripts": {
     "start": "node src/server.ts",
+    "dev": "node --watch src/server.ts",
     "build": "tsc --noEmit",
-    "typecheck": "tsc --noEmit",
-    "test": "node --test tests/*.test.js"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@azure/ai-projects": "^2.1.1",
-    "@azure/identity": "^4.13.0",
-    "fastify": "^5.8.5"
+    "@azure/identity": "^4",
+    "@microsoft/opentelemetry": "^1.0.2",
+    "@opentelemetry/api": "^1.9.1",
+    "fastify": "^5",
+    "jose": "^6.2.3",
+    "openai": "^6.37"
+  },
+  "overrides": {
+    "@opentelemetry/sdk-node": "0.218.0"
   },
   "devDependencies": {
-    "@types/node": "^22.19.0",
-    "typescript": "^5.9.3"
+    "@types/node": "^22",
+    "typescript": "^5.9.3",
+    "vitest": "^3"
   },
   "engines": {
     "node": ">=24.0.0"

@@ -1,108 +1,36 @@
-import { getBearerTokenProvider } from '@azure/identity';
-import { Agent, run, setDefaultOpenAIClient, setTracingDisabled } from '@openai/agents';
-import Fastify from 'fastify';
-import { AzureOpenAI } from 'openai';
+/**
+ * Agent container — standalone server entry point.
+ *
+ * Starts the OpenAI Agent SDK container on the configured port.
+ * Handles graceful shutdown on SIGTERM/SIGINT.
+ *
+ * Usage:
+ *   node src/server.ts
+ *   AZURE_OPENAI_ENDPOINT=https://... node src/server.ts
+ *   # Or set AZURE_OPENAI_ENDPOINT to an APIM gateway URL when routing through APIM
+ */
 
-export interface Config {
-  readonly host: string;
-  readonly port: number;
-  readonly azureOpenAIEndpoint: string;
-  readonly azureOpenAIApiVersion: string;
-  readonly model: string;
-  readonly agentName: string;
-  readonly instructions: string;
-}
+import { loadConfig } from './config.ts';
+import { buildApp } from './app.ts';
+import { shutdownTelemetry } from './telemetry.ts';
 
-export interface ChatRequest {
-  readonly message?: string;
-  readonly conversationId?: string;
-}
-
-export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
-  const azureOpenAIEndpoint = env.AZURE_OPENAI_ENDPOINT;
-  if (!azureOpenAIEndpoint) {
-    throw new Error('AZURE_OPENAI_ENDPOINT is required.');
-  }
-
-  return {
-    host: env.HOST ?? '0.0.0.0',
-    port: Number.parseInt(env.PORT ?? '4000', 10),
-    azureOpenAIEndpoint,
-    azureOpenAIApiVersion: env.AZURE_OPENAI_API_VERSION ?? '2025-04-01-preview',
-    model: env.AGENT_MODEL ?? 'gpt-5-mini',
-    agentName: env.AGENT_NAME ?? 'CAIRA Reference Agent',
-    instructions:
-      env.AGENT_INSTRUCTIONS ??
-      'You are a concise assistant. Answer the user directly and ask for missing details only when necessary.'
-  };
-}
-
-export function normalizeChatRequest(body: unknown): { message: string; conversationId: string } {
-  const value = body && typeof body === 'object' ? (body as ChatRequest) : {};
-  const message = typeof value.message === 'string' ? value.message.trim() : '';
-  if (!message) {
-    throw new Error('message is required.');
-  }
-
-  return {
-    message,
-    conversationId:
-      typeof value.conversationId === 'string' && value.conversationId.trim()
-        ? value.conversationId.trim()
-        : crypto.randomUUID()
-  };
-}
-
-async function configureAzureOpenAI(config: Config): Promise<void> {
-  const tokenProvider = getBearerTokenProvider(
-    new (await import('@azure/identity')).DefaultAzureCredential(),
-    'https://cognitiveservices.azure.com/.default'
-  );
-
-  const client = new AzureOpenAI({
-    endpoint: config.azureOpenAIEndpoint,
-    apiVersion: config.azureOpenAIApiVersion,
-    azureADTokenProvider: tokenProvider
-  });
-  setDefaultOpenAIClient(client as unknown as Parameters<typeof setDefaultOpenAIClient>[0]);
-  setTracingDisabled(true);
-}
-
-export async function buildApp(config: Config) {
-  await configureAzureOpenAI(config);
-  const agent = new Agent({
-    name: config.agentName,
-    model: config.model,
-    instructions: config.instructions
-  });
-
-  const app = Fastify({ logger: true });
-
-  app.get('/health', async () => ({ status: 'healthy' }));
-
-  app.post('/chat', async (request, reply) => {
-    let chatRequest: ReturnType<typeof normalizeChatRequest>;
-    try {
-      chatRequest = normalizeChatRequest(request.body);
-    } catch (error) {
-      return reply.status(400).send({ error: error instanceof Error ? error.message : 'Invalid request.' });
-    }
-
-    const result = await run(agent, chatRequest.message);
-    const finalOutput = typeof result.finalOutput === 'string' ? result.finalOutput : String(result.finalOutput ?? '');
-
-    return {
-      conversationId: chatRequest.conversationId,
-      reply: finalOutput,
-      model: config.model
-    };
-  });
-
-  return app;
-}
-
-if (import.meta.url === `file://${process.argv[1]}`) {
+async function main(): Promise<void> {
   const config = loadConfig();
-  const app = await buildApp(config);
-  await app.listen({ host: config.host, port: config.port });
+  const app = await buildApp({ config });
+
+  // Graceful shutdown
+  const shutdown = async (signal: string): Promise<void> => {
+    app.log.info(`Received ${signal}, shutting down gracefully...`);
+    await app.close();
+    await shutdownTelemetry();
+    process.exit(0);
+  };
+
+  process.on('SIGTERM', () => void shutdown('SIGTERM'));
+  process.on('SIGINT', () => void shutdown('SIGINT'));
+
+  const address = await app.listen({ port: config.port, host: config.host });
+  app.log.info(`OpenAI Agent SDK container listening at ${address}`);
 }
+
+void main();

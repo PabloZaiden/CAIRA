@@ -1,111 +1,96 @@
-using System.Text.Json.Serialization;
-using Azure.Identity;
-using Azure.AI.OpenAI;
-using Microsoft.Agents.AI;
-using Microsoft.Agents.AI.Workflows;
-using Microsoft.Extensions.AI;
+/// <summary>
+/// Agent container entry point — ASP.NET Core Minimal API.
+///
+/// Starts the CAIRA sales agent using the Microsoft Agent Framework (MAF)
+/// Workflow engine for agent orchestration. The selected specialist workflow
+/// handles the user-facing exchange for the current activity mode.
+///
+/// Startup flow:
+///   1. Load config from environment variables
+///   2. Create the per-mode workflows via AgentSetup.Create()
+///   3. Wire ConversationStore (state) and WorkflowRunner (execution)
+///   4. Register HTTP routes
+///   5. Start listening
+/// </summary>
 
-#pragma warning disable OPENAI001
+using CairaAgent;
+using Microsoft.Agents.AI.Workflows;
+using System.Diagnostics;
+
+var config = AgentConfig.Load();
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.ConfigureHttpJsonOptions(options =>
+builder.AddCairaTelemetry("caira-agent-csharp", config.ApplicationInsightsConnectionString);
+
+// Configure logging
+builder.Logging.SetMinimumLevel(config.LogLevel.ToLowerInvariant() switch
 {
-    options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    "trace" => LogLevel.Trace,
+    "debug" => LogLevel.Debug,
+    "info" or "information" => LogLevel.Information,
+    "warn" or "warning" => LogLevel.Warning,
+    "error" => LogLevel.Error,
+    "fatal" or "critical" => LogLevel.Critical,
+    _ => LogLevel.Debug,
 });
-builder.Services.AddSingleton(AgentConfig.Load(builder.Configuration));
-builder.Services.AddSingleton<ReferenceAgent>();
+
+// Register services
+builder.Services.AddSingleton(config);
+builder.Services.AddSingleton<ConversationStore>();
+builder.Services.AddSingleton<IIncomingTokenValidator>(
+    config.SkipAuth ? new NoOpIncomingTokenValidator() : new EntraIncomingTokenValidator(config));
 
 var app = builder.Build();
 
-app.MapGet("/health", () => Results.Ok(new HealthResponse("healthy")));
-
-app.MapPost("/chat", async (ChatRequest request, ReferenceAgent agent) =>
+// Create agent hierarchy — this builds the coordinator agent, specialist
+// sub-agents, resolution tools, MAF Workflow, and CheckpointManager.
+AgentSetupResult? setup = null;
+try
 {
-    if (string.IsNullOrWhiteSpace(request.Message))
+    setup = AgentSetup.Create(config, app.Logger);
+}
+catch (Exception ex)
+{
+    app.Logger.LogWarning(ex, "Failed to create agent setup — starting in degraded mode");
+}
+
+// Create the workflow runner — bridges the workflow to HTTP/SSE
+WorkflowRunner? runner = null;
+if (setup != null)
+{
+    var store = app.Services.GetRequiredService<ConversationStore>();
+    runner = new WorkflowRunner(
+        setup,
+        store,
+        app.Services.GetRequiredService<ILoggerFactory>().CreateLogger<WorkflowRunner>(),
+        app.Services.GetRequiredService<ActivitySource>());
+}
+
+// Fallback runner for degraded mode — returns unhealthy status
+runner ??= new WorkflowRunner(
+    new AgentSetupResult
     {
-        return Results.BadRequest(new ErrorResponse("message is required."));
-    }
+        Workflow = null,
+        CheckpointManager = CheckpointManager.CreateInMemory(),
+        WorkflowsByMode = new Dictionary<string, Workflow>(),
+    },
+    app.Services.GetRequiredService<ConversationStore>(),
+    app.Services.GetRequiredService<ILoggerFactory>().CreateLogger<WorkflowRunner>(),
+    app.Services.GetRequiredService<ActivitySource>());
 
-    var conversationId = string.IsNullOrWhiteSpace(request.ConversationId)
-        ? Guid.NewGuid().ToString("n")
-        : request.ConversationId;
+// Register routes
+Routes.MapRoutes(
+    app,
+    app.Services.GetRequiredService<ConversationStore>(),
+    runner,
+    config,
+    app.Services.GetRequiredService<IIncomingTokenValidator>());
+ActivityRoutes.MapRoutes(app, app.Services.GetRequiredService<ConversationStore>(), runner);
 
-    var reply = await agent.ReplyAsync(request.Message, app.Lifetime.ApplicationStopping);
-    return Results.Ok(new ChatResponse(conversationId, reply, agent.ModelName));
-});
+// Start server
+app.Urls.Clear();
+app.Urls.Add($"http://{config.Host}:{config.Port}");
+
+app.Logger.LogInformation("Agent container listening at http://{Host}:{Port}", config.Host, config.Port);
 
 app.Run();
-
-public sealed record ChatRequest(string? Message, string? ConversationId);
-public sealed record ChatResponse(string ConversationId, string Reply, string Model);
-public sealed record HealthResponse(string Status);
-public sealed record ErrorResponse(string Error);
-
-public sealed class AgentConfig
-{
-    public required string AzureOpenAIEndpoint { get; init; }
-    public required string Model { get; init; }
-    public required string Instructions { get; init; }
-
-    public static AgentConfig Load(IConfiguration configuration)
-    {
-        var endpoint = configuration["AZURE_OPENAI_ENDPOINT"];
-        if (string.IsNullOrWhiteSpace(endpoint))
-        {
-            throw new InvalidOperationException("AZURE_OPENAI_ENDPOINT is required.");
-        }
-
-        return new AgentConfig
-        {
-            AzureOpenAIEndpoint = endpoint,
-            Model = configuration["AGENT_MODEL"] ?? "gpt-5-mini",
-            Instructions = configuration["AGENT_INSTRUCTIONS"] ??
-                "You are a concise assistant. Answer directly and ask for missing details only when necessary.",
-        };
-    }
-}
-
-public sealed class ReferenceAgent
-{
-    private readonly AgentConfig _config;
-    private readonly DefaultAzureCredential _credential = new();
-    private readonly Workflow _workflow;
-
-    public ReferenceAgent(AgentConfig config)
-    {
-        _config = config;
-        var chatClient = new AzureOpenAIClient(new Uri(_config.AzureOpenAIEndpoint), _credential)
-            .GetChatClient(_config.Model)
-            .AsIChatClient();
-        var agent = chatClient.AsAIAgent(
-            instructions: _config.Instructions,
-            name: "CAIRAReferenceAgent");
-        var executor = agent.BindAsExecutor(emitEvents: true);
-        _workflow = new WorkflowBuilder(executor)
-            .WithOutputFrom(executor)
-            .Build();
-    }
-
-    public string ModelName => _config.Model;
-
-    public async Task<string> ReplyAsync(string userMessage, CancellationToken cancellationToken)
-    {
-        var response = new System.Text.StringBuilder();
-        var run = await InProcessExecution.OffThread.OpenStreamingAsync(_workflow, cancellationToken: cancellationToken);
-        await using (run)
-        {
-            await run.TrySendMessageAsync(userMessage);
-            await run.TrySendMessageAsync(new TurnToken(emitEvents: true));
-
-            await foreach (var evt in run.WatchStreamAsync().WithCancellation(cancellationToken))
-            {
-                if (evt is AgentResponseUpdateEvent update && update.Update?.Text is { Length: > 0 } text)
-                {
-                    response.Append(text);
-                }
-            }
-        }
-
-        return response.ToString();
-    }
-}
