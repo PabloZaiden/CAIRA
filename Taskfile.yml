@@ -19,18 +19,8 @@ tasks:
     deps:
       - task: bootstrap
     cmds:
-      - task: security
-      - ./scripts/validate.sh
-
-  security:
-    desc: Scan repository for secrets
-    cmds:
       - ./scripts/security.sh
-
-  test:
-    desc: Alias for complete validation
-    cmds:
-      - task: validate
+      - ./scripts/validate.sh
 
   clean:
     desc: Clean generated outputs

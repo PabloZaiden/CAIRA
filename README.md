@@ -45,3 +45,7 @@ task validate
 ```
 
 Validation is intentionally component-local: TypeScript components use npm scripts, C# uses .NET build, Terraform uses `fmt/init/validate`, and each app container has a Dockerfile that can be built independently.
+
+## Developing CAIRA
+
+For information related to developing CAIRA, start with the documentation in [`docs/`](docs/). It includes contributor guidance, local environment setup, troubleshooting notes, and the repository security posture.
