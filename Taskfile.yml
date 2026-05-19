@@ -15,10 +15,11 @@ tasks:
       - ./scripts/bootstrap.sh
 
   validate:
-    desc: Validate reference components
+    desc: Run complete repository validation
     deps:
       - task: bootstrap
     cmds:
+      - task: security
       - ./scripts/validate.sh
 
   security:
@@ -26,16 +27,10 @@ tasks:
     cmds:
       - ./scripts/security.sh
 
-  validate:pr:
-    desc: Run the same validation used by pull requests
-    cmds:
-      - task: security
-      - task: validate
-
   test:
-    desc: Alias for pull request validation
+    desc: Alias for complete validation
     cmds:
-      - task: validate:pr
+      - task: validate
 
   clean:
     desc: Clean generated outputs

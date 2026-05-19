@@ -16,7 +16,7 @@ Then run:
 
 ```bash
 task bootstrap
-task validate:pr
+task validate
 ```
 
 Validation is intentionally simple: secret scanning, component dependency install, package audits, TypeScript typecheck/build, .NET build/audit, Docker builds, and Terraform fmt/init/validate.

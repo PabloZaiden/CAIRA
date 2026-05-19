@@ -16,7 +16,7 @@ Keep new contributions focused on independently useful reference components with
 Run:
 
 ```bash
-task validate:pr
+task validate
 ```
 
 This is the same command used by the pull request workflow. It runs secret scanning and then delegates to each component's native tools:
