@@ -1,0 +1,26 @@
+{
+  "name": "caira-reference-api-openai-agents-sdk",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Minimal CAIRA API reference using the OpenAI Agents SDK against Azure OpenAI / Foundry model deployments.",
+  "scripts": {
+    "start": "node src/server.ts",
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "@azure/identity": "^4.13.0",
+    "@openai/agents": "^0.11.4",
+    "fastify": "^5.8.5",
+    "openai": "^6.37.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.0",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  }
+}

@@ -126,7 +126,7 @@ ${tfTestExitCode !== 'unknown' ? testBody : ''}
       if (flagCreateIssueOnFailedTest) {
         await github.rest.issues.create({
           ...context.repo,
-          title: `[bug] E2E Terraform Test Failure in \`${workDir}\``,
+          title: `[bug] Terraform validation failure in \`${workDir}\``,
           body: issueHeader + issueBody,
           labels: ['type/bug']
         });

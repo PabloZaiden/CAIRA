@@ -79,7 +79,7 @@ tasks:
             --skip-dirs "**/dist" \
             --skip-dirs "**/coverage" \
             --skip-dirs "**/site" \
-            --skip-dirs "strategy-builder/testing/container-health/tests/fixtures"
+            --skip-dirs "node_modules"
       - cmd: |
           checkov --config-file ./.github/linters/.checkov.yml --directory . \
             --skip-path node_modules \
@@ -90,5 +90,5 @@ tasks:
             --skip-path dist \
             --skip-path coverage \
             --skip-path site \
-            --skip-path strategy-builder/testing/container-health/tests/fixtures
+            --skip-path node_modules
     dir: '{{.ROOT_DIR}}'

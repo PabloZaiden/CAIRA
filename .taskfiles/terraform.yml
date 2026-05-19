@@ -1,5 +1,4 @@
 #  yaml-language-server: $schema=https://taskfile.dev/schema.json
-# docs: https://taskfile.dev
 ---
 version: "3"
 
@@ -7,7 +6,6 @@ includes:
   internal: internal.yml
 
 tasks:
-  # * Install Terraform
   install:terraform:
     desc: Install Terraform
     cmds:
@@ -24,9 +22,8 @@ tasks:
             && sudo apt -o DPkg::Lock::Timeout=-1 install terraform -y
         platforms: [linux]
 
-  # * Install Terraform-Docs
   install:terraform-docs:
-    desc: Install Terraform-Docs
+    desc: Install Terraform Docs
     vars:
       TERRAFORM_DOCS_VERSION: "v0.21.0"
       TERRAFORM_DOCS_URL: "https://github.com/terraform-docs/terraform-docs/releases/download/{{.TERRAFORM_DOCS_VERSION}}/terraform-docs-{{.TERRAFORM_DOCS_VERSION}}-{{.OS}}-{{.ARCH}}.tar.gz"
@@ -35,303 +32,36 @@ tasks:
         vars:
           APP: terraform-docs
       - cmd: |
-          download_url="{{.TERRAFORM_DOCS_URL}}"
-          curl --location -o ~/terraform-docs.tar.gz "${download_url}" \
+          curl --location -o ~/terraform-docs.tar.gz "{{.TERRAFORM_DOCS_URL}}" \
             && tar -xf ~/terraform-docs.tar.gz --directory ~/ \
             && rm -f ~/terraform-docs.tar.gz \
             && chmod +x ~/terraform-docs \
             && sudo mv ~/terraform-docs /usr/local/bin/
         platforms: [linux]
 
-  # * Install TFLint
-  install:tflint:
-    desc: Install TFLint
-    cmds:
-      - task: internal:install:brew
-        vars:
-          APP: tflint
-      - cmd: |
-          curl -L {{.GH_CURL_AUTH}} -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
-        platforms: [linux]
-
-  # * Install Terrascan
-  install:terrascan:
-    desc: Install Terrascan
-    vars:
-      TERRASCAN_VERSION: "1.19.9"
-      TERRASCAN_OS:
-        sh: |
-          if [[ "{{.OS}}" == "darwin" ]]; then
-            echo "Darwin"
-          else
-            echo "Linux"
-          fi
-      TERRASCAN_ARCH:
-        sh: |
-          if [[ "{{.ARCH}}" == "amd64" ]]; then
-            echo "x86_64"
-          else
-            echo "{{.ARCH}}"
-          fi
-      TERRASCAN_URL: "https://github.com/tenable/terrascan/releases/download/v{{.TERRASCAN_VERSION}}/terrascan_{{.TERRASCAN_VERSION}}_{{.TERRASCAN_OS}}_{{.TERRASCAN_ARCH}}.tar.gz"
-    cmds:
-      - task: internal:install:brew
-        vars:
-          APP: terrascan
-        platforms: [darwin]
-      - cmd: |
-          curl -L "{{.TERRASCAN_URL}}" > ~/terrascan.tar.gz
-          tar -xf ~/terrascan.tar.gz --directory ~/ terrascan \
-            && rm -f ~/terrascan.tar.gz \
-            && sudo install ~/terrascan /usr/local/bin/terrascan \
-            && rm ~/terrascan
-        platforms: [linux]
-
-  # * Install terrafmt
-  install:terrafmt:
-    vars:
-      TERRAFMT_VERSION: "v0.5.4"
-      # NOTE: Using PabloZaiden/terrafmt-dist as the source for terrafmt prebuilt binaries instead of the original katbyte/terrafmt repository.
-      # This repository is a trusted mirror/distribution point for prebuilt binaries, as the original does not provide them for all platforms.
-      TERRAFMT_URL: "https://github.com/PabloZaiden/terrafmt-dist/releases/download/{{.TERRAFMT_VERSION}}/terrafmt-{{.TERRAFMT_VERSION}}-{{.OS}}-{{.ARCH}}"
-
-    desc: Install terrafmt
-    cmds:
-      - cmd: |
-          download_url="{{.TERRAFMT_URL}}"
-          install_dir="$(brew --prefix)/bin"
-          echo "Downloading terrafmt from ${download_url}"
-          curl -L {{.GH_CURL_AUTH}} -o ~/terrafmt "${download_url}" \
-            && chmod +x ~/terrafmt \
-            && mv ~/terrafmt "${install_dir}/terrafmt"
-        platforms: [darwin]
-      - cmd: |
-          download_url="{{.TERRAFMT_URL}}"
-          echo "Downloading terrafmt from ${download_url}"
-          curl -L {{.GH_CURL_AUTH}} -o ~/terrafmt "${download_url}" \
-            && chmod +x ~/terrafmt \
-            && sudo mv ~/terrafmt /usr/local/bin/
-        platforms: [linux]
-
-  # * Tools
   tools:
     desc: Install Terraform tools
     cmds:
       - task: install:terraform
       - task: install:terraform-docs
-      - task: install:tflint
-      - task: install:terrafmt
-      - task: install:terrascan
 
-  # * Lint
   lint:
-    desc: Run Terraform linters
+    desc: Check Terraform formatting
     cmds:
-      - cmd: |
-          terraform fmt -check -recursive
-          tflint --init --config "$(pwd)/.github/linters/.tflint.hcl"
-          tflint --recursive --config "$(pwd)/.github/linters/.tflint.hcl"
-      - cmd: |
-          find . -type f -name "*.md" \
-            -not -path "*/.terraform/*" \
-            -not -path "*/node_modules/*" \
-            -not -path "*/.venv/*" \
-            -not -path "*/.dev/*" \
-            -not -path "*/dist/*" \
-            -not -path "*/coverage/*" \
-            -not -path "*/site/*" \
-            -exec terrafmt fmt {} --check --quiet \;
+      - terraform fmt -check -recursive reference-architectures/iac
     dir: "{{.ROOT_DIR}}"
 
-  # * Docs
   docs:
     desc: Generate Terraform documentation
     cmds:
-      - terraform-docs -c ./.github/configs/.terraform-docs.yml strategy-builder/infra/modules
-      - terraform-docs -c ./.github/configs/.terraform-docs.yml strategy-builder/infra/reference-architectures/foundry_agentic_app
-      - terraform-docs -c ./.github/configs/.terraform-docs.yml strategy-builder/infra/testing
-      - cmd: |
-          python3 <<'PY'
-          from pathlib import Path
-
-          BEGIN = "<!-- BEGIN_TF_DOCS -->"
-          END = "<!-- END_TF_DOCS -->"
-          SKIP_DIRS = {".git", "node_modules", ".terraform", ".venv", ".dev", "dist", "coverage", "site"}
-
-
-          def normalize_block(block: str) -> str:
-              lines = [line.rstrip() for line in block.splitlines()]
-
-              while lines and not lines[0]:
-                  lines.pop(0)
-
-              while lines and not lines[-1]:
-                  lines.pop()
-
-              normalized: list[str] = []
-              for line in lines:
-                  is_blank = line == ""
-                  is_table = line.startswith("|")
-
-                  if is_table and normalized and normalized[-1] != "":
-                      normalized.append("")
-
-                  if normalized and normalized[-1].startswith("|") and not is_blank and not is_table:
-                      normalized.append("")
-
-                  if is_blank:
-                      if normalized and normalized[-1] == "":
-                          continue
-                      if normalized:
-                          normalized.append("")
-                      continue
-
-                  normalized.append(line)
-
-              return "\n".join(normalized)
-
-
-          for readme in Path(".").rglob("README.md"):
-              if any(part in SKIP_DIRS for part in readme.parts):
-                  continue
-
-              text = readme.read_text()
-              if BEGIN not in text or END not in text:
-                  continue
-
-              prefix, remainder = text.split(BEGIN, maxsplit=1)
-              block, suffix = remainder.split(END, maxsplit=1)
-              normalized_block = normalize_block(block)
-
-              new_text = f"{prefix}{BEGIN}\n"
-              if normalized_block:
-                  new_text += f"\n{normalized_block}\n\n"
-              else:
-                  new_text += "\n"
-              new_text += f"{END}{suffix}"
-
-              if new_text != text:
-                  readme.write_text(new_text)
-          PY
+      - terraform-docs -c ./.github/configs/.terraform-docs.yml reference-architectures/iac/foundry
+      - terraform-docs -c ./.github/configs/.terraform-docs.yml reference-architectures/iac/container-apps
     dir: "{{.ROOT_DIR}}"
 
-  # * Clean
   clean:
-    desc: Clean up Terraform files
+    desc: Clean Terraform working files
     cmds:
-      - cmd: |
-          find ./ -name ".external_modules" -type d -exec rm -rf {} \;
-          find ./ -name ".terraform" -type d -exec rm -rf {} \;
-          find ./ -name "*.terraform.lock.*" -type f -exec rm -f {} \;
-          find ./ -name "*.tfstate*" -type f -exec rm -f {} \;
-    dir: "{{.ROOT_DIR}}"
-
-  env:login:
-    desc: Login to Azure for Terraform tests
-    silent: true
-    cmd: |
-      # ensure az login
-      if ! az account show &> /dev/null; then
-        az login
-      fi
-
-  env:setup:
-    desc: Set up Terraform test environment
-    preconditions:
-      - sh: |
-          # verify az is logged in or ARM_SUBSCRIPTION_ID is set
-          if [[ -z "${ARM_SUBSCRIPTION_ID:-}" ]]; then
-            if ! az account show &> /dev/null; then
-              exit 1
-            fi
-          fi
-        msg: "Azure CLI is not logged in. Run task tf:env:login to authenticate."
-    silent: true
-    cmd: |
-      # set ARM_SUBSCRIPTION_ID if not set
-      if [[ -z "${ARM_SUBSCRIPTION_ID:-}" ]]; then
-        echo "export ARM_SUBSCRIPTION_ID=$(az account show --query id -o tsv)"
-      fi
-
-  test:pools:deploy:
-    desc: Deploy infrastructure pools for integration tests
-    deps:
-      - env:login
-    silent: true
-    cmd: |
-      set -e
-
-      export_azure_sub=$(task tf:env:setup)
-
-      eval "$export_azure_sub"
-
-      echo "Deploying Private Foundry Pool..."
-      pushd strategy-builder/infra/testing/infrastructure_pools/private_foundry_pool > /dev/null
-
-      # if there is a terraform.tfstate file, skip init/apply
-      if [[ -f "terraform.tfstate" ]]; then
-        echo "Found existing terraform.tfstate file, skipping deployment."
-      else
-        terraform init
-        terraform apply -auto-approve
-      fi
-
-      popd > /dev/null
-
-      echo "Deploying Private Foundry Capability Hosts Pool..."
-      pushd strategy-builder/infra/testing/infrastructure_pools/private_foundry_capability_hosts_pool > /dev/null
-
-      # if there is a terraform.tfstate file, skip init/apply
-      if [[ -f "terraform.tfstate" ]]; then
-        echo "Found existing terraform.tfstate file, skipping deployment."
-      else
-        terraform init
-        terraform apply -auto-approve
-      fi
-      popd > /dev/null
-
-  test:pools:outputs:
-    desc: Output infrastructure pools for integration tests
-    silent: true
-    cmd: |
-      set -e
-
-      echo "Private Foundry Pool outputs:"
-      pushd strategy-builder/infra/testing/infrastructure_pools/private_foundry_pool > /dev/null
-      terraform output
-      popd > /dev/null
-
-      echo "Private Foundry Capability Hosts Pool outputs:"
-      pushd strategy-builder/infra/testing/infrastructure_pools/private_foundry_capability_hosts_pool > /dev/null
-      terraform output
-      popd > /dev/null
-
-  test:pools:outputs:env:
-    desc: Export infrastructure pool outputs as environment variables
-    silent: true
-    cmd: |
-      set -e
-
-      # Durable Infrastructure Pools - Private Foundry Capability Hosts
-      pushd strategy-builder/infra/testing/infrastructure_pools/private_foundry_capability_hosts_pool > /dev/null
-      echo "export TF_VAR_private_foundry_capability_hosts_pool_resource_group_name=\"$(terraform output -raw resource_group_name)\""
-      echo "export TF_VAR_private_foundry_capability_hosts_pool_vnet_name=\"$(terraform output -json connection | jq -r '.virtual_network_name')\""
-      echo "export TF_VAR_private_foundry_capability_hosts_pool_cosmosdb_account_name=\"$(terraform output -raw cosmosdb_account_name)\""
-      echo "export TF_VAR_private_foundry_capability_hosts_pool_storage_account_name=\"$(terraform output -raw storage_account_name)\""
-      echo "export TF_VAR_private_foundry_capability_hosts_pool_search_service_name=\"$(terraform output -raw search_service_name)\""
-      popd > /dev/null
-
-      # Durable Infrastructure Pools - Private Foundry
-      pushd strategy-builder/infra/testing/infrastructure_pools/private_foundry_pool > /dev/null
-      echo "export TF_VAR_private_foundry_pool_resource_group_name=\"$(terraform output -raw resource_group_name)\""
-      echo "export TF_VAR_private_foundry_pool_vnet_name=\"$(terraform output -json connection | jq -r '.virtual_network_name')\""
-      popd > /dev/null
-
-  get:modules:
-    desc: Get all TF modules
-    vars:
-      PATH: "{{if empty .CLI_ARGS | not}}{{.CLI_ARGS}}{{else}}strategy-builder/infra/modules{{end}}"
-    silent: true
-    cmds:
-      - cmd: find "{{osClean .PATH}}" -mindepth 2 -not -path "*/.*" -type f -name "*.tf" -exec dirname {} \; | sort -u
+      - find reference-architectures -name ".terraform" -type d -prune -exec rm -rf {} +
+      - find reference-architectures -name ".terraform.lock.hcl" -type f -delete
+      - find reference-architectures -name "*.tfstate*" -type f -delete
     dir: "{{.ROOT_DIR}}"

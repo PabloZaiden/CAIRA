@@ -7,8 +7,6 @@ queries:
   - uses: security-extended
 paths-ignore:
   - dist/**
-  - deployment-strategies/**
-  - strategy-builder/testing/**
   - "**/tests/**"
   - "**/*.test.ts"
   - "**/*.test.tsx"

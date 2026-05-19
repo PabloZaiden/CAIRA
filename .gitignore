@@ -76,8 +76,6 @@ downloads/
 eggs/
 .eggs/
 lib/
-!strategy-builder/scripts/lib/
-!strategy-builder/scripts/lib/**
 lib64/
 parts/
 sdist/
@@ -223,22 +221,6 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
-
-# ignore e2e files
-**/terraform/reference_implementations/**/*.log
-**/terraform/reference_implementations/**/*.txt
-**/terraform/reference_implementations/**/report.md
-
-# ignore packaged files
-
-ra_packages/
-
-# ignore generated infrastructure
-src/cli/output/*.tf
-src/cli/configs/*.yaml
-src/cli/configs/*.json
-!src/cli/configs/test_*.json
-!src/cli/configs/test_*.yaml
 
 # generated files
 .lycheecache

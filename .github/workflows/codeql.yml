@@ -58,10 +58,7 @@ jobs:
           set -euo pipefail
 
           projects=(
-            "strategy-builder/components/agent/csharp/microsoft-agent-framework/CairaAgent.csproj"
-            "strategy-builder/components/api/csharp/CairaApi.csproj"
-            "deployment-strategies/foundry_agentic_app/csharp-microsoft-agent-framework-aca/agent/CairaAgent.csproj"
-            "deployment-strategies/foundry_agentic_app/csharp-microsoft-agent-framework-aca/api/CairaApi.csproj"
+            "reference-architectures/app/api/csharp/microsoft-agent-framework/Caira.Api.MicrosoftAgentFramework.csproj"
           )
 
           for project in "${projects[@]}"; do
