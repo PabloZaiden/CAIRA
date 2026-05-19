@@ -144,7 +144,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
 
   // ---- Routes ----
   registerRoutes(app, openaiClient);
-  registerActivityRoutes(app, openaiClient, 'openai-agents-sdk');
+  registerActivityRoutes(app, openaiClient);
 
   return app;
 }

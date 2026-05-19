@@ -116,13 +116,6 @@ public static class ActivityRoutes
             var resolved = modes.Values.Sum(m => m.Resolved);
             return Results.Ok(new ActivityStats(list.Items.Count, list.Items.Count - resolved, resolved, modes));
         });
-
-        app.MapPost("/chat", async (ActivityMessageRequest request) =>
-        {
-            var conversation = conversations.Create(new() { ["mode"] = "discovery", ["chat"] = true });
-            var message = await runner.SendMessageAsync(conversation.Id, request.Message);
-            return Results.Ok(new ChatResponse(conversation.Id, message?.Content ?? "", "microsoft-agent-framework"));
-        });
     }
 
     private static IResult Start(string mode, ConversationStore conversations)
@@ -194,4 +187,3 @@ public sealed record ModeStats(int Total, int Active, int Resolved);
 public sealed record ActivityStats(int TotalConversations, int ActiveConversations, int ResolvedConversations, Dictionary<string, ModeStats> ByMode);
 public sealed record DependencyHealth(string Name, string Status, int? LatencyMs = null);
 public sealed record ApiHealthResponse(string Status, List<DependencyHealth> Dependencies);
-public sealed record ChatResponse(string ConversationId, string Reply, string Model);

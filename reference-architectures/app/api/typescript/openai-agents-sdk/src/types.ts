@@ -1,6 +1,6 @@
 /**
  * Shared types for the agent container.
- * Maps to contracts/agent-api.openapi.yaml schemas.
+ * Mirrors the core agent API described in reference-architectures/app/API_CONTRACT.md.
  */
 
 export interface Conversation {

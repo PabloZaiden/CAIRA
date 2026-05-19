@@ -1,7 +1,7 @@
 /**
  * HTTP/SSE client for the business activity API.
  *
- * Calls the business API endpoints defined in contracts/backend-api.openapi.yaml.
+ * Calls the activity routes described in reference-architectures/app/API_CONTRACT.md.
  * Supports both JSON responses and SSE streaming for message.
  */
 
@@ -140,7 +140,7 @@ export class ActivityClient {
     let buffer = '';
 
     try {
-      for (;;) {
+      for (; ;) {
         if (signal?.aborted) break;
         const result = await reader.read();
         if (result.done) break;
@@ -275,11 +275,11 @@ export class ActivityClient {
               createdAt: new Date().toISOString(),
               ...(parsed['usage']
                 ? {
-                    usage: parsed['usage'] as {
-                      promptTokens?: number | undefined;
-                      completionTokens?: number | undefined;
-                    }
+                  usage: parsed['usage'] as {
+                    promptTokens?: number | undefined;
+                    completionTokens?: number | undefined;
                   }
+                }
                 : {})
             }
           };

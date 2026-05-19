@@ -85,7 +85,7 @@ function captureResolvedEvent(chunk: string): ActivityResolution | undefined {
   return JSON.parse(dataLine.slice('data: '.length)) as ActivityResolution;
 }
 
-export function registerActivityRoutes(app: FastifyInstance, runtime: AgentRuntime, modelName: string): void {
+export function registerActivityRoutes(app: FastifyInstance, runtime: AgentRuntime): void {
   async function start(mode: ActivityMode, req: FastifyRequest, reply: FastifyReply): Promise<void> {
     try {
       const conversation = await runtime.createConversation({ mode });
@@ -204,20 +204,5 @@ export function registerActivityRoutes(app: FastifyInstance, runtime: AgentRunti
       resolvedConversations,
       byMode
     });
-  });
-
-  app.post('/chat', async (req, reply) => {
-    const body = req.body as { message?: unknown; conversationId?: unknown } | undefined;
-    const message = body?.message;
-    if (typeof message !== 'string' || message.length === 0) {
-      errorReply(reply, 400, 'bad_request', 'Missing required field: message');
-      return;
-    }
-    const conversationId =
-      typeof body?.conversationId === 'string' && body.conversationId.length > 0
-        ? body.conversationId
-        : (await runtime.createConversation({ mode: 'discovery', chat: true })).id;
-    const response = await runtime.sendMessage(conversationId, message);
-    await reply.send({ conversationId, reply: response?.content ?? '', model: modelName });
   });
 }

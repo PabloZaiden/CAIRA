@@ -1,13 +1,14 @@
 /**
  * Fastify route definitions for the agent container API.
  *
- * Implements contracts/agent-api.openapi.yaml:
+ * Implements the core agent API described in reference-architectures/app/API_CONTRACT.md:
  *   POST   /conversations                          -> createConversation
  *   GET    /conversations                          -> listConversations
  *   GET    /conversations/:conversationId          -> getConversation
  *   POST   /conversations/:conversationId/messages -> sendMessage (SSE or JSON)
  *   GET    /health                                 -> health check
  *   GET    /metrics                                -> Prometheus metrics
+ *   GET    /identity                               -> credential diagnostics
  */
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';

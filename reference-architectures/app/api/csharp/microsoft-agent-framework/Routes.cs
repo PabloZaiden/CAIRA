@@ -1,18 +1,23 @@
 /// <summary>
 /// Endpoint registration for the agent container API.
 ///
-/// Implements contracts/agent-api.openapi.yaml:
+/// Implements the core agent API described in reference-architectures/app/API_CONTRACT.md:
 ///   POST   /conversations                          -> createConversation
 ///   GET    /conversations                          -> listConversations
 ///   GET    /conversations/{conversationId}          -> getConversation
 ///   POST   /conversations/{conversationId}/messages -> sendMessage (SSE or JSON)
 ///   GET    /health                                 -> health check
 ///   GET    /metrics                                -> Prometheus metrics
+///   GET    /identity                               -> credential diagnostics
 ///
 /// Routes are thin — they parse HTTP, delegate to ConversationStore for
 /// CRUD and WorkflowRunner for agent execution, and format responses.
 /// No agent logic lives here.
 /// </summary>
+
+using Azure.Core;
+using Azure.Identity;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace CairaAgent;
 
@@ -245,10 +250,85 @@ public static class Routes
             };
             return Results.Text(string.Join('\n', lines), "text/plain");
         });
+
+        // GET /identity
+        app.MapGet("/identity", async (ILogger<Program> logger) =>
+        {
+            try
+            {
+                var credential = CreateAzureCredential();
+                var tokenResponse = await credential.GetTokenAsync(
+                    new TokenRequestContext(["https://management.azure.com/.default"]),
+                    CancellationToken.None);
+
+                if (string.IsNullOrWhiteSpace(tokenResponse.Token))
+                {
+                    throw new InvalidOperationException("Failed to acquire Azure management token");
+                }
+
+                var claims = DecodeJwtPayload(tokenResponse.Token);
+                return Results.Ok(new
+                {
+                    authenticated = true,
+                    identity = new
+                    {
+                        tenantId = GetClaimValue(claims, "tid"),
+                        objectId = GetClaimValue(claims, "oid"),
+                        displayName = GetClaimValue(claims, "name") ?? GetClaimValue(claims, "appid"),
+                        type = InferIdentityType(claims),
+                    },
+                });
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to get identity");
+                return Results.Ok(new
+                {
+                    authenticated = false,
+                    reason = $"Credential error: {ex.Message}",
+                });
+            }
+        });
     }
 
     private static bool IsValidId(string s)
     {
         return s.Length > 0 && System.Text.RegularExpressions.Regex.IsMatch(s, @"^[\w-]+$");
+    }
+
+    private static TokenCredential CreateAzureCredential()
+    {
+        var clientId = Environment.GetEnvironmentVariable("AZURE_CLIENT_ID");
+        return string.IsNullOrWhiteSpace(clientId)
+            ? new DefaultAzureCredential()
+            : new DefaultAzureCredential(new DefaultAzureCredentialOptions
+            {
+                ManagedIdentityClientId = clientId,
+            });
+    }
+
+    private static JwtPayload DecodeJwtPayload(string token)
+    {
+        try
+        {
+            return new JwtSecurityTokenHandler().ReadJwtToken(token).Payload;
+        }
+        catch
+        {
+            return new JwtPayload();
+        }
+    }
+
+    private static string? GetClaimValue(JwtPayload claims, string claimName)
+    {
+        return claims.TryGetValue(claimName, out var value) ? value?.ToString() : null;
+    }
+
+    private static string InferIdentityType(JwtPayload claims)
+    {
+        if (claims.ContainsKey("xms_mirid")) return "managedIdentity";
+        if (claims.ContainsKey("appid") && !claims.ContainsKey("name")) return "servicePrincipal";
+        if (claims.ContainsKey("name")) return "user";
+        return "unknown";
     }
 }

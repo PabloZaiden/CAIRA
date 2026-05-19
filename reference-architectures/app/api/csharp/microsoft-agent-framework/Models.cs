@@ -1,5 +1,5 @@
 /// <summary>
-/// Types matching contracts/agent-api.openapi.yaml schemas.
+/// Types matching the core agent API described in reference-architectures/app/API_CONTRACT.md.
 /// </summary>
 
 using System.Text.Json.Serialization;

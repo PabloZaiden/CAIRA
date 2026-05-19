@@ -128,7 +128,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
 
   // ---- Routes ----
   registerRoutes(app, foundryClient);
-  registerActivityRoutes(app, foundryClient, 'foundry-agent-service');
+  registerActivityRoutes(app, foundryClient);
 
   return app;
 }

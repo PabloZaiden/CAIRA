@@ -1,8 +1,8 @@
 /**
  * Frontend type definitions.
  *
- * These mirror the business API types defined in contracts/backend-api.openapi.yaml
- * and returned by the API container (components/api/typescript/src/types.ts).
+ * These mirror the activity routes described in reference-architectures/app/API_CONTRACT.md
+ * and returned by the API container.
  */
 
 // ---------- ActivityConversation types ----------
