@@ -15,11 +15,13 @@ locals {
     PORT                  = "4000"
     AZURE_OPENAI_ENDPOINT = var.azure_openai_endpoint
     AGENT_MODEL           = var.agent_model
+    SKIP_AUTH             = "true"
   })
 
   frontend_env = merge(var.frontend_env, {
     PORT         = "8080"
     API_BASE_URL = "https://${azurerm_container_app.api.ingress[0].fqdn}"
+    SKIP_AUTH    = "true"
   })
 }
 
@@ -79,7 +81,7 @@ resource "azurerm_container_app" "api" {
 
   template {
     min_replicas = 1
-    max_replicas = 3
+    max_replicas = 1
 
     container {
       name   = "api"
