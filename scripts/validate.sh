@@ -7,7 +7,6 @@ run_npm() {
   local dir="$1"
   npm audit --prefix "${dir}" --audit-level=moderate
   npm run typecheck --prefix "${dir}" --silent
-  npm test --prefix "${dir}" --silent
   npm run build --prefix "${dir}" --silent
   docker build --quiet "${dir}" >/dev/null
 }

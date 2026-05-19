@@ -1,52 +1,13 @@
-#  yaml-language-server: $schema=https://taskfile.dev/schema.json
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
 ---
 version: "3"
 
-includes:
-  internal:
-    taskfile: .taskfiles/internal.yml
-  env:
-    taskfile: .taskfiles/environment.yml
-  sh:
-    taskfile: .taskfiles/bash.yml
-  gh:
-    taskfile: .taskfiles/github.yml
-  js:
-    taskfile: .taskfiles/javascript.yml
-  md:
-    taskfile: .taskfiles/markdown.yml
-  sec:
-    taskfile: .taskfiles/security.yml
-  spell:
-    taskfile: .taskfiles/spell.yml
-  tf:
-    taskfile: .taskfiles/terraform.yml
-  yml:
-    taskfile: .taskfiles/yaml.yml
-  site:
-    taskfile: .taskfiles/site.yml
-
 tasks:
   default:
-    desc: Default task
+    desc: List tasks
     silent: true
     cmds:
-      - cmd: task --list
-        ignore_error: true
-
-  tools:
-    desc: Install repository tools
-    cmds:
-      - task: env:tools
-      - task: sh:tools
-      - task: gh:tools
-      - task: js:tools
-      - task: md:tools
-      - task: sec:tools
-      - task: spell:tools
-      - task: tf:tools
-      - task: yml:tools
-      - task: site:tools
+      - task --list
 
   bootstrap:
     desc: Install reference component dependencies
@@ -54,37 +15,32 @@ tasks:
       - ./scripts/bootstrap.sh
 
   validate:
-    desc: Validate every reference component
+    desc: Validate reference components
     deps:
       - task: bootstrap
     cmds:
       - ./scripts/validate.sh
 
-  lint:
-    desc: Run repository-level static checks
+  security:
+    desc: Scan repository for secrets
     cmds:
-      - task: sh:lint
-      - task: gh:lint
-      - task: md:lint
-      - task: sec:lint
-      - task: spell:lint
-      - task: yml:lint
-
-  test:
-    desc: Alias for component validation
-    cmds:
-      - task: validate
+      - ./scripts/security.sh
 
   validate:pr:
-    desc: Run pull request validation
+    desc: Run the same validation used by pull requests
     cmds:
-      - task: lint
+      - task: security
       - task: validate
-      - task site:build -- --strict
+
+  test:
+    desc: Alias for pull request validation
+    cmds:
+      - task: validate:pr
 
   clean:
     desc: Clean generated outputs
     cmds:
-      - task: tf:clean
-      - task: site:clean
+      - find reference-architectures -name ".terraform" -type d -prune -exec rm -rf {} +
+      - find reference-architectures -name ".terraform.lock.hcl" -type f -delete
+      - find reference-architectures -name "*.tfstate*" -type f -delete
       - find reference-architectures -type d \( -name node_modules -o -name dist -o -name bin -o -name obj -o -name .terraform \) -prune -exec rm -rf {} +

@@ -52,19 +52,13 @@ jobs:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
 
-      - name: Build C# projects
+      - name: Build C# project
         if: ${{ matrix.language == 'csharp' }}
         run: |
           set -euo pipefail
-
-          projects=(
-            "reference-architectures/app/api/csharp/microsoft-agent-framework/Caira.Api.MicrosoftAgentFramework.csproj"
-          )
-
-          for project in "${projects[@]}"; do
-            dotnet restore "${project}"
-            dotnet build "${project}" --configuration Release --no-restore
-          done
+          project="reference-architectures/app/api/csharp/microsoft-agent-framework/Caira.Api.MicrosoftAgentFramework.csproj"
+          dotnet restore "${project}"
+          dotnet build "${project}" --configuration Release --no-restore
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@9e907b5e64f6b83e7804b09294d44122997950d6 # v4.32.3

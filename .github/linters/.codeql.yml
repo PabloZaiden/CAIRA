@@ -1,12 +1,10 @@
 ---
 name: CodeQL config
 queries:
-  # - name: Run custom queries
-  #   uses: ./queries
-  # - uses: security-experimental
   - uses: security-extended
 paths-ignore:
   - dist/**
+  - "**/node_modules/**"
   - "**/tests/**"
   - "**/*.test.ts"
   - "**/*.test.tsx"

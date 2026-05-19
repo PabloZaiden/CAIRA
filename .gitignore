@@ -198,9 +198,6 @@ venv.bak/
 # Rope project settings
 .ropeproject
 
-# mkdocs documentation
-/site
-
 # mypy
 .mypy_cache/
 .dmypy.json
@@ -223,8 +220,6 @@ cython_debug/
 #.idea/
 
 # generated files
-.lycheecache
-.ruff_cache/
 .external_modules/
 test*-results.xml
 *.out

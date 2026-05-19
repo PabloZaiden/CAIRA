@@ -1,5 +1,0 @@
----
-quiet: true
-download-external-modules: true
-skip-framework:
-  - terraform

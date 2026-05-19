@@ -1,73 +1,33 @@
 # Contributing to CAIRA
 
-Welcome to CAIRA (Composable AI Reference Architectures)! We're excited that you're interested in contributing to this open-source project that provides different reference architectures and infrastructure patterns for AI workloads on Azure.
+CAIRA is a small reference library for coding agents building Azure AI solutions. If you want to use CAIRA in your own solution, start with the skill in `skills/caira/`. This guide is for repository contributors.
 
-If your goal is to use CAIRA in your own solution, start with the CAIRA skill defined in `skills/caira/`. This guide is for contributors who want to change the CAIRA repository itself.
+## Contributor workflow
 
-## Microsoft CLA
+Use the devcontainer when possible. For local development, install only the tools needed by the reference components:
 
-This project welcomes contributions and suggestions. Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to grant us the rights to use your contribution. When you submit a pull request, a CLA bot will automatically determine whether you need to provide a CLA.
+- Task
+- Node.js 24
+- .NET 10 SDK
+- Terraform
+- Docker
+
+Then run:
+
+```bash
+task bootstrap
+task validate:pr
+```
+
+Validation is intentionally simple: secret scanning, component dependency install, package audits, TypeScript typecheck/build, .NET build/audit, Docker builds, and Terraform fmt/init/validate.
+
+## Guidelines
+
+- Keep each reference component independent and readable.
+- Do not reintroduce generated deployment strategies, local auth sidecars, site generation, repo-wide lint toolchains, or cross-component test orchestration.
+- Never commit secrets or credentials.
+- Keep documentation focused on how agents should use and maintain the references.
 
 ## Code of Conduct
 
 This project has adopted the [Microsoft Open Source Code of Conduct](CODE_OF_CONDUCT.md). For more information, see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com).
-
-## How Can I Contribute?
-
-There are many ways to contribute to CAIRA:
-
-- **Report bugs** - Log a Bug Report with detailed reproduction steps
-- **Suggest enhancements** - Open a Feature Request issue to discuss new features
-- **Submit code changes** - Fix bugs or implement features - please ensure there is an associated issue with the PR!
-- **Improve documentation** - Help make our docs clearer and more comprehensive
-- **Review pull requests** - Help review and test changes from other contributors
-
-## Contributor Quick Start
-
-1. **Read our [Code of Conduct](CODE_OF_CONDUCT.md)**
-1. **Set up your contributor environment** - Refer to the [developer guide](docs/developer.md)
-1. **Choose your contribution type** - Refer to [Types of Contributions](docs/contributing/types_of_contributions.md)
-1. **Follow our development workflow** - Refer to [Development Workflow](docs/contributing/development_workflow.md)
-1. **Submit a pull request** - Refer to [Pull Request Guide](docs/contributing/pull_request_guide.md)
-
-## Essential Guidelines
-
-### Code Quality
-
-- Use our linting tools: `task lint`
-- Write clear, maintainable code
-
-### Security
-
-- Never commit secrets or credentials
-- Report vulnerabilities via the resources available in [security guidelines](SECURITY.md).
-- Follow Azure security best practices
-
-### Testing
-
-```shell
-# Run all tests
-task test
-
-# Run linting
-task lint
-```
-
-## Detailed Guides
-
-| Topic                    | Guide                                                                   |
-|--------------------------|-------------------------------------------------------------------------|
-| **Contribution Types**   | [Contribution Types Guide](docs/contributing/types_of_contributions.md) |
-| **Development Workflow** | [Developer Workflow Process](docs/contributing/development_workflow.md) |
-| **Pull Request Process** | [Pull Request Guide](docs/contributing/pull_request_guide.md)           |
-| **Code Review**          | [Code Review Guidelines](docs/contributing/code_review_guidelines.md)   |
-| **Linting Tools**        | [Linters](docs/contributing/linters.md)                                 |
-
-## Getting Help
-
-- **Documentation**: Check our [docs](docs/) directory
-- **Issues**: Search existing issues or create a new one
-- **Developer Guide**: Consult the [developer guide](docs/developer.md) for setup help
-- **CAIRA Skill**: Use `skills/caira/SKILL.md` when you want CAIRA guidance for your own solution instead of changing CAIRA itself
-
-Thank you for contributing to CAIRA!

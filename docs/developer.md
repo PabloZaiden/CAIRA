@@ -16,13 +16,13 @@ Do not add generator metadata, deployment-strategy manifests, local auth sidecar
 Run:
 
 ```bash
-task validate
+task validate:pr
 ```
 
-The root validation delegates to each component's native tools:
+This is the same command used by the pull request workflow. It runs secret scanning and then delegates to each component's native tools:
 
-- TypeScript: `npm run typecheck`, `npm test`, `npm run build`, Docker build.
-- C#: `dotnet build`, Docker build.
+- TypeScript: `npm run typecheck`, `npm run build`, Docker build.
+- C#: `dotnet build`, vulnerability audit, Docker build.
 - Terraform: `terraform fmt -check`, `terraform init -backend=false`, `terraform validate`.
 
 Prefer adding a local script to a component over adding repo-wide orchestration.
