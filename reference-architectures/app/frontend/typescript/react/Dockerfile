@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1
-
 # ---------- Stage 1: Build React SPA ----------
 FROM node:24-alpine AS build
 

@@ -14,13 +14,28 @@ tasks:
     cmds:
       - ./scripts/bootstrap.sh
 
-  validate:
-    desc: Run complete repository validation
-    deps:
-      - task: bootstrap
+  security:
+    desc: Scan repository for secrets
     cmds:
       - ./scripts/security.sh
-      - ./scripts/validate.sh
+
+  validate:code:
+    desc: Validate code and infrastructure
+    cmds:
+      - ./scripts/validate-code.sh
+
+  validate:containers:
+    desc: Build reference component containers
+    cmds:
+      - ./scripts/validate-containers.sh
+
+  validate:
+    desc: Run complete repository validation
+    cmds:
+      - task: bootstrap
+      - task: security
+      - task: validate:code
+      - task: validate:containers
 
   clean:
     desc: Clean generated outputs

@@ -25,4 +25,6 @@ This is the same command used by the pull request workflow. It runs secret scann
 - C#: `dotnet build`, vulnerability audit, Docker build.
 - Terraform: `terraform fmt -check`, `terraform init -backend=false`, `terraform validate`.
 
+For narrower checks, run `task security`, `task validate:code`, or `task validate:containers`.
+
 Prefer component-local scripts that preserve independent validation.

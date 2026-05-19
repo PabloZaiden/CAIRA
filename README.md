@@ -44,7 +44,7 @@ task bootstrap
 task validate
 ```
 
-Validation is intentionally component-local: TypeScript components use npm scripts, C# uses .NET build, Terraform uses `fmt/init/validate`, and each app container has a Dockerfile that can be built independently.
+Validation is intentionally component-local: TypeScript components use npm scripts, C# uses .NET build, Terraform uses `fmt/init/validate`, and each app container has a Dockerfile that can be built independently. You can also run pieces independently with `task security`, `task validate:code`, and `task validate:containers`.
 
 ## Developing CAIRA
 

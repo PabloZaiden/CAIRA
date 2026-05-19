@@ -20,6 +20,7 @@ task validate
 ```
 
 Validation is intentionally simple: secret scanning, component dependency install, package audits, TypeScript typecheck/build, .NET build/audit, Docker builds, and Terraform fmt/init/validate.
+Run `task security`, `task validate:code`, or `task validate:containers` when you need to isolate one part of the validation flow.
 
 ## Guidelines
 
