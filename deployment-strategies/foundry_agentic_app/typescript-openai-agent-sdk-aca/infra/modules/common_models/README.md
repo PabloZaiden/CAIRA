@@ -14,13 +14,11 @@ keywords:
 
 # Common Models Terraform Module
 
-Provides a catalog of commonly used model deployment specifications as Terraform outputs. Intended to be consumed by other modules (e.g., `ai_foundry`) to supply the `model_deployments` input.
+Provides a catalog of commonly used model deployment specifications as Terraform outputs. The Foundry reference architecture converts these outputs into the `ai_model_deployments` map expected by the Azure AI Foundry AVM.
 
 ## Overview
 
-This module does not create any resources. It exports a set of objects representing model deployments compatible with `azurerm_cognitive_deployment` in an Azure AI Foundry account.
-
-Some consumers may support an optional `sku` block on each item with fields `name` and `capacity`. You can add or override `sku` at the call site if needed.
+This module does not create any resources. It exports a set of objects representing model names, formats, and versions for an Azure AI Foundry account.
 
 ## Usage
 
@@ -29,26 +27,51 @@ module "common_models" {
   source = "../../modules/common_models"
 }
 
-module "ai_foundry" {
-  source = "../../modules/ai_foundry"
-
-  # ... other required inputs ...
-
-  model_deployments = [
-    module.common_models.gpt_5_2_chat,
-    module.common_models.gpt_5_nano,
-    module.common_models.text_embedding_3_large
-  ]
+locals {
+  model_deployments = {
+    for model in [
+      module.common_models.gpt_5_2_chat,
+      module.common_models.gpt_5_nano,
+      module.common_models.text_embedding_3_large
+    ] : model.name => {
+      name = model.name
+      model = {
+        format  = model.format
+        name    = model.name
+        version = model.version
+      }
+      scale = {
+        type     = "GlobalStandard"
+        capacity = 50
+      }
+    }
+  }
 }
 ```
 
-To override SKU per deployment:
+Pass `local.model_deployments` to the Foundry AVM `ai_model_deployments` input.
+
+To choose a different scale for a deployment, override the `scale` object at the call site:
 
 ```terraform
-model_deployments = [
-  merge(module.common_models.gpt_5_2_chat, { sku = { name = "GlobalStandard", capacity = 2 } }),
-  module.common_models.text_embedding_3_large
-]
+locals {
+  model_deployments = {
+    for model in [
+    module.common_models.gpt_5_2_chat,
+    module.common_models.text_embedding_3_large
+    ] : model.name => {
+      name  = model.name
+      model = model
+      scale = model.name == "gpt-5.2-chat" ? {
+        type     = "GlobalStandard"
+        capacity = 2
+        } : {
+        type     = "GlobalStandard"
+        capacity = 50
+      }
+    }
+  }
+}
 ```
 
 <!-- BEGIN_TF_DOCS -->

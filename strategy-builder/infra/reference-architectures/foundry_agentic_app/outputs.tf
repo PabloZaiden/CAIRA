@@ -10,22 +10,22 @@ output "ai_foundry_name" {
 
 output "ai_foundry_endpoint" {
   description = "The endpoint URL of the AI Foundry account."
-  value       = module.foundry.ai_foundry_endpoint
+  value       = "https://${module.foundry.ai_foundry_name}.cognitiveservices.azure.com/"
 }
 
 output "ai_foundry_default_project_id" {
   description = "The resource ID of the default AI Foundry project."
-  value       = module.default_project.ai_foundry_project_id
+  value       = module.foundry.ai_foundry_project_id["default"]
 }
 
 output "ai_foundry_default_project_name" {
   description = "The name of the default AI Foundry project."
-  value       = module.default_project.ai_foundry_project_name
+  value       = module.foundry.ai_foundry_project_name["default"]
 }
 
 output "ai_foundry_default_project_identity_principal_id" {
   description = "The principal ID of the default AI Foundry project identity."
-  value       = module.default_project.ai_foundry_project_identity_principal_id
+  value       = module.foundry.ai_foundry_project_system_identity_principal_id["default"]
 }
 
 output "resource_group_id" {

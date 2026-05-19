@@ -30,7 +30,7 @@ variable "allowed_cidr" {
 
 variable "enable_telemetry" {
   type        = bool
-  description = "Controls whether AVM telemetry and partner attribution are enabled."
+  description = "Controls whether AVM telemetry is enabled."
   default     = true
 }
 
