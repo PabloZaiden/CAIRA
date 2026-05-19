@@ -1,0 +1,25 @@
+{
+  "name": "caira-reference-api-foundry-agent-service",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Minimal CAIRA API reference using Azure AI Foundry Agent Service.",
+  "scripts": {
+    "start": "node src/server.ts",
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "@azure/ai-projects": "^2.1.1",
+    "@azure/identity": "^4.13.0",
+    "fastify": "^5.8.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.0",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  }
+}
