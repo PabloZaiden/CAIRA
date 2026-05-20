@@ -13,6 +13,22 @@ output "ai_foundry_name" {
   value       = module.foundry.ai_foundry_name
 }
 
+output "application_insights_connection_string" {
+  description = "Application Insights connection string for Foundry observability and app telemetry."
+  value       = azurerm_application_insights.this.connection_string
+  sensitive   = true
+}
+
+output "application_insights_name" {
+  description = "Application Insights component name for Foundry observability."
+  value       = azurerm_application_insights.this.name
+}
+
+output "log_analytics_workspace_name" {
+  description = "Log Analytics workspace receiving Foundry diagnostics."
+  value       = azurerm_log_analytics_workspace.this.name
+}
+
 output "azure_openai_endpoint" {
   description = "OpenAI-compatible endpoint for model SDK clients."
   value       = "https://${module.foundry.ai_foundry_name}.cognitiveservices.azure.com/"

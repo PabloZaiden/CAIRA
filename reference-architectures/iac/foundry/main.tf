@@ -25,6 +25,24 @@ resource "azurerm_resource_group" "this" {
   tags     = var.tags
 }
 
+resource "azurerm_log_analytics_workspace" "this" {
+  name                = "law-${local.base_name}"
+  location            = azurerm_resource_group.this.location
+  resource_group_name = azurerm_resource_group.this.name
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
+  tags                = var.tags
+}
+
+resource "azurerm_application_insights" "this" {
+  name                = "appi-${local.base_name}"
+  location            = azurerm_resource_group.this.location
+  resource_group_name = azurerm_resource_group.this.name
+  application_type    = "web"
+  workspace_id        = azurerm_log_analytics_workspace.this.id
+  tags                = var.tags
+}
+
 module "foundry" {
   source  = "Azure/avm-ptn-aiml-ai-foundry/azurerm"
   version = "0.10.1"
@@ -37,6 +55,16 @@ module "foundry" {
 
   create_byor              = false
   create_private_endpoints = false
+
+  diagnostic_settings = {
+    to_law = {
+      name                           = "diag-to-law"
+      workspace_resource_id          = azurerm_log_analytics_workspace.this.id
+      log_analytics_destination_type = "Dedicated"
+      log_groups                     = ["allLogs"]
+      metric_categories              = ["AllMetrics"]
+    }
+  }
 
   ai_foundry = {
     name                     = "aif-${local.base_name}"
