@@ -87,6 +87,34 @@ module "foundry" {
   depends_on = [time_sleep.wait_before_purge_foundry]
 }
 
+resource "azapi_resource" "appinsights_connection" {
+  type                      = "Microsoft.CognitiveServices/accounts/connections@2025-06-01"
+  name                      = azurerm_application_insights.this.name
+  parent_id                 = module.foundry.ai_foundry_id
+  schema_validation_enabled = false
+
+  body = {
+    name = azurerm_application_insights.this.name
+    properties = {
+      category      = "AppInsights"
+      target        = azurerm_application_insights.this.id
+      authType      = "ApiKey"
+      isSharedToAll = true
+
+      credentials = {
+        key = azurerm_application_insights.this.connection_string
+      }
+
+      metadata = {
+        ApiType    = "Azure"
+        ResourceId = azurerm_application_insights.this.id
+      }
+    }
+  }
+
+  depends_on = [module.foundry]
+}
+
 resource "azapi_resource_action" "purge_ai_foundry" {
   method      = "DELETE"
   resource_id = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/providers/Microsoft.CognitiveServices/locations/${var.location}/resourceGroups/${azurerm_resource_group.this.name}/deletedAccounts/aif-${local.base_name}"
