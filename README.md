@@ -46,7 +46,7 @@ task validate
 
 Validation is intentionally component-local: TypeScript components use npm scripts, C# uses .NET build, Terraform uses `fmt/init/validate`, and each app container has a Dockerfile that can be built independently. You can also run pieces independently with `task security`, `task validate:code`, and `task validate:containers`.
 
-The CAIRA skill test can be run locally with `task test:skill`. It installs the skill into a fresh empty workspace, runs the README example prompt through GitHub Copilot CLI in unattended yolo mode, then asks Copilot to verify the generated result. The weekly `CAIRA Skill Test` workflow runs the same task and requires a `COPILOT_GITHUB_TOKEN` secret that can authenticate GitHub Copilot CLI.
+The CAIRA skill test can be run locally with `task test:skill`. It installs the skill into a fresh empty workspace, runs the README example prompt through GitHub Copilot CLI in unattended  mode, then asks Copilot to verify the generated result.
 
 ## Developing CAIRA
 

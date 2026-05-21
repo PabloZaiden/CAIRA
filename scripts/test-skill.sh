@@ -3,7 +3,6 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SKILL_SOURCE="${CAIRA_SKILL_SOURCE:-${ROOT_DIR}/skills}"
-COPILOT_VERSION="${CAIRA_COPILOT_VERSION:-1.0.51}"
 
 if [[ -n "${CAIRA_TEST_WORKDIR:-}" ]]; then
   WORK_DIR="${CAIRA_TEST_WORKDIR}"
@@ -32,16 +31,14 @@ ensure_copilot() {
     return
   fi
 
-  local tool_dir="${CAIRA_TEST_TOOL_DIR:-${WORK_DIR}/.tools/npm-global}"
-  echo "Installing GitHub Copilot CLI ${COPILOT_VERSION}"
-  npm install --global --prefix "${tool_dir}" "@github/copilot@${COPILOT_VERSION}" --silent
-  export PATH="${tool_dir}/bin:${PATH}"
+  echo "GitHub Copilot CLI is required but was not found on PATH." >&2
+  echo "Install it before running this test, then retry." >&2
+  exit 1
 }
 
 ensure_copilot
 
 export CI="${CI:-true}"
-export COPILOT_ALLOW_ALL="${COPILOT_ALLOW_ALL:-true}"
 export NO_COLOR="${NO_COLOR:-1}"
 
 COPILOT_ARGS=(
@@ -49,7 +46,6 @@ COPILOT_ARGS=(
   --yolo
   --no-ask-user
   --no-auto-update
-  --silent
   --stream
   off
 )
@@ -66,17 +62,15 @@ echo "Installing CAIRA skill from ${SKILL_SOURCE}"
 )
 
 read -r -d '' GENERATE_PROMPT <<'PROMPT' || true
-Use the installed CAIRA skill to create an agentic monitoring system to detect security-related issues in a configured GitHub repository using Azure AI Foundry, an API, and a React frontend with a dashboard.
+Create an agentic monitoring system to detect security-related issues in a configured GitHub repository using Azure AI Foundry, an API, and a React frontend with a dashboard.
 
 This is an unattended test in a brand-new empty directory. Treat the following as the clarifications and approvals you need so you can complete the task in one shot:
 - Do not ask follow-up questions and do not wait for confirmation.
 - Build a local scaffold/prototype only; do not deploy cloud resources and do not require real Azure credentials.
 - Use TypeScript for the API and React frontend.
-- Prefer the CAIRA Foundry Agent Service TypeScript API reference for the backend, the CAIRA React frontend reference for the dashboard, and the CAIRA API contract where useful.
 - Include placeholders and `.env.example` files for any required repository, Foundry, model, identity, or telemetry settings. Do not include secrets.
 - Add concise README/setup instructions that explain how to configure the target GitHub repository and Azure/Foundry settings later.
 - Preserve component-local validation style where practical, but keep the generated project small enough for a test.
-- In your final response, list the CAIRA reference paths you inspected or adapted and what you intentionally left out.
 PROMPT
 
 GENERATOR_OUTPUT="${WORK_DIR}/.caira-test-generator.out"
@@ -86,15 +80,15 @@ copilot "${COPILOT_ARGS[@]}" --prompt "${GENERATE_PROMPT}" | tee "${GENERATOR_OU
 read -r -d '' VERIFY_PROMPT <<'PROMPT' || true
 Verify the CAIRA skill test result in this workspace. Do not modify files.
 
-The generator was expected to install and use the CAIRA skill to create a local scaffold for: "Create an agentic monitoring system to detect security-related issues in a configured GitHub repository using Foundry, an API, and a React frontend with a dashboard."
+The generator was expected to use the CAIRA skill to create a local scaffold for: "Create an agentic monitoring system to detect security-related issues in a configured GitHub repository using Foundry, an API, and a React frontend with a dashboard."
 
 Inspect the workspace and the generator output in `.caira-test-generator.out`. The test passes only if all of these are true:
-1. The CAIRA skill is installed in this project, for example under `.agents/skills/caira/SKILL.md` or `skills/caira/SKILL.md`.
-2. The generator created concrete project files, not only prose.
-3. The generated project includes API/backend code, React frontend/dashboard code, and README or setup documentation.
-4. The generated documentation or final output identifies relevant CAIRA reference paths, including API and frontend references.
-5. The generated project uses placeholders or env examples instead of real secrets and does not attempt cloud deployment.
-6. The generator did not stop to ask clarification questions instead of implementing.
+1. The CAIRA skill is installed in this project.
+1. The generator created concrete project files, not only prose.
+1. The generated project includes API/backend code, React frontend/dashboard code, and README or setup documentation.
+1. The generated project uses placeholders or env examples instead of real secrets and does not attempt cloud deployment.
+1. The generated project has an IaC layer built with Terraform that uses the Foundry Azure Verified Module for Foundry resource provisioning.
+1. The generated project has an API layer that builds an agent using the deployed Foundry resources and connects it to the React frontend.
 
 End your response with exactly one result line, with no leading or trailing spaces:
 CAIRA_TEST_RESULT=PASS
