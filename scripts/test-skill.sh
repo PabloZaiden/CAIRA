@@ -72,7 +72,7 @@ echo "Test workspace: ${WORK_DIR}"
 echo "Installing CAIRA skill from ${SKILL_SOURCE}"
 (
   cd "${WORK_DIR}"
-  npx --yes skills add "${SKILL_SOURCE}" --skill caira --agent '*' --yes --copy
+  npx --yes skills add "${SKILL_SOURCE}" --skill caira --agent 'github-copilot' --yes --copy
 )
 
 read -r -d '' GENERATE_PROMPT <<'PROMPT' || true
@@ -80,7 +80,7 @@ Create an agentic monitoring system to detect security-related issues in a confi
 
 This is an unattended test in a brand-new empty directory. Treat the following as the clarifications and approvals you need so you can complete the task in one shot:
 - Do not ask follow-up questions and do not wait for confirmation.
-- Leave everything ready to deploy and run, but do not actually deploy or run anything.
+- Leave everything ready to deploy on Azure and run, but do not actually deploy or run anything.
 - Use TypeScript for the API and React frontend.
 PROMPT
 
