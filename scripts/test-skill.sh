@@ -80,11 +80,8 @@ Create an agentic monitoring system to detect security-related issues in a confi
 
 This is an unattended test in a brand-new empty directory. Treat the following as the clarifications and approvals you need so you can complete the task in one shot:
 - Do not ask follow-up questions and do not wait for confirmation.
-- Build a local scaffold/prototype only; do not deploy cloud resources and do not require real Azure credentials.
+- Leave everything ready to deploy and run, but do not actually deploy or run anything.
 - Use TypeScript for the API and React frontend.
-- Include placeholders and `.env.example` files for any required repository, Foundry, model, identity, or telemetry settings. Do not include secrets.
-- Add concise README/setup instructions that explain how to configure the target GitHub repository and Azure/Foundry settings later.
-- Preserve component-local validation style where practical, but keep the generated project small enough for a test.
 PROMPT
 
 GENERATOR_OUTPUT="${WORK_DIR}/.caira-test-generator.out"
@@ -116,7 +113,7 @@ run_copilot_prompt "${VERIFY_PROMPT}" "${VERIFIER_OUTPUT}"
 VERIFIER_EXIT_CODE="$?"
 set -e
 
-VERIFIER_RESULT="$(tail -n 1 "${VERIFIER_OUTPUT}")"
+VERIFIER_RESULT="$(sed -e '/^[[:space:]]*$/d' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' "${VERIFIER_OUTPUT}" | tail -n 1)"
 echo "Verifier result: ${VERIFIER_RESULT}"
 
 if [[ "${VERIFIER_EXIT_CODE}" -eq 0 && "${VERIFIER_RESULT}" =~ ^[[:space:]]*CAIRA_TEST_RESULT=PASS[[:space:]]*$ ]]; then
