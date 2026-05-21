@@ -46,13 +46,27 @@ COPILOT_ARGS=(
   --yolo
   --no-ask-user
   --no-auto-update
-  --stream
-  off
+  -s
 )
 
 if [[ -n "${CAIRA_COPILOT_MODEL:-}" ]]; then
   COPILOT_ARGS+=(--model "${CAIRA_COPILOT_MODEL}")
 fi
+
+run_copilot_prompt() {
+  local prompt="$1"
+  local output="$2"
+  local exit_code
+
+  set +e
+  copilot "${COPILOT_ARGS[@]}" --prompt "${prompt}" > "${output}"
+  exit_code="$?"
+  set -e
+
+  echo "Copilot output:"
+  cat "${output}"
+  return "${exit_code}"
+}
 
 echo "Test workspace: ${WORK_DIR}"
 echo "Installing CAIRA skill from ${SKILL_SOURCE}"
@@ -75,7 +89,7 @@ PROMPT
 
 GENERATOR_OUTPUT="${WORK_DIR}/.caira-test-generator.out"
 echo "Running Copilot generator"
-copilot "${COPILOT_ARGS[@]}" --prompt "${GENERATE_PROMPT}" | tee "${GENERATOR_OUTPUT}"
+run_copilot_prompt "${GENERATE_PROMPT}" "${GENERATOR_OUTPUT}"
 
 read -r -d '' VERIFY_PROMPT <<'PROMPT' || true
 Verify the CAIRA skill test result in this workspace. Do not modify files.
@@ -97,14 +111,21 @@ PROMPT
 
 VERIFIER_OUTPUT="${WORK_DIR}/.caira-test-verifier.out"
 echo "Running Copilot verifier"
-copilot "${COPILOT_ARGS[@]}" --prompt "${VERIFY_PROMPT}" | tee "${VERIFIER_OUTPUT}"
+set +e
+run_copilot_prompt "${VERIFY_PROMPT}" "${VERIFIER_OUTPUT}"
+VERIFIER_EXIT_CODE="$?"
+set -e
 
 VERIFIER_RESULT="$(tail -n 1 "${VERIFIER_OUTPUT}")"
+echo "Verifier result: ${VERIFIER_RESULT}"
 
-if [[ "${VERIFIER_RESULT}" =~ ^[[:space:]]*CAIRA_TEST_RESULT=PASS[[:space:]]*$ ]]; then
+if [[ "${VERIFIER_EXIT_CODE}" -eq 0 && "${VERIFIER_RESULT}" =~ ^[[:space:]]*CAIRA_TEST_RESULT=PASS[[:space:]]*$ ]]; then
   echo "CAIRA skill test passed"
 else
   echo "CAIRA skill test failed" >&2
+  if [[ "${VERIFIER_EXIT_CODE}" -ne 0 ]]; then
+    echo "Copilot verifier exited with code ${VERIFIER_EXIT_CODE}" >&2
+  fi
   echo "Generator output: ${GENERATOR_OUTPUT}" >&2
   echo "Verifier output: ${VERIFIER_OUTPUT}" >&2
   if [[ "${KEEP_WORK_DIR}" != "true" ]]; then
