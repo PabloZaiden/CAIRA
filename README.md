@@ -1,130 +1,53 @@
 # CAIRA
 
-CAIRA (Composable AI Reference Architectures) is a single repository for composing, validating, and deploying Azure AI solutions end to end. It includes deployable macro reference architectures, reusable infrastructure modules, application-layer components, a strategy builder that assembles supported deployment strategies, and the generated deployment strategies that CI validates every night.
+CAIRA (Composable AI Reference Architectures) is a small reference library for agents building Azure AI solutions. The primary entrypoint is the CAIRA skill: install the skill, let your coding agent inspect this repository, and have it copy or adapt only the reference pieces that fit your scenario.
 
-For most users, the primary way to use CAIRA is to install the CAIRA skill and let a coding agent inspect this repository as reference material. Clone the repository only if you want to contribute to CAIRA itself or inspect the source directly.
+Each directory under `reference-architectures/` is an independent reference component that should be easy to read, validate, copy, and modify.
 
 ## Quickstart
 
-Install the CAIRA skill from your project directory, then ask your coding agent to inspect CAIRA and adapt what it finds to your scenario.
-
-### Prerequisites
-
-If you do not already have `bunx` or `npx`, install Bun first:
-
-```bash
-curl -fsSL https://bun.com/install | bash
-```
-
-Restart your terminal, then verify:
-
-```bash
-bun --version
-```
-
-For Windows instructions, see <https://bun.com/docs/installation>.
-
-### Install the skill
-
-```bash
-cd /path/to/your-project
-```
-
-Using Bun:
+Install the skill from your project directory:
 
 ```bash
 bunx skills add github.com/microsoft/CAIRA/skills
 ```
 
-Using NPX:
+or:
 
 ```bash
 npx skills add github.com/microsoft/CAIRA/skills
 ```
 
-After installation, restart your agent session and ask it to inspect CAIRA for your scenario. For example: `Use CAIRA to design an Azure AI solution with Foundry, an API, and a frontend.`
-
-## What CAIRA contains
-
-- `strategy-builder/infra/reference-architectures/foundry_agentic_app/` — the default deployable reference architecture, composed from a Foundry foundation plus composable application-platform and service layers.
-- `strategy-builder/infra/modules/` — reusable Terraform modules consumed by the reference architectures and generated strategies.
-- `strategy-builder/infra/testing/` — Terraform test fixtures plus durable infrastructure pools reused by nightly validation.
-- `strategy-builder/` — source-of-truth application components, contracts, generators, and validation tooling.
-- `deployment-strategies/` — generated, committed end-to-end deployments built from the strategy builder.
-- `docs/` and `skills/` — contributor guidance, operating docs, and discovery assets.
-
-## Primary entrypoint: CAIRA skill
-
-1. Install the CAIRA skill with `bunx skills add github.com/microsoft/CAIRA/skills` or `npx skills add github.com/microsoft/CAIRA/skills`.
-1. Ask the agent to inspect the CAIRA reference architectures, modules, strategy-builder assets, deployment strategies, and docs that fit your scenario.
-1. Let the agent adapt those discovered CAIRA assets into a solution for your specific use case.
-1. Use the repository directly only when you need to contribute to CAIRA itself or inspect the source directly.
-
-## Contribute to the CAIRA repository
-
-1. Clone the repository.
-1. Preferred: open the repository in the default repository devcontainer.
-1. Local setup: install Task, then run `task setup`.
-1. Authenticate with Azure when you need deployment or integration workflows: `az login`.
-1. Use the Taskfile-first workflow from the repository root.
-
-## Contributor Taskfile-first workflows
-
-| Command                                                                                | Purpose                                                                                                                |
-|----------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------|
-| `task setup`                                                                           | Prepare a local machine for CAIRA development                                                                          |
-| `task validate:pr`                                                                     | Run the fast pull-request validation suite                                                                             |
-| `task test`                                                                            | Run the full local validation suite                                                                                    |
-| `task strategy:generate`                                                               | Regenerate committed deployment strategies                                                                             |
-| `task strategy:validate:drift`                                                         | Confirm generated deployment strategies still match the source-of-truth assets                                         |
-| `task strategy:dev -- deployment-strategies/<reference-architecture>/<name>`           | Run one generated strategy locally with Docker Compose                                                                 |
-| `task strategy:dev:azure -- deployment-strategies/<reference-architecture>/<name>`     | Run one generated strategy locally against Azure                                                                       |
-| `task strategy:deploy -- deployment-strategies/<reference-architecture>/<name>`        | Deploy one generated deployment strategy to Azure                                                                      |
-| `task strategy:destroy -- deployment-strategies/<reference-architecture>/<name>`       | Destroy one generated deployment strategy deployment                                                                   |
-| `task strategy:test:deployed -- deployment-strategies/<reference-architecture>/<name>` | Deploy, validate, and destroy one deployment strategy across the public, private, and private-capability-host profiles |
-
-Use `task strategy:deploy:reference` only for specialized maintenance work: deploying the shared baseline infrastructure or regenerating strategy `.env` files from it. Most contributors should ignore this command and use the standard strategy commands above.
-
-## Choose the right path
-
-| If you want to...                                                               | Start here                                     |
-|---------------------------------------------------------------------------------|------------------------------------------------|
-| Use CAIRA in your own solution                                                  | Quickstart above, then `skills/caira/SKILL.md` |
-| Extend CAIRA with new components, variants, templates, or deployment strategies | `docs/contributing/extending_caira.md`         |
-| Choose the right validation depth for your change                               | `docs/developer.md`                            |
-| Prepare or update a pull request                                                | `docs/contributing/pull_request_guide.md`      |
-
-## Repository model
+Then ask your agent to use CAIRA for your scenario, for example:
 
 ```text
-CAIRA/
-├── strategy-builder/
-│   ├── infra/
-│   │   ├── reference-architectures/
-│   │   │   └── foundry_agentic_app/
-│   │   ├── modules/
-│   │   └── testing/
-│   ├── components/
-│   └── scripts/
-├── deployment-strategies/
-├── docs/
-└── skills/
+Create an agentic monitoring system to detect security-related issues in a configured GitHub repository using Foundry, an API, and a React frontend with a dashboard.
 ```
 
-- The default reference architecture under `strategy-builder/infra/reference-architectures/foundry_agentic_app/` establishes the layered CAIRA baseline: Foundry foundation first, then composable application-platform and service layers.
-- The strategy builder turns reusable app-layer components plus infrastructure templates into committed deployment strategies.
-- `deployment-strategies/` is generated output and should stay in sync with `strategy-builder/`.
+## Reference components
 
-## Validation model
+| Path | Purpose |
+|------|---------|
+| `reference-architectures/iac/foundry/` | Terraform for a Foundry account, project, and model deployment. |
+| `reference-architectures/iac/container-apps/` | Terraform for Azure Container Apps hosting exactly two apps: API and frontend. |
+| `reference-architectures/app/api/typescript/openai-agents-sdk/` | Agentic API reference for Typescript using the OpenAI Agents SDK. |
+| `reference-architectures/app/api/typescript/foundry-agent-service/` | Agentic API reference for Typescript using Foundry Agent Service. |
+| `reference-architectures/app/api/csharp/microsoft-agent-framework/` | Agentic API reference for C# and Microsoft Agent Framework. |
+| `reference-architectures/app/frontend/typescript/react/` | Minimal React frontend with a small BFF proxy to the API. |
 
-- **Pull requests** run fast static validation only: linting, formatting, docs generation, docs build, Terraform validation, generator drift checks, and security scanners.
-- **Nightly validation** deploys, validates, and destroys every committed deployment strategy in parallel while reusing durable supporting infrastructure.
+## Contributor workflow
 
-## Learn more
+Install dependencies and validate all reference components:
 
-- Start with `skills/caira/SKILL.md` if you want to use CAIRA through a coding agent.
-- Start with `docs/README.md` for contributor and operator documentation.
-- Start with `docs/contributing/extending_caira.md` if you are adding or changing components, variants, templates, or deployment strategies.
-- Review `strategy-builder/infra/README.md` for the infrastructure layout.
-- Review `strategy-builder/README.md` for the app-layer and generator workflow.
-- Review the `deployment-strategies/*/README.md` files for generated strategy expectations.
+```bash
+task bootstrap
+task validate
+```
+
+Validation is intentionally component-local: TypeScript components use npm scripts, C# uses .NET build, Terraform uses `fmt/init/validate`, and each app container has a Dockerfile that can be built independently. You can also run pieces independently with `task security`, `task validate:code`, and `task validate:containers`.
+
+The CAIRA skill test can be run locally with `task test:skill`. It installs the skill into a fresh empty workspace, runs the README example prompt through GitHub Copilot CLI in unattended  mode, then asks Copilot to verify the generated result.
+
+## Developing CAIRA
+
+For information related to developing CAIRA, start with the documentation in [`docs/`](docs/). It includes contributor guidance, local environment setup, troubleshooting notes, and the repository security posture.

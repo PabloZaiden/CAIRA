@@ -1,157 +1,51 @@
-#  yaml-language-server: $schema=https://taskfile.dev/schema.json
-# docs: https://taskfile.dev
-#
-# --- Linux ---
-# sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b ~/.local/bin
-# echo 'command -v task >/dev/null || export PATH="$PATH:$HOME/.local/bin"' >> ~/.profile
-# source ~/.profile
-#
-# ---  macOS ---
-# brew install go-task/tap/go-task
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
 ---
 version: "3"
 
-vars:
-  REPO: microsoft/CAIRA
-  OS:
-    sh: uname | tr '[:upper:]' '[:lower:]'
-  ARCH:
-    sh: uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/'
-
-includes:
-  internal:
-    taskfile: .taskfiles/internal.yml
-  env:
-    taskfile: .taskfiles/environment.yml
-  sh:
-    taskfile: .taskfiles/bash.yml
-  gh:
-    taskfile: .taskfiles/github.yml
-  js:
-    taskfile: .taskfiles/javascript.yml
-  md:
-    taskfile: .taskfiles/markdown.yml
-  sec:
-    taskfile: .taskfiles/security.yml
-  spell:
-    taskfile: .taskfiles/spell.yml
-  tf:
-    taskfile: .taskfiles/terraform.yml
-  yml:
-    taskfile: .taskfiles/yaml.yml
-  site:
-    taskfile: .taskfiles/site.yml
-  strategy:
-    taskfile: .taskfiles/strategy-builder.yml
-
 tasks:
   default:
-    desc: Default task
+    desc: List tasks
     silent: true
     cmds:
-      - cmd: task --list
-        ignore_error: true
-
-  tools:
-    desc: Install tools
-    cmds:
-      - task: env:tools
-      - task: sh:tools
-      - task: gh:tools
-      - task: js:tools
-      - task: md:tools
-      - task: sec:tools
-      - task: spell:tools
-      - task: tf:tools
-      - task: yml:tools
-      - task: site:tools
+      - task --list
 
   bootstrap:
-    desc: Install workspace dependencies
+    desc: Install reference component dependencies
     cmds:
-      - task: strategy:install
+      - ./scripts/bootstrap.sh
 
-  setup:
-    desc: Prepare a local machine for CAIRA development
+  security:
+    desc: Scan repository for secrets
     cmds:
-      - cmd: |
-          set -euo pipefail
+      - ./scripts/security.sh
 
-          if ! command -v docker >/dev/null 2>&1; then
-            echo "Docker Desktop is required for CAIRA local development. Install it or use the devcontainer."
-            exit 1
-          fi
-        platforms: [darwin]
-      - task tools
-      - task bootstrap
+  validate:code:
+    desc: Validate code and infrastructure
+    cmds:
+      - ./scripts/validate-code.sh
 
-  lint:
-    desc: Lint files
-    deps:
+  validate:containers:
+    desc: Build reference component containers
+    cmds:
+      - ./scripts/validate-containers.sh
+
+  validate:
+    desc: Run complete repository validation
+    cmds:
       - task: bootstrap
-      - task: sh:lint
-      - task: gh:lint
-      - task: js:lint
-      - task: md:lint
-      - task: sec:lint
-      - task: spell:lint
-      - task: tf:lint
-      - task: yml:lint
+      - task: security
+      - task: validate:code
+      - task: validate:containers
 
-  test:
-    desc: Run the full local validation suite
+  test:skill:
+    desc: Run the unattended CAIRA skill test
     cmds:
-      - task: strategy:test:local
-
-  docs:
-    desc: Generate documentation
-    cmds:
-      - task: tf:docs
-      - task: spell:lint
-      - task: md:lint
-
-  validate:pr:
-    desc: Run fast pull request validation
-    cmds:
-      - cmd: |
-          set -euo pipefail
-
-          before_status="$(mktemp)"
-          after_status="$(mktemp)"
-          cleanup() {
-            rm -f "${before_status}" "${after_status}"
-          }
-          trap cleanup EXIT
-
-          git status --porcelain=v1 --untracked-files=all > "${before_status}"
-
-          task tf:docs
-          task lint
-          task strategy:validate:pr
-          task site:build -- --strict
-
-          git status --porcelain=v1 --untracked-files=all > "${after_status}"
-
-          if ! diff -u "${before_status}" "${after_status}" >/dev/null; then
-            echo
-            echo "Validation changed tracked or untracked files. Run 'task docs' and 'task strategy:generate' if needed, review the resulting diff, and commit the intended updates."
-            diff -u "${before_status}" "${after_status}" || true
-            echo
-            git diff --compact-summary || true
-            exit 1
-          fi
-
-  validate:nightly:
-    desc: Run nightly validation for one deployment strategy
-    preconditions:
-      - sh: test -n "{{.CLI_ARGS}}"
-        msg: "Provide a deployment strategy path, for example: task validate:nightly -- deployment-strategies/foundry_agentic_app/typescript-openai-agent-sdk-aca"
-    cmds:
-      - task: validate:pr
-      - cmd: task strategy:test:deployed -- --test-profile public,private,private-capability-host {{.CLI_ARGS}}
+      - ./scripts/test-skill.sh
 
   clean:
-    desc: Clean up files
-    deps:
-      - task: tf:clean
-      - task: site:clean
+    desc: Clean generated outputs
+    cmds:
+      - find reference-architectures -name ".terraform" -type d -prune -exec rm -rf {} +
+      - find reference-architectures -name ".terraform.lock.hcl" -type f -delete
+      - find reference-architectures -name "*.tfstate*" -type f -delete
+      - find reference-architectures -type d \( -name node_modules -o -name dist -o -name bin -o -name obj -o -name .terraform \) -prune -exec rm -rf {} +

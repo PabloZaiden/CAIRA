@@ -9,17 +9,14 @@ on:
     types:
       - opened
       - synchronize
-      - edited
       - reopened
-      - labeled
-      - unlabeled
       - ready_for_review
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ format('{0}-{1}-{2}-{3}-{4}', github.workflow, github.event_name, github.ref, github.base_ref || null, github.head_ref || null) }}
+  group: ${{ format('{0}-{1}', github.workflow, github.event.pull_request.number || github.ref) }}
   cancel-in-progress: true
 
 jobs:
@@ -35,32 +32,18 @@ jobs:
     needs: [approval]
     name: Dependency Review
     runs-on: ubuntu-24.04
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
     steps:
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
       - name: Run Dependency Review
-        uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.9.0
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
         with:
           show-openssf-scorecard: false
 
-  check_semantic_pr_title:
-    needs: [approval]
-    name: Check PR title
-    runs-on: ubuntu-24.04
-    permissions:
-      pull-requests: read
-    steps:
-      - name: Run Semantic PR validation
-        uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   validate:
+    name: Validate references
     needs: [approval]
-    name: Fast repository validation
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
@@ -72,16 +55,12 @@ jobs:
           node-version: "24"
           cache: npm
           cache-dependency-path: |
-            strategy-builder/package-lock.json
-            strategy-builder/**/package-lock.json
+            reference-architectures/app/**/package-lock.json
 
       - name: Setup .NET
         uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: "10.0.x"
-
-      - name: Install the latest version of uv
-        uses: astral-sh/setup-uv@eac588ad8def6316056a12d4907a9d4d84ff7a3b # v7.3.0
 
       - name: Setup Task
         uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611 # v2.0.0
@@ -91,26 +70,18 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
 
-      - name: Install repository tools
-        run: task tools
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-
-      - name: Install workspace dependencies
-        run: task bootstrap
-
-      - name: Run validation
-        run: task validate:pr
+      - name: Validate PR
+        run: task validate
 
   success:
-    needs: [dependency_review, check_semantic_pr_title, validate]
+    needs: [validate, dependency_review]
     if: ${{ always() }}
     name: Pull Request Success
     runs-on: ubuntu-24.04
     steps:
       - name: Success
         run: |
-          if [[ "${{ needs.dependency_review.result }}" == "success" && "${{ needs.check_semantic_pr_title.result }}" == "success" && "${{ needs.validate.result }}" == "success" ]]; then
+          if [[ "${{ needs.dependency_review.result }}" == "success" && "${{ needs.validate.result }}" == "success" ]]; then
             echo "All required checks passed."
           else
             echo "Some required checks did not pass."
