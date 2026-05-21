@@ -83,14 +83,13 @@ Verify the CAIRA skill test result in this workspace. Do not modify files.
 The generator was expected to use the CAIRA skill to create a local scaffold for: "Create an agentic monitoring system to detect security-related issues in a configured GitHub repository using Foundry, an API, and a React frontend with a dashboard."
 
 Inspect the workspace and the generator output in `.caira-test-generator.out`. The test passes only if all of these are true:
-1. The CAIRA skill is installed in this project.
 1. The generator created concrete project files, not only prose.
 1. The generated project includes API/backend code, React frontend/dashboard code, and README or setup documentation.
 1. The generated project uses placeholders or env examples instead of real secrets and does not attempt cloud deployment.
 1. The generated project has an IaC layer built with Terraform that uses the Foundry Azure Verified Module for Foundry resource provisioning.
 1. The generated project has an API layer that builds an agent using the deployed Foundry resources and connects it to the React frontend.
 
-End your response with exactly one result line, with no leading or trailing spaces:
+Explain your reasoning. The final line of your response must be one of the following, with no leading or trailing spaces:
 CAIRA_TEST_RESULT=PASS
 or
 CAIRA_TEST_RESULT=FAIL
@@ -100,7 +99,9 @@ VERIFIER_OUTPUT="${WORK_DIR}/.caira-test-verifier.out"
 echo "Running Copilot verifier"
 copilot "${COPILOT_ARGS[@]}" --prompt "${VERIFY_PROMPT}" | tee "${VERIFIER_OUTPUT}"
 
-if grep -Eq '^[[:space:]]*CAIRA_TEST_RESULT=PASS[[:space:]]*$' "${VERIFIER_OUTPUT}" && ! grep -Eq '^[[:space:]]*CAIRA_TEST_RESULT=FAIL[[:space:]]*$' "${VERIFIER_OUTPUT}"; then
+VERIFIER_RESULT="$(tail -n 1 "${VERIFIER_OUTPUT}")"
+
+if [[ "${VERIFIER_RESULT}" =~ ^[[:space:]]*CAIRA_TEST_RESULT=PASS[[:space:]]*$ ]]; then
   echo "CAIRA skill test passed"
 else
   echo "CAIRA skill test failed" >&2
