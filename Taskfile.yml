@@ -37,6 +37,11 @@ tasks:
       - task: validate:code
       - task: validate:containers
 
+  smoke:skill:
+    desc: Run the unattended CAIRA skill smoke test
+    cmds:
+      - ./scripts/smoke-skill.sh
+
   clean:
     desc: Clean generated outputs
     cmds:
