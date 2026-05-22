@@ -28,7 +28,7 @@ Ask only what is needed to choose components:
 - For scenarios that need OpenAI-compatible endpoints, prefer the Foundry IaC reference unless the user already has endpoints or asks for a different approach.
 - Determine what the user already has before proposing new infrastructure.
 - When possible, prefer managed identities or other passwordless identity patterns over API keys, static credentials, or secrets, unless the user explicitly asks for an API-key- or secret-based approach.
-- Before proposing repository security scans, check whether the target repository already has Gitleaks, Trivy, or comparable secret, dependency, container, or IaC scanning. If similar scanning is missing, ask whether the user wants to add Gitleaks and/or Trivy scans before implementing them.
+- Before proposing repository security scans, check whether the target repository already uses or has configured Gitleaks, Trivy, or similar tools for secret, dependency, container, or IaC scanning. If similar scanning is missing, ask whether the user wants to add Gitleaks and/or Trivy scans before implementing them.
 - Keep recommendations focused on the current reference components listed below.
 - Explain which CAIRA paths influenced the recommendation or generated files.
 - Always ask follow-up questions to narrow down the user's needs and avoid unnecessary copying of reference code.
