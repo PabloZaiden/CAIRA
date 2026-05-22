@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GITLEAKS_VERSION="8.30.0"
-TRIVY_VERSION="0.67.2"
+TRIVY_VERSION="0.70.0"
 
 install_gitleaks() {
   local os arch archive url install_dir
