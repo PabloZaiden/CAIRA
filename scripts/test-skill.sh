@@ -38,8 +38,9 @@ ensure_copilot() {
 
 configure_foundry_provider() {
   local foundry_config_requested="false"
+  local provider_model="${COPILOT_PROVIDER_MODEL_ID:-${CAIRA_COPILOT_MODEL:-}}"
 
-  if [[ -n "${CAIRA_FOUNDRY_BASE_URL:-}" || -n "${CAIRA_FOUNDRY_BEARER_TOKEN:-}" || -n "${CAIRA_FOUNDRY_MODEL:-}" ]]; then
+  if [[ -n "${COPILOT_PROVIDER_BASE_URL:-}" || -n "${COPILOT_PROVIDER_BEARER_TOKEN:-}" || -n "${COPILOT_PROVIDER_MODEL_ID:-}" ]]; then
     foundry_config_requested="true"
   fi
 
@@ -47,37 +48,32 @@ configure_foundry_provider() {
     return
   fi
 
-  if [[ -z "${CAIRA_FOUNDRY_BASE_URL:-}" ]]; then
-    echo "CAIRA_FOUNDRY_BASE_URL is required when Foundry provider configuration is enabled." >&2
+  if [[ -z "${COPILOT_PROVIDER_BASE_URL:-}" ]]; then
+    echo "COPILOT_PROVIDER_BASE_URL is required when Foundry provider configuration is enabled." >&2
     exit 1
   fi
 
-  if [[ -z "${CAIRA_FOUNDRY_BEARER_TOKEN:-}" && -z "${COPILOT_PROVIDER_BEARER_TOKEN:-}" ]]; then
-    echo "CAIRA_FOUNDRY_BEARER_TOKEN or COPILOT_PROVIDER_BEARER_TOKEN is required when Foundry provider configuration is enabled." >&2
+  if [[ -z "${COPILOT_PROVIDER_BEARER_TOKEN:-}" ]]; then
+    echo "COPILOT_PROVIDER_BEARER_TOKEN is required when Foundry provider configuration is enabled." >&2
     exit 1
   fi
 
-  if [[ -z "${CAIRA_FOUNDRY_MODEL:-}" && -z "${CAIRA_COPILOT_MODEL:-}" && -z "${COPILOT_PROVIDER_MODEL_ID:-}" ]]; then
-    echo "CAIRA_FOUNDRY_MODEL, CAIRA_COPILOT_MODEL, or COPILOT_PROVIDER_MODEL_ID is required when Foundry provider configuration is enabled." >&2
+  if [[ -z "${CAIRA_COPILOT_MODEL:-}" && -z "${COPILOT_PROVIDER_MODEL_ID:-}" ]]; then
+    echo "CAIRA_COPILOT_MODEL or COPILOT_PROVIDER_MODEL_ID is required when Foundry provider configuration is enabled." >&2
     exit 1
   fi
 
-  if [[ "${CAIRA_FOUNDRY_BASE_URL}" != */openai/v1/ && "${CAIRA_FOUNDRY_BASE_URL}" != */openai/v1 ]]; then
-    echo "CAIRA_FOUNDRY_BASE_URL must be an Azure AI Foundry OpenAI-compatible endpoint ending in /openai/v1/." >&2
+  if [[ "${COPILOT_PROVIDER_BASE_URL}" != */openai/v1/ && "${COPILOT_PROVIDER_BASE_URL}" != */openai/v1 ]]; then
+    echo "COPILOT_PROVIDER_BASE_URL must be an Azure AI Foundry OpenAI-compatible endpoint ending in /openai/v1/." >&2
     exit 1
   fi
 
   export COPILOT_ENABLE_ALT_PROVIDERS="${COPILOT_ENABLE_ALT_PROVIDERS:-true}"
   export COPILOT_PROVIDER_TYPE="${COPILOT_PROVIDER_TYPE:-openai}"
-  export COPILOT_PROVIDER_BASE_URL="${COPILOT_PROVIDER_BASE_URL:-${CAIRA_FOUNDRY_BASE_URL}}"
-  export COPILOT_PROVIDER_BEARER_TOKEN="${COPILOT_PROVIDER_BEARER_TOKEN:-${CAIRA_FOUNDRY_BEARER_TOKEN}}"
-  export COPILOT_PROVIDER_WIRE_API="${COPILOT_PROVIDER_WIRE_API:-${CAIRA_FOUNDRY_WIRE_API:-responses}}"
-
-  if [[ -n "${CAIRA_FOUNDRY_MODEL:-}" ]]; then
-    export COPILOT_PROVIDER_MODEL_ID="${COPILOT_PROVIDER_MODEL_ID:-${CAIRA_FOUNDRY_MODEL}}"
-    export COPILOT_PROVIDER_WIRE_MODEL="${COPILOT_PROVIDER_WIRE_MODEL:-${CAIRA_FOUNDRY_MODEL}}"
-    CAIRA_COPILOT_MODEL="${CAIRA_COPILOT_MODEL:-${CAIRA_FOUNDRY_MODEL}}"
-  fi
+  export COPILOT_PROVIDER_WIRE_API="${COPILOT_PROVIDER_WIRE_API:-responses}"
+  export COPILOT_PROVIDER_MODEL_ID="${COPILOT_PROVIDER_MODEL_ID:-${provider_model}}"
+  export COPILOT_PROVIDER_WIRE_MODEL="${COPILOT_PROVIDER_WIRE_MODEL:-${provider_model}}"
+  CAIRA_COPILOT_MODEL="${CAIRA_COPILOT_MODEL:-${provider_model}}"
 }
 
 ensure_copilot

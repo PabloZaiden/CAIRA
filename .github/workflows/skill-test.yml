@@ -38,8 +38,8 @@ jobs:
           AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
           AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
           AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-          CAIRA_FOUNDRY_BASE_URL: ${{ vars.CAIRA_FOUNDRY_BASE_URL }}
-          CAIRA_FOUNDRY_MODEL: ${{ vars.CAIRA_FOUNDRY_MODEL }}
+          COPILOT_PROVIDER_BASE_URL: ${{ vars.COPILOT_PROVIDER_BASE_URL }}
+          COPILOT_PROVIDER_MODEL_ID: ${{ vars.COPILOT_PROVIDER_MODEL_ID }}
         run: |
           set -euo pipefail
 
@@ -47,8 +47,8 @@ jobs:
             AZURE_CLIENT_ID
             AZURE_TENANT_ID
             AZURE_SUBSCRIPTION_ID
-            CAIRA_FOUNDRY_BASE_URL
-            CAIRA_FOUNDRY_MODEL
+            COPILOT_PROVIDER_BASE_URL
+            COPILOT_PROVIDER_MODEL_ID
           )
 
           for var_name in "${required_vars[@]}"; do
@@ -58,8 +58,8 @@ jobs:
             fi
           done
 
-          if [[ "${CAIRA_FOUNDRY_BASE_URL}" != */openai/v1/ && "${CAIRA_FOUNDRY_BASE_URL}" != */openai/v1 ]]; then
-            echo "CAIRA_FOUNDRY_BASE_URL must be an Azure AI Foundry OpenAI-compatible endpoint ending in /openai/v1/." >&2
+          if [[ "${COPILOT_PROVIDER_BASE_URL}" != */openai/v1/ && "${COPILOT_PROVIDER_BASE_URL}" != */openai/v1 ]]; then
+            echo "COPILOT_PROVIDER_BASE_URL must be an Azure AI Foundry OpenAI-compatible endpoint ending in /openai/v1/." >&2
             exit 1
           fi
 
@@ -87,20 +87,14 @@ jobs:
           fi
 
           echo "::add-mask::${token}"
-          {
-            echo "CAIRA_FOUNDRY_BEARER_TOKEN=${token}"
-            echo "COPILOT_PROVIDER_BEARER_TOKEN=${token}"
-          } >> "${GITHUB_ENV}"
+          echo "COPILOT_PROVIDER_BEARER_TOKEN=${token}" >> "${GITHUB_ENV}"
 
       - name: Run CAIRA skill test
         env:
-          CAIRA_FOUNDRY_BASE_URL: ${{ vars.CAIRA_FOUNDRY_BASE_URL }}
-          CAIRA_FOUNDRY_MODEL: ${{ vars.CAIRA_FOUNDRY_MODEL }}
-          CAIRA_FOUNDRY_WIRE_API: ${{ vars.CAIRA_FOUNDRY_WIRE_API || 'responses' }}
           COPILOT_ENABLE_ALT_PROVIDERS: "true"
           COPILOT_PROVIDER_TYPE: openai
-          COPILOT_PROVIDER_BASE_URL: ${{ vars.CAIRA_FOUNDRY_BASE_URL }}
-          COPILOT_PROVIDER_MODEL_ID: ${{ vars.CAIRA_FOUNDRY_MODEL }}
-          COPILOT_PROVIDER_WIRE_MODEL: ${{ vars.CAIRA_FOUNDRY_MODEL }}
-          COPILOT_PROVIDER_WIRE_API: ${{ vars.CAIRA_FOUNDRY_WIRE_API || 'responses' }}
+          COPILOT_PROVIDER_BASE_URL: ${{ vars.COPILOT_PROVIDER_BASE_URL }}
+          COPILOT_PROVIDER_MODEL_ID: ${{ vars.COPILOT_PROVIDER_MODEL_ID }}
+          COPILOT_PROVIDER_WIRE_MODEL: ${{ vars.COPILOT_PROVIDER_MODEL_ID }}
+          COPILOT_PROVIDER_WIRE_API: ${{ vars.COPILOT_PROVIDER_WIRE_API || 'responses' }}
         run: task test:skill
