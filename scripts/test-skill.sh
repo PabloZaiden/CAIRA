@@ -154,7 +154,7 @@ set -e
 VERIFIER_RESULT="$(
   sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' "${VERIFIER_OUTPUT}" |
     grep -E '^CAIRA_TEST_RESULT=(PASS|FAIL)$' |
-    tail -n 1
+    tail -n 1 || true
 )"
 echo "Verifier result: ${VERIFIER_RESULT}"
 
