@@ -64,7 +64,7 @@ configure_foundry_provider() {
   fi
 
   if [[ "${COPILOT_PROVIDER_BASE_URL}" != */openai/v1/ && "${COPILOT_PROVIDER_BASE_URL}" != */openai/v1 ]]; then
-    echo "COPILOT_PROVIDER_BASE_URL must be an Azure AI Foundry OpenAI-compatible endpoint ending in /openai/v1/." >&2
+    echo "COPILOT_PROVIDER_BASE_URL must be an Azure AI Foundry OpenAI-compatible endpoint ending in /openai/v1 or /openai/v1/." >&2
     exit 1
   fi
 
@@ -153,7 +153,7 @@ set -e
 
 VERIFIER_RESULT="$(
   sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' "${VERIFIER_OUTPUT}" |
-    grep -E '^CAIRA_TEST_RESULT=(PASS|FAIL)$' |
+    { grep -E '^CAIRA_TEST_RESULT=(PASS|FAIL)$' || true; } |
     tail -n 1 || true
 )"
 echo "Verifier result: ${VERIFIER_RESULT}"
