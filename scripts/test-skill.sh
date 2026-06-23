@@ -87,7 +87,6 @@ COPILOT_ARGS=(
   --yolo
   --no-ask-user
   --no-auto-update
-  -s
 )
 
 if [[ -n "${CAIRA_COPILOT_MODEL:-}" ]]; then
@@ -100,12 +99,10 @@ run_copilot_prompt() {
   local exit_code
 
   set +e
-  copilot "${COPILOT_ARGS[@]}" --prompt "${prompt}" > "${output}"
-  exit_code="$?"
+  copilot "${COPILOT_ARGS[@]}" --prompt "${prompt}" 2>&1 | tee "${output}"
+  exit_code="${PIPESTATUS[0]}"
   set -e
 
-  echo "Copilot output:"
-  cat "${output}"
   return "${exit_code}"
 }
 
@@ -154,7 +151,11 @@ run_copilot_prompt "${VERIFY_PROMPT}" "${VERIFIER_OUTPUT}"
 VERIFIER_EXIT_CODE="$?"
 set -e
 
-VERIFIER_RESULT="$(sed -e '/^[[:space:]]*$/d' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' "${VERIFIER_OUTPUT}" | tail -n 1)"
+VERIFIER_RESULT="$(
+  sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' "${VERIFIER_OUTPUT}" |
+    grep -E '^CAIRA_TEST_RESULT=(PASS|FAIL)$' |
+    tail -n 1
+)"
 echo "Verifier result: ${VERIFIER_RESULT}"
 
 if [[ "${VERIFIER_EXIT_CODE}" -eq 0 && "${VERIFIER_RESULT}" =~ ^[[:space:]]*CAIRA_TEST_RESULT=PASS[[:space:]]*$ ]]; then
