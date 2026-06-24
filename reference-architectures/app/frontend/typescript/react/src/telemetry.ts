@@ -1,5 +1,5 @@
 import { context, propagation } from '@opentelemetry/api';
-import { shutdownAzureMonitor, useAzureMonitor } from '@azure/monitor-opentelemetry';
+import { shutdownMicrosoftOpenTelemetry, useMicrosoftOpenTelemetry } from '@microsoft/opentelemetry';
 
 let telemetryInitialised = false;
 
@@ -12,11 +12,14 @@ export function setupTelemetry(serviceName: string, connectionString?: string | 
     return;
   }
 
-  useAzureMonitor({
-    azureMonitorExporterOptions: {
-      connectionString
+  useMicrosoftOpenTelemetry({
+    azureMonitor: {
+      enabled: true,
+      azureMonitorExporterOptions: {
+        connectionString
+      },
+      enableLiveMetrics: false
     },
-    enableLiveMetrics: false,
     instrumentationOptions: {
       http: { enabled: true }
     },
@@ -31,7 +34,7 @@ export async function shutdownTelemetry(): Promise<void> {
   if (!telemetryInitialised) {
     return;
   }
-  await shutdownAzureMonitor();
+  await shutdownMicrosoftOpenTelemetry();
   telemetryInitialised = false;
 }
 
