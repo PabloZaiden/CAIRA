@@ -45,7 +45,7 @@ resource "azurerm_application_insights" "this" {
 
 module "foundry" {
   source  = "Azure/avm-ptn-aiml-ai-foundry/azurerm"
-  version = "0.10.1"
+  version = "0.11.2"
 
   base_name                  = local.avm_base_name
   location                   = var.location
@@ -118,7 +118,7 @@ resource "azapi_resource" "appinsights_connection" {
 resource "azapi_resource_action" "purge_ai_foundry" {
   method      = "DELETE"
   resource_id = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/providers/Microsoft.CognitiveServices/locations/${var.location}/resourceGroups/${azurerm_resource_group.this.name}/deletedAccounts/aif-${local.base_name}"
-  type        = "Microsoft.Resources/resourceGroups/deletedAccounts@2025-09-01"
+  type        = "Microsoft.CognitiveServices/locations/resourceGroups/deletedAccounts@2025-09-01"
   when        = "destroy"
 }
 
