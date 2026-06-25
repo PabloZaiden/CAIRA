@@ -4,7 +4,7 @@ description: Primary entrypoint for coding agents using CAIRA as reference mater
 compatibility: Needs access to the github.com/microsoft/caira repository.
 metadata:
   author: Microsoft
-  version: "0.4.1"
+  version: "0.4.2"
 ---
 
 # CAIRA
