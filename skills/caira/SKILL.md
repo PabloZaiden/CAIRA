@@ -29,8 +29,8 @@ Ask only what is needed to choose components:
 - For scenarios that need OpenAI-compatible endpoints, prefer the Foundry IaC reference unless the user already has endpoints or asks for a different approach.
 - Determine what the user already has before proposing new infrastructure.
 - Always use managed identities or other passwordless identity patterns. NEVER USE API keys, static credentials, or secrets, unless the user explicitly asks for an API-key- or secret-based approach.
-- When implementing IaC for Foundry, use the Azure Verified Module, as shown in the reference architectures. Don't use stand alone terraform resources related to Foundry unless explicitly requested.
-- If an API that communicates with Foundry needs to be implemented, ALWAYS prefer using Foundry resources instead of Azure OpenAI, unless the user explicitly asks for it. Even with the OpenAI Agents SDK.
+- When implementing IaC for Foundry, use the Azure Verified Module, as shown in the reference architectures. Don't use standalone Terraform resources related to Foundry unless explicitly requested.
+- If an API that communicates with Foundry needs to be implemented, ALWAYS prefer using Foundry resources instead of Azure OpenAI resources, unless the user explicitly asks for Azure OpenAI. Even with the OpenAI Agents SDK.
 - Before proposing repository security scans, check whether the target repository already uses or has configured Gitleaks, Trivy, or similar tools for secret, dependency, container, or IaC scanning. If similar scanning is missing, ask whether the user wants to add Gitleaks and/or Trivy scans before implementing them.
 - Keep recommendations focused on the current reference components listed below.
 - Explain which CAIRA paths influenced the recommendation or generated files.
