@@ -23,8 +23,8 @@ Ask only what is needed to choose components:
 
 ## Core rules
 
-- Use the `reference-architectures` directory in the `github.com/microsoft/caira/` repository as the canonical source of truth. Inspect it either with the github mcp server if available, through GitHub raw URLs or clone the repository temporarily to inspect `reference-architectures/` locally;
-- When reviewing the reference architectures, read the full code of the desired conponent. do not limit the investigation to the readme or docs. The source of truth is the code.  
+- Use the `reference-architectures` directory in the `github.com/microsoft/caira/` repository as the canonical source of truth. Inspect it either with the GitHub MCP server if available, through GitHub raw URLs, or clone the repository temporarily to inspect `reference-architectures/` locally.
+- When reviewing the reference architectures, read the full code of the desired component. Do not limit the investigation to the README or docs. The source of truth is the code.
 - Prefer small component references over full-stack copying.
 - For scenarios that need OpenAI-compatible endpoints, prefer the Foundry IaC reference unless the user already has endpoints or asks for a different approach.
 - Determine what the user already has before proposing new infrastructure.
